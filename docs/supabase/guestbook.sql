@@ -25,6 +25,10 @@ create policy "guestbook write" on public.guestbook
 
 -- 수정(update)·삭제(delete) 정책은 만들지 않는다 → 공개 키로는 불가능
 
+-- 프로젝트를 만들 때 "Automatically expose new tables"를 껐다면, 공개 키(anon)에 필요한 권한만 직접 준다
+grant usage on schema public to anon;
+grant select, insert on public.guestbook to anon;
+
 -- 동물을 추가하면 species 목록도 늘린다. 예:
 -- alter table public.guestbook drop constraint guestbook_species_check;
 -- alter table public.guestbook add constraint guestbook_species_check
