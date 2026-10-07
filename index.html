@@ -6,16 +6,17 @@
 <title>도시에서 태어나기</title>
 <meta name="description" content="도시의 동물로 랜덤하게 태어나, 주택가와 도심과 공원 사이에서 끝까지 살아남는 선택형 게임.">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri@2.40.3/dist/galmuri.css">
-<link rel="stylesheet" href="css/style.css?v=202610072010">
+<link rel="stylesheet" href="css/style.css?v=202610072026">
 </head>
 <body>
 <main class="app">
   <canvas id="stage" aria-hidden="true"></canvas>
+  <canvas id="fx" aria-hidden="true"></canvas>
   <header class="hud" id="hud" hidden>
     <div class="tag who"><b id="spName"></b><small id="spLatin"></small><span id="age"></span></div>
     <div class="tag vitals">
-      <div class="vrow"><span>체력</span><span class="seg hp" id="hpBar"></span><span class="num" id="hpNum"></span></div>
-      <div class="vrow"><span>포만</span><span class="seg food" id="foodBar"></span><span class="num" id="foodNum"></span></div>
+      <div class="vrow" id="hpRow"><span>체력</span><span class="seg hp" id="hpBar"></span><span class="num" id="hpNum"></span></div>
+      <div class="vrow" id="foodRow"><span>포만</span><span class="seg food" id="foodBar"></span><span class="num" id="foodNum"></span></div>
       <div class="kids" id="kids"></div>
     </div>
     <div class="scale"><i id="scaleBar"></i><span id="scaleLabel"></span></div>
@@ -34,23 +35,26 @@
     </div>
     <div class="picks" id="picks"></div>
   </section>
+  <div class="fx-layer" id="fxLayer" aria-hidden="true"></div>
 </main>
 
-<script src="js/core/color.js?v=202610072010"></script>
-<script src="js/core/engine.js?v=202610072010"></script>
-<script src="js/data/scenes.js?v=202610072010"></script>
-<script src="js/data/registry.js?v=202610072010"></script>
-<script src="js/data/species/cat.js?v=202610072010"></script>
-<script src="js/data/species/cockroach.js?v=202610072010"></script>
-<script src="js/data/species/pigeon.js?v=202610072010"></script>
-<script src="js/data/species/fly.js?v=202610072010"></script>
-<script src="js/render/paper.js?v=202610072010"></script>
-<script src="js/render/items-outdoor.js?v=202610072010"></script>
-<script src="js/render/items-indoor.js?v=202610072010"></script>
-<script src="js/render/animals.js?v=202610072010"></script>
-<script src="js/render/backdrop.js?v=202610072010"></script>
-<script src="js/render/scene.js?v=202610072010"></script>
-<script src="js/ui.js?v=202610072010"></script>
-<script src="js/main.js?v=202610072010"></script>
+<script src="js/core/color.js?v=202610072026"></script>
+<script src="js/core/engine.js?v=202610072026"></script>
+<script src="js/data/scenes.js?v=202610072026"></script>
+<script src="js/data/registry.js?v=202610072026"></script>
+<script src="js/data/species/cat.js?v=202610072026"></script>
+<script src="js/data/species/cockroach.js?v=202610072026"></script>
+<script src="js/data/species/pigeon.js?v=202610072026"></script>
+<script src="js/data/species/fly.js?v=202610072026"></script>
+<script src="js/render/paper.js?v=202610072026"></script>
+<script src="js/render/items-outdoor.js?v=202610072026"></script>
+<script src="js/render/items-indoor.js?v=202610072026"></script>
+<script src="js/render/animals.js?v=202610072026"></script>
+<script src="js/render/backdrop.js?v=202610072026"></script>
+<script src="js/render/scene.js?v=202610072026"></script>
+<script src="js/render/blood.js?v=202610072026"></script>
+<script src="js/ui.js?v=202610072026"></script>
+<script src="js/fx.js?v=202610072026"></script>
+<script src="js/main.js?v=202610072026"></script>
 </body>
 </html>

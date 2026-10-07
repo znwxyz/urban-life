@@ -27,7 +27,13 @@
 html, body { height: 100%; }
 body { margin: 0; background: var(--night); color: var(--ink); font-family: var(--f-body); font-size: 14px; overflow: hidden; -webkit-font-smoothing: none; }
 .app { position: relative; height: 100%; overflow: hidden; }
-#stage { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#stage, #fx { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#fx { pointer-events: none; }
+#stage { transition: filter .5s ease; }
+/* 죽음: 장면만 대비 강한 흑백으로. 피(#fx)와 카드는 색을 유지한다 */
+body.dead #stage { filter: grayscale(1) contrast(1.5) brightness(.92); }
+body.shake .app { animation: shake .36s cubic-bezier(.36, .07, .19, .97); }
+@keyframes shake { 10%, 90% { transform: translate(-2px, 1px); } 20%, 80% { transform: translate(4px, -2px); } 30%, 50%, 70% { transform: translate(-6px, 2px); } 40%, 60% { transform: translate(6px, -1px); } }
 button { font: inherit; color: inherit; }
 
 /* 종이 이름표 + 마스킹 테이프 */
@@ -53,6 +59,23 @@ button { font: inherit; color: inherit; }
 .seg.food i.on { background: var(--butter); }
 .num { min-width: 3ch; text-align: right; font-variant-numeric: tabular-nums; }
 .kids { color: var(--pink-deep); }
+/* 칸이 찰 때와 줄어들 때 */
+.seg i.gain { animation: segGain .55s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes segGain { 0% { transform: scale(2.2); background: #fff; box-shadow: 0 0 8px #fff; } 100% { transform: none; } }
+.seg i.lost { animation: segLost .8s steps(1, end) forwards; }
+@keyframes segLost { 0%, 50% { background: var(--berry); } 25%, 75% { background: var(--rule); } 100% { background: var(--rule); } }
+.vrow.hurt { animation: rowHurt .4s ease; }
+.vrow.hurt .num { animation: numHurt .8s steps(1, end); }
+@keyframes rowHurt { 20% { transform: translateX(-3px); } 40% { transform: translateX(3px); } 60% { transform: translateX(-2px); } 80% { transform: translateX(1px); } }
+@keyframes numHurt { 0%, 50% { color: var(--berry); } 25%, 75%, 100% { color: inherit; } }
+.vrow.ping .num, .vrow.fill .num { animation: numPing .35s ease; }
+@keyframes numPing { 50% { transform: scale(1.35); color: var(--teal); } }
+
+/* 별똥별 */
+.fx-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 20; }
+.spark { position: fixed; left: 0; top: 0; font-size: 28px; line-height: 1; color: #fff; will-change: transform, opacity; }
+.spark.hp { text-shadow: 0 0 4px #b6ffe2, 0 0 10px #3fd39a, 0 0 22px #3fd39a; }
+.spark.food { text-shadow: 0 0 4px #fff1bf, 0 0 10px #ffb42e, 0 0 22px #ffb42e; }
 .kids:empty { display: none; }
 .scale { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; font-family: var(--f-small); font-size: 11px; color: var(--paper); text-shadow: 0 1px 0 rgba(42, 36, 56, .6); }
 .scale i { display: block; height: 5px; border: 2px solid var(--paper); border-top: 0; transition: width .4s; }
@@ -130,6 +153,11 @@ button { font: inherit; color: inherit; }
 .pick:hover, .pick:focus-visible { background: var(--pink); color: var(--paper); translate: 0 -2px; outline: none; }
 .pick:hover .arrow, .pick:focus-visible .arrow { color: var(--paper); }
 .pick:active { translate: 0 1px; }
+/* 고른 꼬리표는 카드와 같이 날아가고, 안 고른 쪽은 작아지며 사라진다 */
+.pick.gone-l, .pick.gone-r { transition: transform .24s ease-in; pointer-events: none; }
+.pick.gone-l { transform: translateX(-120vw) rotate(-16deg); }
+.pick.gone-r { transform: translateX(120vw) rotate(16deg); }
+.pick.fade { transition: opacity .22s ease, transform .22s ease; opacity: 0; transform: scale(.8); pointer-events: none; }
 
 /* 스탯 도장, 엔딩 인장 */
 .stamps { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -157,6 +185,7 @@ button { font: inherit; color: inherit; }
   .card h2 { font-size: 22px; }
 }
 @media (prefers-reduced-motion: reduce) {
+  body.shake .app, .seg i.gain, .seg i.lost, .vrow.hurt, .vrow.hurt .num { animation: none; }
   .card-wrap.deal { animation: none; }
   .pick, .scale i { transition: none; }
 }

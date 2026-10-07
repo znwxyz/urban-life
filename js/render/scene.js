@@ -6,6 +6,7 @@ const HERO_SCREEN_X = .3, TRACKER = '#fffaf0', DEFAULT_VIEW_CM = 600, DEFAULT_EY
 const BANDS = Object.freeze([{ k: 'l', cell: 1500, dens: .6, salt: 3 }, { k: 'm', cell: 340, dens: .55, salt: 7 }, { k: 's', cell: 26, dens: .6, salt: 11 }]);
 const PARTICLES = Array.from({ length: 140 }, () => ({ x: Math.random(), y: Math.random(), v: .6 + Math.random() * .6 }));
 let vignette = null;
+let lastFrame = { s: 1, g: 0 };
 
 function resizeStage() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -167,6 +168,12 @@ function drawTracker(f, sp) {
   ctx.restore();
 }
 
+/** 지금 화면에서 주인공이 차지하는 원 (피 연출 위치) */
+function heroRect(sp) {
+  const { s, g } = lastFrame, [x0, y0, x1, y1] = sp.box;
+  return { cx: W * HERO_SCREEN_X + (x0 + x1) / 2 * s, cy: g + (y0 + y1) / 2 * s, r: Math.max(x1 - x0, y1 - y0) * s / 2 };
+}
+
 /** 한 프레임을 그리고 이번 프레임의 배율(px/cm)을 돌려준다 */
 function drawScene(v, sp, dt) {
   const sc = SCENES[v.scene];
@@ -176,6 +183,7 @@ function drawScene(v, sp, dt) {
   const g = clamp(H * .5 + eye * s, H * .56, H * .78);
   const p = paletteFor(v.scene, v.night, v.weather === 'snow');
   const f = { sc, p, t: makeTone(p), s, g, v, scroll: v.camX * s };
+  lastFrame = { s, g };
   drawSky(f); drawFar(f); drawWalls(f); drawCeiling(f); drawGround(f);
   drawItems(f); drawProp(f);
   if (sp) drawHero(f, sp);

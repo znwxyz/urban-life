@@ -1,6 +1,6 @@
 /* 게임 흐름: 탄생 → 장면으로 이동 → 좌우 선택 → 결과 → 다음 장면 … → 엔딩. 프레임 루프 */
 const MOVE_MS = 2600, MOVE_MS_REDUCED = 700, FADE_S = .45, ACCEL = 3, IDLE_RATIO = .05, DEFAULT_SPEED = 60;
-const PROP_SCREEN_X = .58, SETTLE_S = 1.5, SIM_DT = 1 / 60;
+const DEAL_MS = 380, DEATH_HOLD_MS = 950, PROP_SCREEN_X = .58, SETTLE_S = 1.5, SIM_DT = 1 / 60;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const SPECIES_KEYS = Object.keys(SPECIES);
 
@@ -29,6 +29,7 @@ function travelAhead(cruise, ms) {
 function showPicker() {
   clearTimeout(moveTimer);
   run = null; phase = 'picker';
+  clearDeath();
   updateHud(null, null); hideCaption(); hideCard();
   setScene('villaAlley');
   $('pickGrid').replaceChildren(...SPECIES_KEYS.map((key) => {
@@ -47,6 +48,7 @@ function revealBirth(key) {
   const sp = SPECIES[key];
   clearTimeout(moveTimer); $('picker').hidden = true;
   run = newRun(sp); phase = 'birth';
+  clearDeath();
   const first = sp.scenes[sp.start];
   setScene(first.bg, { prop: first.prop });
   view.propX = view.camX + PROP_SCREEN_X * sp.viewCm;
@@ -89,6 +91,7 @@ function showChoice() {
 function chooseOption(i) {
   if (phase !== 'choice') return;
   const sp = currentSp();
+  const prev = run;
   try {
     run = applyChoice(sp, run, i);
   } catch (err) {
@@ -97,11 +100,15 @@ function chooseOption(i) {
       next: { label: '처음으로', act: showPicker } });
     return;
   }
+  if (!run.ending) { updateHud(sp, run, prev); showOutcome(prev); return; }
   updateHud(sp, run);
-  if (run.ending) showEnding(); else showOutcome();
+  if (sp.endings[run.ending].kind !== 'dead') { showEnding(); return; }
+  phase = 'ending';
+  startDeath(heroRect(sp));
+  setTimeout(showEnding, reducedMotion ? 0 : DEATH_HOLD_MS);
 }
 
-function showOutcome() {
+function showOutcome(prev) {
   const sp = currentSp(), o = run.outcome;
   phase = 'outcome';
   showCard({
@@ -113,13 +120,14 @@ function showOutcome() {
     ],
     next: { label: '계속', act: enterScene },
   });
+  if (prev) setTimeout(() => animateStats(prev, run), reducedMotion ? 0 : DEAL_MS);
 }
 
 function showEnding() {
   const sp = currentSp(), end = sp.endings[run.ending], kind = ENDING_KIND[end.kind];
   phase = 'ending';
   view.prop = null;
-  if (end.kind === 'dead') view.night = true;
+  if (end.kind === 'dead' && !document.body.classList.contains('dead')) startDeath(heroRect(sp));
   hideCaption();
   showCard({
     body: [
@@ -144,6 +152,7 @@ function frame(now) {
   view.camX += view.speed * dt;
   view.fade = Math.max(0, view.fade - dt / FADE_S);
   const s = drawScene(view, sp, dt);
+  drawDeath(now);
   if (sp) updateScaleBar(s);
   requestAnimationFrame(frame);
 }
@@ -151,8 +160,8 @@ function frame(now) {
 /* 시작. 뷰어가 페이지를 갱신해도 진행 중인 판을 이어 간다 */
 window.claude?.hot?.snapshot?.(() => ({ run, phase }));
 function boot(data) {
-  resizeStage();
-  addEventListener('resize', resizeStage);
+  resizeStage(); resizeFx();
+  addEventListener('resize', () => { resizeStage(); resizeFx(); });
   requestAnimationFrame(frame);
   const saved = data && data.run;
   const sp = saved && SPECIES[saved.spKey];

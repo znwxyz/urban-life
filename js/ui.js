@@ -71,6 +71,11 @@ function commit(dir) {
   const act = dir < 0 ? cardActions.left : cardActions.right;
   cardActions = null;
   setHint(dir * SWIPE_COMMIT_PX);
+  // 고른 꼬리표는 카드와 같이 날아가고, 안 고른 쪽은 작아지며 사라진다
+  const chosen = picks.querySelector(dir < 0 ? '.pick.l' : '.pick.r') || picks.querySelector('.pick.solo');
+  const other = picks.querySelector(dir < 0 ? '.pick.r' : '.pick.l');
+  if (chosen) chosen.classList.add(dir < 0 ? 'gone-l' : 'gone-r');
+  if (other) other.classList.add('fade');
   cardWrap.style.transition = `transform ${FLY_MS}ms ease-in`;
   cardWrap.style.transform = `translateX(${dir * 120}vw) rotate(${dir * 18}deg)`;
   setTimeout(act, reducedMotionUi ? 0 : FLY_MS);
@@ -111,18 +116,35 @@ document.addEventListener('keydown', (e) => {
 function showCaption(tc, tx) { $('capTc').textContent = tc; $('capTx').textContent = tx; $('caption').hidden = false; }
 function hideCaption() { $('caption').hidden = true; }
 
-function segBar(el, value) {
-  const on = Math.round(value / RULES.MAX * BAR_SEGMENTS);
-  el.replaceChildren(...Array.from({ length: BAR_SEGMENTS }, (_, i) => h('i', { class: i < on ? 'on' : '' })));
+const segCount = (v) => Math.round(v / RULES.MAX * BAR_SEGMENTS);
+
+/** 칸 막대. prev가 있으면 새로 찬 칸은 반짝(gain), 줄어든 칸은 붉게 깜빡(lost) */
+function segBar(el, value, prev = value) {
+  const on = segCount(value), was = segCount(prev);
+  el.replaceChildren(...Array.from({ length: BAR_SEGMENTS }, (_, i) => {
+    const cls = i < on ? (i >= was ? 'on gain' : 'on') : (i < was ? 'lost' : '');
+    return h('i', { class: cls });
+  }));
 }
 
-function updateHud(sp, run) {
+/** 스탯 하나를 from → to로 바꾸며 연출한다 */
+function setStat(stat, from, to) {
+  const bar = $(stat === 'hp' ? 'hpBar' : 'foodBar'), num = $(stat === 'hp' ? 'hpNum' : 'foodNum');
+  const row = $(stat === 'hp' ? 'hpRow' : 'foodRow');
+  segBar(bar, to, from);
+  num.textContent = to;
+  const cls = to < from ? 'hurt' : 'fill';
+  row.classList.remove('hurt', 'fill'); void row.offsetWidth; row.classList.add(cls);
+}
+
+/** shown을 주면 막대는 그 값(이전 상태)으로 두고, 연출이 끝난 뒤 setStat으로 바꾼다 */
+function updateHud(sp, run, shown = run) {
   $('hud').hidden = !sp || !run;
   if (!sp || !run) return;
   $('spName').textContent = sp.name;
   $('spLatin').textContent = `${sp.latin} · ${sp.size}`;
-  segBar($('hpBar'), run.hp); segBar($('foodBar'), run.food);
-  $('hpNum').textContent = run.hp; $('foodNum').textContent = run.food;
+  segBar($('hpBar'), shown.hp); segBar($('foodBar'), shown.food);
+  $('hpNum').textContent = shown.hp; $('foodNum').textContent = shown.food;
   $('kids').textContent = run.kids ? `${sp.kidUnit} ${run.kids}` : '';
   $('age').textContent = `생후 ${durLabel(run.day)} · ${SEASON_KO[seasonOf(monthOf(sp, run.day))]}`;
 }
@@ -140,8 +162,8 @@ function updateScaleBar(s) {
 /** 체력·포만 변화를 도장처럼 찍는다 */
 function stamps(o, kidUnit) {
   const list = [];
-  if (o.dHp) list.push(h('span', { class: `stamp ${o.dHp > 0 ? 'up' : 'down'}` }, `체력 ${o.dHp > 0 ? '+' : '-'}${Math.abs(o.dHp)}`));
-  if (o.dFood) list.push(h('span', { class: `stamp ${o.dFood > 0 ? 'up' : 'down'}` }, `포만 ${o.dFood > 0 ? '+' : '-'}${Math.abs(o.dFood)}`));
+  if (o.dHp) list.push(h('span', { class: `stamp ${o.dHp > 0 ? 'up' : 'down'}`, 'data-stat': 'hp' }, `체력 ${o.dHp > 0 ? '+' : '-'}${Math.abs(o.dHp)}`));
+  if (o.dFood) list.push(h('span', { class: `stamp ${o.dFood > 0 ? 'up' : 'down'}`, 'data-stat': 'food' }, `포만 ${o.dFood > 0 ? '+' : '-'}${Math.abs(o.dFood)}`));
   if (o.kids) list.push(h('span', { class: 'stamp kid' }, `${kidUnit} +${o.kids}`));
   if (o.starving) list.push(h('span', { class: 'stamp down' }, '굶주림'));
   return list.length ? h('div', { class: 'stamps' }, list) : null;
