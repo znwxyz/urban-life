@@ -98,7 +98,7 @@ button { font: inherit; color: inherit; }
 .picker-title { position: relative; display: inline-block; padding-top: 22px; }
 .picker-title .main { display: inline-block; rotate: -1.5deg; padding: 12px 18px 10px; }
 .picker-title .kicker {
-  position: absolute; z-index: 3; top: 0; left: -14px; rotate: -7deg;
+  position: absolute; z-index: 3; top: -8px; left: -26px; rotate: -7deg;
   font-size: 18px; padding: 6px 11px 5px; background: var(--ink); color: var(--paper);
   filter: drop-shadow(0 2px 0 rgba(59, 48, 73, .3));
 }
@@ -137,6 +137,11 @@ button { font: inherit; color: inherit; }
 .support-link:hover, .support-link:focus-visible { translate: 0 -2px; outline: 2px solid var(--ink); }
 .support-link.toss { background: #d6e6ff; }
 .support-link.kakaopay { background: #ffe680; }
+/* 링크드인: 송금 버튼 폭의 약 1/5인 정사각형. 송금 버튼은 그 높이에 맞춰 늘어난다 */
+.support-links:has(.linkedin) { display: grid; grid-template-columns: minmax(0, 82fr) minmax(0, 18fr); }
+.support-link.linkedin { aspect-ratio: 1; display: grid; place-items: center; padding: 0; background: transparent; }
+.support-link.linkedin svg { width: 72%; height: auto; fill: #000; }
+.support-links:has(.linkedin) .support-link:not(.linkedin) { display: grid; place-items: center; }
 .support-qr { display: flex; margin: 0; flex-direction: column; align-items: center; gap: 6px; }
 .support-qr[hidden] { display: none; }
 .support-qr img { display: block; width: 240px; height: auto; max-width: 100%; }
@@ -268,7 +273,7 @@ button { font: inherit; color: inherit; }
 }
 @media (max-width: 480px) {
   .picker h1 { font-size: 22px; }
-  .picker-title .kicker { font-size: 15px; left: -8px; }
+  .picker-title .kicker { font-size: 15px; top: -6px; left: -16px; }
   .species b { font-size: 22px; }
   .species { min-height: 120px; }
   .who b { font-size: 22px; }

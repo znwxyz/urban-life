@@ -9,6 +9,8 @@ const SUPPORT = Object.freeze({
   kakaopay: 'https://qr.kakaopay.com/281006011000009316457016',
   /* PC에서 휴대폰으로 찍을 QR 이미지 (이름 부분은 잘라 냄) */
   kakaopayQr: 'assets/kakaopay-qr.png',
+  /* 제작자 소개: 송금 버튼 오른쪽 정사각형 버튼 */
+  linkedin: 'https://www.linkedin.com/in/jinyuahn',
 });
 
 const GUESTBOOK = Object.freeze({
