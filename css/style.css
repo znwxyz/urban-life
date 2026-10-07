@@ -140,7 +140,6 @@ button { font: inherit; color: inherit; }
 .support-qr { display: flex; margin: 0; flex-direction: column; align-items: center; gap: 6px; }
 .support-qr[hidden] { display: none; }
 .support-qr img { display: block; width: 240px; height: auto; max-width: 100%; }
-.support-qr figcaption { font-family: var(--f-small); font-size: 11px; color: var(--dim); }
 /* 홈 화면 방명록 모아보기 */
 .picker { overflow-y: auto; }
 .wall-toggle {

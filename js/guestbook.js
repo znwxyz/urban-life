@@ -162,8 +162,7 @@ const PC_QUERY = '(min-width: 900px) and (hover: hover)';
 function kakaopayQr(link) {
   if (!link || !SUPPORT.kakaopayQr) return null;
   const qr = h('figure', { class: 'support-qr', id: 'supportQr', hidden: '' },
-    h('img', { src: SUPPORT.kakaopayQr, width: '240', height: '224', alt: '카카오페이 송금 QR 코드', loading: 'lazy' }),
-    h('figcaption', null, '휴대폰 카메라로 찍으면 카카오페이가 열려요'));
+    h('img', { src: SUPPORT.kakaopayQr, width: '240', height: '224', alt: '카카오페이 송금 QR 코드', loading: 'lazy' }));
   link.setAttribute('aria-controls', 'supportQr');
   link.addEventListener('click', (e) => {
     if (!window.matchMedia(PC_QUERY).matches) return;
