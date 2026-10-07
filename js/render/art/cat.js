@@ -1,140 +1,56 @@
 /* 길고양이 장면 전용 그림. 키는 'cat:이름'. 원점은 발밑 가운데, cm 좌표, 오른쪽을 본다. d(시간, 색조함수) */
-/* ── 장면 그림들이 함께 쓰는 종이 손. 그림 파일은 cat → cockroach → pigeon → fly 순서로 읽히므로 여기 둔다 ──
-   손목 가운데가 원점, 손가락이 +x 쪽, 손 길이(손목~가운뎃손가락 끝) 1을 기준으로 그린 뒤 s(cm)배 한다.
-   빛은 왼쪽 위에서 든다. o: { pose: 'flat'|'pinch'|'grip', s, skin, coat 장갑 코팅색, nails, curl, spread,
-   sleeve 소맷부리색, held(그 자리에 잡은 물건을 그리는 함수, 손 좌표계) } */
+/* ── 장면 그림들이 함께 쓰는 손. 그림 파일은 cat → cockroach → pigeon → fly 순서로 읽히므로 여기 둔다 ──
+   만화 손: 통통한 손바닥 한 덩어리와 둥근 막대 손가락. 손톱·마디선·손금·하이라이트는 넣지 않는다
+   (겹을 쌓을수록 징그러워진다. 실루엣 하나로 읽히게 한다). 색은 많아야 두 톤(뒤쪽 손가락만 한 톤 어둡게).
+   손목 가운데가 원점, 손가락이 +x 쪽, 손 길이 1을 기준으로 그린 뒤 s(cm)배 한다.
+   o: { pose: 'flat'|'pinch'|'grip', s, skin, coat 장갑색, spread 손가락 벌림, sleeve 소매색, held(x, y) 쥔 물건 } */
 const artHand = (() => {
-  const NAIL = '#fff1ea';
-  const tones = (t, c) => ({ base: t(c), dark: t(shade(c)), deep: t(shade(shade(c))), light: t(mix(c, '#ffffff', .45)), nail: t(mix(c, NAIL, .72)) });
-
-  function trace(pts) { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); }
-  function stroke(pts, w, c) { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; trace(pts); ctx.stroke(); }
-  const shift = (pts, dx, dy) => pts.map(([x, y]) => [x + dx, y + dy]);
-  function oval(x, y, rx, ry, a, c) { ctx.fillStyle = c; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, a, 0, TAU); ctx.fill(); }
-
-  /** 마디마다 꺾이는 손가락 마디점 */
-  function chain(base, angle, lens, curl) {
-    const pts = [base];
-    lens.reduce(([x, y, a], len, i) => {
-      const na = a + (i ? curl : 0), p = [x + Math.cos(na) * len, y + Math.sin(na) * len];
-      pts.push(p);
-      return [p[0], p[1], na];
-    }, [base[0], base[1], angle]);
-    return pts;
+  function bar(pts, w, c) {
+    ctx.strokeStyle = c; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath();
+    pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
   }
+  function blobFill(c, draw) { ctx.fillStyle = c; ctx.beginPath(); draw(); ctx.fill(); }
+  const palm = () => { ctx.moveTo(0, -.17); ctx.quadraticCurveTo(.3, -.22, .5, -.16); ctx.quadraticCurveTo(.58, 0, .5, .16); ctx.quadraticCurveTo(.3, .22, 0, .17); ctx.closePath(); };
 
-  /** 손가락 하나: 아랫면 그늘 → 본색 → 윗면 빛 → 마디 주름 → 손톱 */
-  function finger(k, pts, w, o = {}) {
-    stroke(shift(pts, 0, w * .16), w, o.under || k.dark);
-    stroke(pts, w * .84, o.fill || k.base);
-    ctx.globalAlpha = .3; stroke(shift(pts.slice(0, 2), -w * .04, -w * .24), w * .16, k.light);
-    ctx.globalAlpha = .28;
-    for (let i = 1; i < pts.length - 1; i++) {
-      const [x, y] = pts[i], [ax, ay] = pts[i - 1], [bx, by] = pts[i + 1];
-      const dl = Math.hypot(bx - ax, by - ay) || 1, nx = (by - ay) / dl, ny = -(bx - ax) / dl;
-      stroke([[x + nx * w * .36, y + ny * w * .36], [x + nx * w * .14, y + ny * w * .14]], w * .06, k.deep);
-    }
-    ctx.globalAlpha = 1;
-    if (o.nail === false) return;
-    const [tx, ty] = pts[pts.length - 1], [px, py] = pts[pts.length - 2];
-    const dl = Math.hypot(tx - px, ty - py) || 1, dx = (tx - px) / dl, dy = (ty - py) / dl, a = Math.atan2(dy, dx);
-    const cx = tx - dx * w * .2 + dy * w * .14, cy = ty - dy * w * .2 - dx * w * .14;
-    oval(cx, cy, w * .3, w * .24, a, k.nail);
-    ctx.globalAlpha = .8; oval(cx - dx * w * .06 + dy * w * .08, cy - dy * w * .06 - dx * w * .08, w * .1, w * .05, a, '#ffffff'); ctx.globalAlpha = 1;
-  }
-
-  /** 손등(또는 옆에서 본 손바닥 덩어리) 한 장: 그늘 → 본색 → 왼쪽 위 빛 */
-  function slab(k, draw) {
-    ctx.save(); ctx.translate(0, .03); draw(); ctx.fillStyle = k.dark; ctx.fill(); ctx.restore();
-    draw(); ctx.fillStyle = k.base; ctx.fill();
-  }
-  const backOfHand = () => {
-    ctx.beginPath(); ctx.moveTo(-.03, -.13);
-    ctx.quadraticCurveTo(.24, -.18, .47, -.19); ctx.quadraticCurveTo(.57, -.09, .54, .02);
-    ctx.quadraticCurveTo(.53, .13, .46, .19); ctx.quadraticCurveTo(.22, .21, -.03, .13); ctx.closePath();
-  };
-  const sideOfHand = () => {
-    ctx.beginPath(); ctx.moveTo(-.03, -.12);
-    ctx.quadraticCurveTo(.22, -.18, .45, -.15); ctx.quadraticCurveTo(.55, -.12, .54, -.02);
-    ctx.lineTo(.53, .1); ctx.quadraticCurveTo(.46, .21, .28, .2); ctx.quadraticCurveTo(.12, .18, -.03, .12); ctx.closePath();
-  };
-
-  function cuff(k, sleeve) {
-    if (!sleeve) return;
-    RR(-.42, -.16, .44, .32, .06, sleeve.dark); RR(-.42, -.16, .44, .27, .06, sleeve.base);
-    RR(-.06, -.17, .1, .35, .04, sleeve.dark); RR(-.06, -.17, .1, .3, .04, sleeve.light);
-    ctx.globalAlpha = .4; [-.3, -.18].forEach((x) => stroke([[x, -.12], [x + .02, .1]], .012, sleeve.dark)); ctx.globalAlpha = 1;
-  }
-
+  /** 편 손: 손가락 넷을 부채처럼 벌리고 엄지는 위로 */
   function flat(k, o) {
-    const sp = o.spread == null ? 1 : o.spread, curl = o.curl == null ? .07 : o.curl, nail = o.nails !== false && !o.palm;
-    const coat = o.coat && { under: o.coat.dark, fill: o.coat.base };
-    finger(k, chain([.13, -.12], -.62 * sp - .1, [.16, .12, .1], .3 + curl), .11, { nail, ...coat });
-    [[[.45, .135], .17, [.16, .1, .085], .078], [[.5, .05], .07, [.21, .13, .1], .09],
-      [[.51, -.045], -.02, [.23, .145, .11], .095], [[.47, -.14], -.1, [.21, .13, .1], .092]]
-      .forEach(([b, a, lens, w]) => finger(k, chain(b, a * sp, lens, curl), w, { nail, ...coat }));
-    slab(k, backOfHand);
-    if (o.palm) return palmLines(k);
-    ctx.globalAlpha = .35; oval(.2, -.08, .17, .04, -.08, k.light); ctx.globalAlpha = .22;
-    [[-.1, -.06], [-.04, .01], [.02, .08], [.06, .14]].forEach(([y0], i) => stroke([[.06, y0 * .6], [.44 + (i === 3 ? -.03 : 0), [-.13, -.04, .05, .13][i]]], .014, k.deep));
-    ctx.globalAlpha = .55; [[.47, -.14], [.51, -.045], [.5, .05], [.45, .135]].forEach(([x, y]) => oval(x - .02, y - .01, .035, .025, 0, k.light));
-    ctx.globalAlpha = 1;
+    const sp = o.spread == null ? 1 : o.spread;
+    [-.15, -.05, .05, .15].forEach((y, i) => {
+      const a = (y * 1.6) * sp, len = [.3, .36, .34, .27][i];
+      bar([[.42, y * .9], [.42 + Math.cos(a) * len, y * .9 + Math.sin(a) * len]], .115, k.base);
+    });
+    bar([[.16, -.12], [.3, -.3 * sp - .02]], .13, k.base);
+    blobFill(k.base, palm);
   }
 
-  /** 손바닥 쪽: 엄지 두덩, 손가락 뿌리 살, 손금 세 줄 */
-  function palmLines(k) {
-    ctx.globalAlpha = .22; oval(.15, -.07, .15, .075, -.3, k.light); ctx.globalAlpha = .4;
-    [[.47, -.14], [.51, -.045], [.5, .05], [.45, .135]].forEach(([x, y]) => oval(x - .045, y, .045, .04, 0, k.light));
-    ctx.globalAlpha = .35; ctx.strokeStyle = k.deep; ctx.lineWidth = .011; ctx.lineCap = 'round'; ctx.beginPath();
-    ctx.moveTo(.42, .16); ctx.quadraticCurveTo(.37, .02, .46, -.1);
-    ctx.moveTo(.33, -.14); ctx.quadraticCurveTo(.25, 0, .13, .1);
-    ctx.moveTo(.33, -.15); ctx.quadraticCurveTo(.14, -.02, .02, -.06); ctx.stroke();
-    ctx.globalAlpha = 1;
-  }
-
+  /** 집은 손(옆모습): 검지와 엄지 끝이 (.95, .11)에서 만난다. 나머지 손가락은 안으로 말린 한 덩어리 */
   function pinch(k, o) {
-    [2, 1, 0].forEach((i) => {
-      const y0 = -.06 + i * .07;
-      finger(k, [[.38, y0], [.6 - i * .03, y0 + .01], [.7 - i * .05, y0 + .1], [.6 - i * .05, y0 + .15]], .09, { nail: false, under: k.deep, fill: k.dark });
-    });
-    ctx.fillStyle = k.dark; ctx.beginPath(); ctx.moveTo(.4, -.08);
-    ctx.quadraticCurveTo(.66, -.04, .64, .1); ctx.quadraticCurveTo(.6, .2, .3, .18); ctx.closePath(); ctx.fill();
-    slab(k, sideOfHand);
-    ctx.globalAlpha = .35; oval(.22, -.09, .16, .035, -.1, k.light); ctx.globalAlpha = 1;
-    finger(k, [[.38, -.1], [.6, -.08], [.78, -.02], [.9, .05]], .095, { nail: o.nails !== false });
+    blobFill(k.dark, () => { ctx.ellipse(.52, .1, .16, .11, 0, 0, TAU); });
+    blobFill(k.base, palm);
+    bar([[.4, -.08], [.72, -.06], [.95, .08]], .12, k.base);
     if (o.held) o.held(.95, .11);
-    finger(k, [[.18, .08], [.46, .16], [.7, .165], [.86, .12]], .115, { nail: o.nails !== false });
+    bar([[.25, .1], [.62, .2], [.9, .16]], .13, k.base);
   }
 
-  const fistOfHand = () => {
-    ctx.beginPath(); ctx.moveTo(-.03, -.12);
-    ctx.quadraticCurveTo(.2, -.17, .42, -.16); ctx.quadraticCurveTo(.6, -.15, .62, -.04);
-    ctx.lineTo(.62, .12); ctx.quadraticCurveTo(.58, .22, .4, .21); ctx.quadraticCurveTo(.15, .2, -.03, .12); ctx.closePath();
-  };
-
-  /** 주먹 쥔 손(엄지 쪽에서 본 모습). 막대는 손끝 앞 x≈.66에서 위아래로 지나간다 */
+  /** 쥔 주먹(엄지 쪽에서 본 모습). 막대는 손끝 앞 x≈.66에서 위아래로 지나간다 */
   function grip(k, o) {
-    const coat = o.coat ? { under: o.coat.dark, fill: o.coat.base } : { under: k.dark, fill: k.base };
     if (o.held) o.held(.66, 0);
-    slab(k, fistOfHand);
-    if (o.coat) { ctx.save(); fistOfHand(); ctx.clip(); ctx.fillStyle = o.coat.base; ctx.beginPath(); ctx.ellipse(.62, .05, .2, .3, 0, 0, TAU); ctx.fill(); ctx.restore(); }
-    ctx.fillStyle = coat.under; ctx.beginPath(); ctx.ellipse(.6, .11, .09, .11, 0, 0, TAU); ctx.fill();
-    [2, 1, 0].forEach((i) => {
-      const y0 = .04 + i * .055;
-      finger(k, [[.46, y0], [.64, y0 + .005], [.66, y0 + .06]], .075, { nail: false, ...coat });
-    });
-    ctx.globalAlpha = .35; oval(.2, -.09, .16, .035, -.1, k.light); ctx.globalAlpha = 1;
-    finger(k, [[.36, -.11], [.6, -.12], [.7, -.04], [.67, .05]], .1, { nail: false, ...coat });
-    finger(k, [[.12, .07], [.4, .06], [.6, -.02]], .12, { nail: o.nails !== false, ...(o.coat ? coat : {}) });
+    blobFill(k.base, () => { ctx.moveTo(0, -.16); ctx.quadraticCurveTo(.4, -.22, .62, -.12); ctx.quadraticCurveTo(.76, .02, .62, .17); ctx.quadraticCurveTo(.3, .22, 0, .16); ctx.closePath(); });
+    bar([[.2, -.12], [.5, -.17], [.66, -.08]], .12, k.dark);
+    bar([[.2, -.13], [.48, -.18], [.64, -.1]], .1, k.base);
+  }
+
+  function cuff(sleeve) {
+    if (!sleeve) return;
+    RR(-.42, -.2, .46, .4, .08, sleeve);
   }
 
   const POSES = { flat, pinch, grip };
   return (t, o) => {
-    const k = tones(t, o.skin || SKIN), tone3 = (c) => c && { base: t(c), dark: t(shade(c)), light: t(mix(c, '#ffffff', .3)) };
-    const opts = { ...o, coat: tone3(o.coat) };
+    const base = o.coat || o.skin || SKIN, k = { base: t(base), dark: t(shade(base)) };
     ctx.save(); ctx.scale(o.s, o.s);
-    (POSES[o.pose] || flat)(k, opts);
-    cuff(k, tone3(o.sleeve));
+    (POSES[o.pose] || flat)(k, o);
+    cuff(o.sleeve && t(o.sleeve));
     ctx.restore();
   };
 })();
