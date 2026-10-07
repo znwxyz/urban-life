@@ -90,6 +90,30 @@ const ACTORS = {
     [-250, -40, 230].forEach((x) => { E(x, -45, 45, 45, t('#3a3445')); E(x, -45, 18, 18, t('#cfcad8')); });
     RR(-372, -230, 24, 150, 8, t('#ffd56b'));
   } },
+  car: { w: 430, h: 150, d: (time, t) => {
+    const c = '#e6765f';
+    [-140, 140].forEach((x) => { E(x, -32, 32, 32, t('#3a3445')); E(x, -32, 13, 13, t('#cfcad8')); });
+    RR(-125, -158, 270, 90, 40, t(c)); RR(-100, -145, 100, 50, 18, t('#d8edf3')); RR(12, -145, 100, 50, 18, t('#d8edf3'));
+    RR(-215, -108, 430, 76, 34, t(c)); RR(-215, -62, 430, 26, 13, t(shade(c)));
+    E(200, -86, 12, 9, '#fff3b8');
+    ctx.save(); ctx.globalAlpha = .5; ctx.fillStyle = '#fff3b8';
+    ctx.beginPath(); ctx.moveTo(205, -92); ctx.lineTo(420, -140); ctx.lineTo(420, -30); ctx.closePath(); ctx.fill(); ctx.restore();
+    [-80, -60, -40].forEach((y, i) => L(-260 - i * 30, y, -320 - i * 30, y, t('#ffffff'), 4));
+  } },
+  glassWall: { w: 320, h: 420, d: (time, t) => {
+    ctx.save(); ctx.globalAlpha = .38; RR(-160, -420, 320, 420, 6, '#bfe3f5'); ctx.restore();
+    ctx.save(); ctx.globalAlpha = .45;
+    E(-60, -170, 70, 60, '#7fb08a'); E(40, -300, 90, 50, '#ffffff');
+    P([[-120, -400], [-60, -400], [40, 0], [-20, 0]], '#ffffff');
+    P([[30, -400], [55, -400], [140, -60], [115, -60]], '#ffffff');
+    ctx.restore();
+    RR(-164, -424, 8, 424, 3, t('#a29fb2')); RR(156, -424, 8, 424, 3, t('#a29fb2')); RR(-164, -424, 328, 8, 3, t('#a29fb2'));
+  } },
+  sprayCan: { w: 30, h: 28, d: (time, t) => {
+    RR(-6, -24, 12, 24, 4, t('#5f8fb0')); RR(-6, -17, 12, 6, 0, t('#ffd56b')); RR(-3, -28, 6, 5, 2, t('#e9e4ec')); RR(2, -27, 4, 2, 1, t('#3b3049'));
+    ctx.save(); ctx.globalAlpha = .35 + Math.sin(time * 20) * .1; ctx.fillStyle = '#f4f8ff';
+    ctx.beginPath(); ctx.moveTo(6, -26); ctx.lineTo(34, -36); ctx.lineTo(34, -12); ctx.closePath(); ctx.fill(); ctx.restore();
+  } },
   scooter: { w: 170, h: 125, d: (time, t) => {
     [-55, 60].forEach((x) => { E(x, -27, 27, 27, t('#3a3445')); E(x, -27, 11, 11, t('#cfcad8')); });
     RR(-60, -70, 110, 30, 15, t('#e6765f')); RR(35, -110, 12, 50, 6, t('#3b3049')); RR(25, -118, 34, 8, 4, t('#3b3049'));

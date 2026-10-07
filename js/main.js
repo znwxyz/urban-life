@@ -145,6 +145,7 @@ function showEnding() {
       h('h2', null, end.title),
       h('p', { class: 'result' }, end.line),
       h('p', { class: 'meta' }, `생후 ${durLabel(run.day)} · ${end.cause}${run.kids ? ` · 남긴 ${sp.kidUnit} ${run.kids}` : ''}`),
+      guestbookSection(sp, run.ending),
     ],
     choices: [{ label: `${sp.name}로 다시`, act: () => revealBirth(sp.key) }, { label: '다른 동물 고르기', act: showPicker }],
   });

@@ -28,6 +28,11 @@ const CAST = Object.freeze({
   scooter: { name: '배달 오토바이', h: 120 },
   rice: { name: '흩뿌려진 쌀알', h: 1 },
   web: { name: '거미줄', h: 40 },
+  car: { name: '달리는 승용차(로드킬)', h: 145 },
+  hawk: { name: '매(도심 맹금류)', h: 40 },
+  glassWall: { name: '투명 유리벽·방음벽(하늘이 비침)', h: 400 },
+  centipede: { name: '그리마(돈벌레, 바퀴의 천적)', h: 1 },
+  sprayCan: { name: '살충제 스프레이(뿌리는 중)', h: 25 },
 });
 
 if (typeof module !== 'undefined' && module.exports) module.exports = { CAST };

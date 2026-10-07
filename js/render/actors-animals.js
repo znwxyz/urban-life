@@ -45,6 +45,25 @@ Object.assign(ACTORS, {
     E(-.3, -.9, .25, .14, t('#e6765f'));
     ctx.restore();
   } },
+  hawk: { w: 70, h: 45, d: (time, t) => {
+    const flap = Math.sin(time * 5);
+    ctx.save(); ctx.translate(0, -30);
+    P([[-10, -4], [-34, -26 - flap * 10], [-6, -14]], t('#7a5a3e'));
+    bird(time, t, { h: 34, body: '#8a6a52', dark: '#6b4f3a', belly: '#f0e2cc', head: '#7a5a3e', seed: 4, beak: .2, beakColor: '#ffd56b' });
+    [-4, 2, 8].forEach((x) => L(x, -14, x + 2, -10, t('#8a6a52'), .8));
+    ctx.restore();
+  } },
+  centipede: { w: 3.5, h: .6, d: (time, t) => {
+    const seg = 14;
+    ctx.strokeStyle = t('#c49a5a'); ctx.lineWidth = .05; ctx.lineCap = 'round'; ctx.beginPath();
+    for (let i = 0; i < seg; i++) {
+      const x = -1.6 + i * .24, y = -.25 + Math.sin(time * 8 + i * .7) * .04, k = Math.sin(time * 14 + i) * .1;
+      ctx.moveTo(x, y); ctx.lineTo(x - .15 + k, y - .45); ctx.moveTo(x, y); ctx.lineTo(x - .15 - k, y + .25);
+    }
+    ctx.stroke();
+    for (let i = 0; i < seg; i++) E(-1.6 + i * .24, -.25 + Math.sin(time * 8 + i * .7) * .04, .15, .1, t(i % 2 ? '#8a6a3e' : '#a8824e'));
+    L(1.75, -.28, 2.2, -.6, t('#c49a5a'), .04); E(1.72, -.3, .05, .05, t(INK));
+  } },
   magpie: { w: 50, h: 26, d: (time, t) => bird(time, t, { h: 26, body: '#2f2a3a', dark: '#2f2a3a', belly: '#f4f1ea', tail: 1.6, seed: 1, beak: .16 }) },
   crow: { w: 50, h: 30, d: (time, t) => bird(time, t, { h: 30, body: '#2a2535', dark: '#1f1b28', tail: 1.1, seed: 2, beak: .3 }) },
   sparrow: { w: 14, h: 9, d: (time, t) => bird(time, t, { h: 9, body: '#b98a5e', dark: '#7a5a3e', belly: '#f0e2cc', head: '#8a5a3e', seed: 3, beak: .14, beakColor: '#3b3049' }) },

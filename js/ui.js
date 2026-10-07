@@ -92,8 +92,9 @@ function commit(dir) {
 
 const reducedMotionUi = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let drag = null;
+const isTyping = (el) => Boolean(el && el.closest && el.closest('input, textarea, button, form'));
 cardWrap.addEventListener('pointerdown', (e) => {
-  if (!cardActions) return;
+  if (!cardActions || isTyping(e.target)) return;
   drag = { x: e.clientX, y: e.clientY, id: e.pointerId };
   cardWrap.setPointerCapture(e.pointerId);
   cardWrap.style.transition = 'none';
@@ -117,7 +118,7 @@ cardWrap.addEventListener('pointerup', endDrag);
 cardWrap.addEventListener('pointercancel', endDrag);
 const KEY_DIR = Object.freeze({ ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' });
 document.addEventListener('keydown', (e) => {
-  if (!cardActions || !KEY_DIR[e.key]) return;
+  if (!cardActions || !KEY_DIR[e.key] || isTyping(e.target)) return;
   e.preventDefault();
   commit(KEY_DIR[e.key]);
 });
