@@ -4,7 +4,13 @@ const GUESTBOOK_LIST_LIMIT = 20;
 const COOLDOWN_KEY = 'urbanlife.guestbook.lastAt';
 
 const guestbookReady = () => Boolean(GUESTBOOK.url && GUESTBOOK.anonKey);
-const gbHeaders = (extra = {}) => ({ apikey: GUESTBOOK.anonKey, Authorization: `Bearer ${GUESTBOOK.anonKey}`, ...extra });
+/* 새 publishable 키(sb_publishable_…)는 apikey 헤더로만 보낸다. 예전 anon 키(JWT)는 Authorization에도 넣는다 */
+const isLegacyKey = () => !GUESTBOOK.anonKey.startsWith('sb_');
+const gbHeaders = (extra = {}) => ({
+  apikey: GUESTBOOK.anonKey,
+  ...(isLegacyKey() ? { Authorization: `Bearer ${GUESTBOOK.anonKey}` } : {}),
+  ...extra,
+});
 
 async function fetchNotes(species) {
   const q = new URLSearchParams({ species: `eq.${species}`, select: 'message,ending,created_at', order: 'created_at.desc', limit: String(GUESTBOOK_LIST_LIMIT) });
