@@ -81,13 +81,17 @@ function showPicker() {
   btn.style.setProperty('--deckle', deckle());
   $('pickGrid').replaceChildren(h('div', { class: 'species-wrap' }, btn));
   setDirectOpen(false);
-  $('directList').replaceChildren(...SPECIES_KEYS.map((key) =>
+  $('directList').replaceChildren(...directOrder().map((key) =>
     h('li', null, h('button', { class: 'direct-item', onclick: () => pickDirect(key) }, SPECIES[key].name))));
   $('picker').hidden = false;
   btn.focus({ preventScroll: true });
 }
 
 /* 오른쪽 아래 구석 '캐릭터 직접 고르기': 누르면 위쪽으로 동물 이름이 펼쳐진다 */
+/* 이름 길이가 들쑥날쑥해 보이게 짧은 이름과 긴 이름을 번갈아 둔다. 목록에 없는 새 동물은 뒤에 붙는다 */
+const DIRECT_ORDER = Object.freeze(['sparrow', 'cat', 'cicada', 'cockroach', 'mouse', 'fly', 'mosquito', 'pigeon', 'dog']);
+const directOrder = () => [...DIRECT_ORDER.filter((k) => SPECIES[k]), ...SPECIES_KEYS.filter((k) => !DIRECT_ORDER.includes(k))];
+
 function setDirectOpen(open) {
   $('directList').hidden = !open;
   $('directToggle').setAttribute('aria-expanded', String(open));
