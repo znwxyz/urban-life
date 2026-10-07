@@ -102,7 +102,7 @@ button { font: inherit; color: inherit; }
   font-size: 18px; padding: 6px 11px 5px; background: var(--ink); color: var(--paper);
   filter: drop-shadow(0 2px 0 rgba(59, 48, 73, .3));
 }
-.pick-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; width: min(520px, calc(100vw - 32px)); }
+.pick-grid { display: grid; width: min(360px, calc(100vw - 32px)); }
 .species {
   position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
   width: 100%; min-height: 150px; padding: 26px 10px 22px; cursor: pointer;
@@ -161,6 +161,15 @@ button { font: inherit; color: inherit; }
 .wall-who { flex: none; order: -1; font-family: var(--f-small); font-size: 11px; color: var(--pink-deep); padding-top: 2px; }
 .species:hover b, .species:focus-visible b { color: var(--pink-deep); }
 .species:active { translate: 0 1px; }
+/* 룰렛 카드: 누르면 동물 이름이 점점 느려지며 바뀌다 멈춘다 */
+.roulette { min-height: 190px; }
+.roulette b { font-size: 34px; min-height: 1.2em; }
+.roulette-cta { margin-top: 6px; padding: 6px 16px 5px; background: var(--ink); color: var(--paper); font-size: 15px; transition: opacity .2s; }
+.roulette.spinning, .roulette.landed { cursor: default; translate: 0 0; }
+.roulette.spinning .roulette-cta, .roulette.landed .roulette-cta { opacity: 0; }
+.roulette.spinning b { color: var(--ink); }
+.roulette.landed b { color: var(--pink-deep); animation: rouletteLand .5s cubic-bezier(.16, 1, .3, 1); }
+@keyframes rouletteLand { from { scale: 1.25; } to { scale: 1; } }
 
 /* 이동 중 자막: 종이 띠 두 장 */
 .caption { position: absolute; left: 16px; bottom: 24px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
@@ -274,6 +283,8 @@ button { font: inherit; color: inherit; }
   .picker-title .kicker { font-size: 15px; top: -6px; left: -16px; }
   .species b { font-size: 22px; }
   .species { min-height: 120px; }
+  .roulette b { font-size: 28px; }
+  .roulette { min-height: 160px; }
   .who b { font-size: 22px; }
   .seg i { width: 5px; }
   .caption .tx { font-size: 22px; }

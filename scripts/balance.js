@@ -2,7 +2,7 @@
    사용: node scripts/balance.js [판 수]   */
 const E = require('../js/core/engine.js');
 
-const KEYS = ['cat', 'cockroach', 'pigeon', 'fly'];
+const KEYS = ['cat', 'cockroach', 'pigeon', 'fly', 'sparrow', 'cicada'];
 const RUNS = Number(process.argv[2]) || 5000;
 const pct = (n, d) => `${Math.round((n / d) * 100)}%`;
 

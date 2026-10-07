@@ -100,7 +100,8 @@ function drawCast(f) {
   if (!cast.length) return;
   const heroX = (v.heroStopX - v.camX) * s, limit = W * (W >= WIDE_SCREEN ? CAST_LIMIT_WIDE : CAST_LIMIT_NARROW);
   const far = Math.max(...cast.map((c) => c.x + ((ACTORS[c.a] && ACTORS[c.a].w) || 0) / 2));
-  const k = far > 0 ? Math.min(1, (limit - heroX) / (far * s)) : 1;
+  // 간격은 주인공이 멈춰 설 화면 위치로 한 번만 정한다. 지금 위치로 매번 다시 재면 이동 중에 인물이 땅과 따로 미끄러진다
+  const k = far > 0 ? Math.min(1, (limit - W * heroScreenX()) / (far * s)) : 1;
   cast.forEach((c) => drawActor(c.a, heroX + c.x * Math.max(k, .3) * s, g - (c.y || 0) * s, s, c.flip, v.t, t));
 }
 

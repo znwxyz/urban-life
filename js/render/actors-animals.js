@@ -19,7 +19,7 @@ Object.assign(ACTORS, {
   scarCat: { w: 70, h: 45, d: (time, t) => scaled(1.1, () => drawCat(time, false, t, CAT_COATS.scar)) },
   strayCat: { w: 60, h: 40, d: (time, t) => scaled(.95, () => drawCat(time, false, t, CAT_COATS.gray)) },
   kitten: { w: 30, h: 20, d: (time, t) => scaled(.42, () => drawCat(time, false, t, CAT_COATS.hero)) },
-  roachFriend: { w: 2, h: 1, d: (time, t) => ANIMALS.cockroach(time + 1.3, true, 0, t) },
+  roachFriend: { w: 2, h: 1, d: (time, t) => ANIMALS.cockroach(time + 1.3, false, 0, t) },
   dog: { w: 80, h: 60, d: (time, t) => {
     const fur = t('#d9a05f'), wag = Math.sin(time * 12) * .4;
     ctx.save(); ctx.translate(-30, -38); ctx.rotate(-.6 + wag); RR(-3, -14, 6, 16, 3, fur); ctx.restore();

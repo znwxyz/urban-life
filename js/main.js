@@ -46,28 +46,68 @@ function cruiseFor(sp, ms, needCm) {
   return Math.max(sp.speedCm, (needCm - fromNow) / perCruise);
 }
 
-/** 처음 화면: 동물 4종을 2×2 카드로 보여 주고 고르게 한다 */
+/* 처음 화면의 룰렛: 동물 이름이 점점 느려지며 바뀌다가 하나에 멈춘다 */
+const ROULETTE = Object.freeze({ ticks: 16, firstMs: 110, lastMs: 380, holdMs: 800 });
+let rouletteTimer = null;
+
+const speciesLine = (sp) => `${sp.size} · 해피엔딩 ${durLabel(happyDay(sp))}`;
+
+/** 룰렛에 보여 줄 이름 순서. 같은 동물이 연달아 나오지 않고, 마지막은 뽑힌 동물이다 */
+function rouletteOrder(finalKey, ticks, rand = Math.random) {
+  const order = [];
+  while (order.length < ticks - 1) {
+    const prev = order[order.length - 1];
+    const pool = SPECIES_KEYS.filter((k) => k !== prev && (order.length < ticks - 2 || k !== finalKey));
+    order.push(pool[Math.floor(rand() * pool.length)]);
+  }
+  return [...order, finalKey];
+}
+
+/** i번째 칸에서 다음 칸까지 걸리는 시간: 처음엔 빠르고 끝으로 갈수록 느려진다 */
+const rouletteDelay = (i, ticks) => {
+  const u = i / Math.max(1, ticks - 1);
+  return ROULETTE.firstMs + (ROULETTE.lastMs - ROULETTE.firstMs) * u * u;
+};
+
+/** 처음 화면: 어떤 동물로 태어날지 모르는 카드 한 장. 누르면 룰렛이 돌아 동물이 정해진다 */
 function showPicker() {
-  clearTimeout(moveTimer);
+  clearTimeout(moveTimer); clearTimeout(rouletteTimer);
   run = null; phase = 'picker';
   clearDeath(); stopIris(); closeWall();
   updateHud(null, null); hideCaption(); hideCard();
   setScene('villaAlley');
-  $('pickGrid').replaceChildren(...SPECIES_KEYS.map((key) => {
-    const sp = SPECIES[key];
-    // 그림은 일부러 넣지 않는다. 직접 태어나 봐야 어떻게 생겼는지 알 수 있다
-    const btn = h('button', { class: 'species', onclick: () => revealBirth(key) },
-      h('b', null, sp.name), h('small', null, `${sp.size} · 해피엔딩 ${durLabel(happyDay(sp))}`));
-    btn.style.setProperty('--deckle', deckle());
-    return h('div', { class: 'species-wrap' }, btn);
-  }));
+  // 그림은 일부러 넣지 않는다. 직접 태어나 봐야 어떻게 생겼는지 알 수 있다
+  const name = h('b', null, '?'), line = h('small', null, `${SPECIES_KEYS.length}종 가운데 하나`);
+  const btn = h('button', { class: 'species roulette', 'aria-live': 'polite', onclick: () => spinRoulette(btn, name, line) },
+    name, line, h('span', { class: 'roulette-cta' }, '태어나기'));
+  btn.style.setProperty('--deckle', deckle());
+  $('pickGrid').replaceChildren(h('div', { class: 'species-wrap' }, btn));
   $('picker').hidden = false;
-  $('pickGrid').querySelector('button').focus({ preventScroll: true });
+  btn.focus({ preventScroll: true });
+}
+
+function spinRoulette(btn, name, line) {
+  if (phase !== 'picker') return;
+  phase = 'roulette';
+  btn.classList.add('spinning');
+  const key = SPECIES_KEYS[Math.floor(Math.random() * SPECIES_KEYS.length)];
+  const order = reducedMotion ? [key] : rouletteOrder(key, ROULETTE.ticks);
+  const show = (i) => {
+    const sp = SPECIES[order[i]];
+    name.textContent = sp.name; line.textContent = speciesLine(sp);
+    if (i === order.length - 1) {
+      btn.classList.replace('spinning', 'landed');
+      rouletteTimer = setTimeout(() => revealBirth(key), ROULETTE.holdMs);
+      return;
+    }
+    rouletteTimer = setTimeout(() => show(i + 1), rouletteDelay(i, order.length));
+  };
+  show(0);
 }
 
 function revealBirth(key) {
   const sp = SPECIES[key];
-  clearTimeout(moveTimer); $('picker').hidden = true;
+  clearTimeout(moveTimer); clearTimeout(rouletteTimer); $('picker').hidden = true;
   run = newRun(sp); phase = 'birth';
   clearDeath();
   startIris(() => heroRect(sp));

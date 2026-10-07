@@ -53,4 +53,6 @@
 - [바퀴벌레](cockroach.md)
 - [집비둘기](pigeon.md)
 - [집파리](fly.md)
+- [참새](sparrow.md)
+- [매미](cicada.md)
 - 보류: 고라니 (세계관 밖, 공원 하천 등장 여부 미정)
