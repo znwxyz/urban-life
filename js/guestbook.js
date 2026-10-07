@@ -150,7 +150,7 @@ function setupWall() {
 /* 제작자 응원: 토스·카카오페이 송금 링크를 새 탭으로 연다. 링크가 하나도 없으면 버튼을 숨긴다 */
 const SUPPORT_LINKS = Object.freeze([
   ['toss', '토스로 응원하기', /^https:\/\/toss\.me\/[\w.-]+\/?$/],
-  ['kakaopay', '카카오페이로 응원하기', /^https:\/\/qr\.kakaopay\.com\/[\w-]+\/?$/],
+  ['kakaopay', '라떼 한 잔 보내기', /^https:\/\/qr\.kakaopay\.com\/[\w-]+\/?$/],
 ]);
 
 /** 설정된 링크 중 모양이 올바른 것만 쓴다 */
@@ -161,7 +161,7 @@ function setupSupport() {
   if (!links.length) return;
   toggle.hidden = false;
   box.replaceChildren(
-    h('p', null, '도시의 작은 동물들, 재밌게 살아 보셨나요? 커피 한 잔 값이면 다음 동물이 더 빨리 태어나요.'),
+    h('p', null, '이것저것 만드는 디자이너입니다. 라떼를 좋아합니다.'),
     h('div', { class: 'support-links' }, links.map(([key, label]) =>
       h('a', { class: `support-link ${key}`, href: SUPPORT[key], target: '_blank', rel: 'noopener noreferrer' }, label))),
     // PC에서는 송금 앱이 열리지 않으니 휴대폰으로 찍을 QR을 보여 준다 (CSS로 넓은 화면에서만 표시)
