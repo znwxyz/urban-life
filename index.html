@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>도시에서 태어나기</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+:root{
+  /* Layout: full-bleed side-view stage on canvas + nature-documentary lower thirds. HUD on top, decision sheet at bottom. Single dark "night street" look by choice. */
+  --night:#0e1315;
+  --panel:rgba(15,21,23,.9);
+  --ink:#efe9dc;
+  --dim:#98a29b;
+  --line:rgba(239,233,220,.16);
+  --sodium:#f2a03d;   /* streetlamp orange: tracker, primary actions */
+  --life:#86c48f;
+  --harm:#ea6450;
+  --food:#e2c35c;
+  --f-display:"Black Han Sans","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body);overflow:hidden}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+.app{position:relative;height:100%;overflow:hidden}
+#stage{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+.hud{position:absolute;top:0;left:0;right:0;padding:12px 16px 34px;display:grid;grid-template-columns:1fr auto;gap:8px 20px;
+  background:linear-gradient(rgba(9,13,14,.82),rgba(9,13,14,0));pointer-events:none}
+.who .sp{font-family:var(--f-display);font-size:24px;line-height:1.1}
+.who .latin{font-family:var(--f-mono);font-size:11px;color:var(--dim);font-style:italic;margin-top:2px}
+.vitals{display:flex;flex-direction:column;gap:5px;align-items:flex-end;min-width:0}
+.meter{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim)}
+.meter i{display:block;width:96px;height:6px;background:rgba(239,233,220,.14);border-radius:3px;overflow:hidden}
+.meter b{display:block;height:100%;transform-origin:left;transition:transform .5s ease}
+#hpBar{background:var(--life)} #foodBar{background:var(--food)}
+.kids{font-family:var(--f-mono);font-size:11px;color:var(--dim)}
+.life{grid-column:1/-1;display:flex;flex-direction:column;gap:5px}
+.life-row{display:flex;justify-content:space-between;gap:12px;font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums}
+.life-row #age{color:var(--ink)} .life-row #target{color:var(--dim)}
+.track{height:3px;background:rgba(239,233,220,.14)}
+.track b{display:block;height:100%;background:var(--sodium);transform-origin:left;transition:transform .6s ease}
+.scale{grid-column:1/-1;display:flex;align-items:center;gap:8px;font-family:var(--f-mono);font-size:11px;color:var(--dim)}
+.scale i{display:block;height:6px;border:1.5px solid var(--ink);border-top:0;transition:width .4s ease}
+.scale .proto{margin-left:auto;opacity:.7}
+
+.caption{position:absolute;left:16px;bottom:20px;right:16px;display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.caption .tc{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;color:var(--sodium);background:rgba(9,13,14,.75);padding:3px 8px}
+.caption .tx{font-size:17px;font-weight:500;background:rgba(9,13,14,.75);padding:5px 10px;max-width:60ch}
+
+.sheet{position:absolute;left:16px;right:16px;bottom:16px;margin-inline:auto;max-width:560px;max-height:calc(100% - 150px);overflow:auto;
+  background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:18px 18px 16px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  animation:rise .35s cubic-bezier(.16,1,.3,1)}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;color:var(--sodium)}
+.sheet h2{font-family:var(--f-display);font-weight:400;font-size:clamp(24px,5vw,30px);line-height:1.2;margin:6px 0 10px;text-wrap:balance}
+.sheet p{line-height:1.7;margin:0 0 14px;max-width:60ch}
+.sheet .result{font-size:18px;line-height:1.6}
+.sheet .muted{color:var(--dim);font-size:13px}
+.specs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;margin:0 0 16px;padding:12px 0;border-block:1px solid var(--line)}
+.specs dt{font-size:11px;color:var(--dim)} .specs dd{margin:2px 0 0;font-family:var(--f-mono);font-size:14px}
+.choices{display:grid;gap:8px}
+.choice{display:flex;gap:12px;align-items:baseline;width:100%;text-align:left;padding:12px 14px;background:rgba(239,233,220,.05);
+  border:1px solid var(--line);border-radius:4px;color:var(--ink);font:inherit;font-size:15px;cursor:pointer;transition:background .15s,border-color .15s,transform .1s}
+.choice:hover{background:rgba(242,160,61,.12);border-color:var(--sodium)}
+.choice:active{transform:translateY(1px)}
+.choice .k{font-family:var(--f-mono);font-size:12px;color:var(--sodium)}
+.primary{appearance:none;border:0;border-radius:4px;background:var(--sodium);color:#1b1306;font:600 15px var(--f-body);padding:12px 18px;cursor:pointer;transition:filter .15s,transform .1s}
+.primary:hover{filter:brightness(1.08)} .primary:active{transform:translateY(1px)}
+.ghost{appearance:none;background:transparent;border:1px solid var(--line);border-radius:4px;color:var(--ink);font:500 13px var(--f-body);padding:8px 12px;cursor:pointer}
+.ghost:hover{border-color:var(--sodium)}
+button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px}
+.chip{font-family:var(--f-mono);font-size:12px;padding:3px 9px;border-radius:999px;border:1px solid currentColor;font-variant-numeric:tabular-nums}
+.chip.up{color:var(--life)} .chip.down{color:var(--harm)} .chip.kid{color:var(--food)}
+.roulette{font-family:var(--f-display);font-size:clamp(34px,8vw,46px);margin:8px 0 6px;color:var(--sodium)}
+.log{list-style:none;margin:0 0 16px;padding:0;display:flex;flex-direction:column;gap:8px;font-size:13px}
+.log li{display:grid;grid-template-columns:7.5em minmax(0,1fr);gap:10px}
+.log .when{font-family:var(--f-mono);color:var(--dim);font-size:12px;font-variant-numeric:tabular-nums}
+.log .bad{color:var(--harm)}
+.verdict{font-family:var(--f-mono);font-size:13px;color:var(--dim);margin:-4px 0 14px}
+.verdict strong{color:var(--ink);font-size:22px;font-weight:500}
+@media (max-width:480px){.meter i{width:72px}.who .sp{font-size:20px}.caption .tx{font-size:15px}}
+@media (prefers-reduced-motion:reduce){.sheet{animation:none}.meter b,.track b,.scale i{transition:none}}
+</style>
+
+<main class="app">
+  <canvas id="stage" aria-hidden="true"></canvas>
+  <header class="hud" id="hud" hidden>
+    <div class="who"><div class="sp" id="spName"></div><div class="latin" id="spLatin"></div></div>
+    <div class="vitals">
+      <div class="meter"><span>체력</span><i><b id="hpBar"></b></i></div>
+      <div class="meter"><span>포만</span><i><b id="foodBar"></b></i></div>
+      <div class="kids" id="kids"></div>
+    </div>
+    <div class="life">
+      <div class="life-row"><span id="age"></span><span id="target"></span></div>
+      <div class="track"><b id="lifeBar"></b></div>
+    </div>
+    <div class="scale"><i id="scaleBar"></i><span id="scaleLabel"></span><span class="proto">프로토타입 · 임시 그래픽</span></div>
+  </header>
+  <div class="caption" id="caption" hidden><span class="tc" id="capTc"></span><span class="tx" id="capTx"></span></div>
+  <section class="sheet" id="sheet" aria-live="polite"></section>
+</main>
+
+<script>
+/* ───────── 상수 ───────── */
+const TAU = Math.PI * 2;
+const MOVE_MS = 2600, MOVE_MS_REDUCED = 700, FADE_S = 0.45;
+const START_HP = 100, START_FOOD = 65, STARVE_DMG = 18, REGEN = 6, FULL_AT = 60;
+const RECENT_LIMIT = 5, SCALE_TARGET_PX = 90;
+const SCALE_STEPS = [0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000];
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ───────── 동물 데이터 ───────── */
+const SPECIES = {
+  fly: {
+    name: '집파리', latin: 'Musca domestica', size: '0.7cm', viewCm: 36, eye: 2.5, speedCm: 8,
+    turnDays: 2, targetDays: 30, startMonth: 7, decay: 14, winterDecay: 0, curve: 4, kidUnit: '알',
+    box: [-0.5, -3.3, 0.6, -1.9],
+    birth: { zone: 'sewer', place: '하수구', title: '하수구에서 깨어났다',
+      text: '맨홀 아래 축축한 오물 속, 번데기 껍질을 찢고 나왔다. 날개가 마를 때까지 한 시간. 집파리의 한살이는 길어야 한 달이다.' },
+    events: [
+      { zone: 'sewer', title: '맨홀 틈의 빛', text: '머리 위 철망 사이로 빛줄기가 내려온다. 음식 냄새가 섞인 바람이 분다.', choices: [
+        { t: '빛을 향해 올라간다', p: .12, ok: { food: 8, msg: '골목으로 나왔다. 냄새가 사방에서 몰려온다.' }, bad: { hp: -25, msg: '철망에 걸린 거미줄을 스쳤다. 다리 하나가 끈적하다.' } },
+        { t: '하수구에 더 머문다', ok: { food: 20, hp: -6, msg: '오물은 넉넉하지만 가스가 독하다.' } } ] },
+      { zone: 'alley', title: '찢어진 음식물 봉투', text: '고양이가 뜯어 놓은 음식물 봉투에서 단 냄새가 진동한다. 멀리서 수거차 후진 경고음이 들린다.', choices: [
+        { t: '봉투 깊숙이 파고든다', p: .2, ok: { food: 45, msg: '썩은 수박 껍질. 이 정도면 며칠은 버틴다.' }, bad: { death: true, msg: '수거차가 봉투째 들어 올렸다. 압착기가 닫혔다.', cause: '쓰레기 수거차' } },
+        { t: '가장자리만 핥는다', ok: { food: 18, msg: '흘러나온 국물만 조금. 배는 덜 찼지만 날개는 자유롭다.' } } ] },
+      { zone: 'kitchen', title: '열린 주방 창문', text: '분식집 뒤편 창문이 반쯤 열려 있다. 튀김기름 냄새, 그리고 사람 목소리.', choices: [
+        { t: '주방으로 들어간다', p: .35, ok: { food: 40, msg: '떡볶이 접시 가장자리에 앉았다. 아무도 보지 못했다.' }, bad: { hp: -55, msg: '"파리다!" 접힌 신문지가 날아왔다. 날개 끝이 찢겼다.', cause: '신문지' } },
+        { t: '창틀에서 기다린다', ok: { food: 10, msg: '창틀 기름때를 핥으며 시간을 보냈다.' } } ] },
+      { zone: 'kitchen', night: true, glow: '#5fa8ff', title: '파란 불빛', text: '천장 구석에서 파란 형광관이 윙윙 운다. 이상하게 끌린다.', choices: [
+        { t: '가까이 가 본다', p: .65, ok: { hp: -5, msg: '철망 바로 앞에서 방향을 틀었다. 옆에서 타닥, 다른 파리가 떨어졌다.' }, bad: { death: true, msg: '타닥.', cause: '전기 해충퇴치기' } },
+        { t: '어두운 벽으로 피한다', ok: { hp: 8, msg: '벽 모서리에 붙어 밤을 넘겼다.' } } ] },
+      { zone: 'alley', title: '처마 밑 거미줄', text: '지름길인 처마 밑에 거미줄이 햇빛에 언뜻 보인다. 돌아가면 한참 걸린다.', choices: [
+        { t: '빠르게 통과한다', p: .3, ok: { food: 5, msg: '실 한 가닥이 다리에 닿았지만 끊어냈다.' }, bad: { death: true, msg: '날개가 실에 붙었다. 줄이 떨린다. 주인이 내려온다.', cause: '거미' } },
+        { t: '멀리 돌아간다', ok: { food: -12, msg: '지쳤지만 살았다.' } } ] },
+      { zone: 'street', weather: 'rain', title: '소나기', text: '하늘이 갑자기 어두워졌다. 빗방울 하나가 내 몸무게보다 몇 배는 무겁다.', choices: [
+        { t: '처마 밑에 숨는다', ok: { food: -6, msg: '비가 그칠 때까지 꼼짝 않았다.' } },
+        { t: '빗속을 뚫고 간다', p: .4, ok: { food: 15, msg: '빗방울 사이로 빠져나가 쓰레기장에 먼저 닿았다.' }, bad: { hp: -45, msg: '빗방울에 맞아 바닥에 처박혔다. 날개가 젖었다.', cause: '빗방울' } } ] },
+      { zone: 'park', title: '갓 싼 개똥', text: '산책로 옆 풀밭. 아직 따뜻하다. 알을 낳기 좋은 곳이다.', choices: [
+        { t: '알을 낳는다', ok: { kids: 120, hp: -10, food: -5, msg: '알 120개. 하루면 구더기가 된다.' } },
+        { t: '먹기만 한다', ok: { food: 25, msg: '단백질 보충.' } } ] },
+      { zone: 'plaza', title: '휘두르는 손', text: '벤치에서 김밥을 먹는 사람. 손이 계속 나를 쫓는다.', choices: [
+        { t: '한 번 더 앉아 본다', p: .3, ok: { food: 30, msg: '세 번째 시도에 밥알 하나를 챙겼다.' }, bad: { hp: -60, msg: '손바닥이 스쳤다. 바닥을 굴렀다.', cause: '손바닥' } },
+        { t: '포기하고 날아간다', ok: { food: -4, msg: '다른 냄새를 찾아 떠났다.' } } ] },
+      { zone: 'kitchen', title: '달콤한 노란 띠', text: '천장에 노란 리본이 매달려 있다. 꿀 냄새가 난다. 동료 몇이 이미 붙어 있다.', choices: [
+        { t: '냄새를 따라간다', p: .7, ok: { food: 10, msg: '끈끈한 표면 바로 위에서 정신이 들었다.' }, bad: { death: true, msg: '발이 붙었다. 버둥댈수록 날개도 붙는다.', cause: '끈끈이 트랩' } },
+        { t: '그냥 지나친다', ok: { food: -5, msg: '꿀 냄새가 오래 따라왔다.' } } ] },
+      { zone: 'street', night: true, title: '실외기의 열기', text: '밤공기가 차다. 식당 에어컨 실외기가 따뜻한 바람을 내뿜는다.', choices: [
+        { t: '실외기 위에서 쉰다', ok: { hp: 15, food: -3, msg: '날개 근육이 데워졌다.' } },
+        { t: '밤에도 먹이를 찾는다', p: .25, ok: { food: 22, msg: '편의점 앞에 흘린 커피 한 방울.' }, bad: { death: true, msg: '가로등 불빛 아래, 집박쥐가 지나갔다.', cause: '집박쥐' } } ] },
+    ],
+  },
+
+  pigeon: {
+    name: '집비둘기', latin: 'Columba livia', size: '32cm', viewCm: 900, eye: 200, speedCm: 160,
+    turnDays: 60, targetDays: 1095, startMonth: 4, decay: 16, winterDecay: 10, curve: 2.5, kidUnit: '새끼',
+    box: [-32, -216, 26, -184],
+    birth: { zone: 'bridge', place: '교각 틈', title: '교각 틈의 둥지',
+      text: '하천 위 교각의 철제 빔 틈, 나뭇가지 몇 개로 엮은 둥지에서 깼다. 한 달 동안 부모가 비둘기젖을 먹였다. 오늘 처음 뛰어내린다.' },
+    events: [
+      { zone: 'plaza', title: '모이 주는 할머니', text: '광장 벤치에서 할머니가 쌀을 한 줌씩 뿌린다. 서른 마리가 몰려든다.', choices: [
+        { t: '무리 한가운데로', p: .15, ok: { food: 40, msg: '부리로 밀치며 배를 채웠다.' }, bad: { hp: -15, food: 20, msg: '아이가 무리 속으로 뛰어들었다. 날개를 밟혔다.' } },
+        { t: '바깥에서 흘린 것만', ok: { food: 18, msg: '느리지만 안전하다.' } } ] },
+      { zone: 'street', title: '실외기 위 가시', text: '작년 둥지 자리였던 실외기 위에 퇴치용 스파이크가 박혔다.', choices: [
+        { t: '가시 사이 틈에 둥지를 튼다', p: .3, ok: { hp: 5, msg: '좁지만 비는 피한다.' }, bad: { hp: -30, msg: '가시에 가슴 깃털이 찢겼다.', cause: '퇴치 스파이크' } },
+        { t: '새 자리를 찾아 떠난다', ok: { food: -15, msg: '사흘을 헤맨 끝에 다리 밑 빈 틈을 찾았다.' } } ] },
+      { zone: 'street', title: '하늘을 비추는 유리', text: '새로 지은 오피스 빌딩. 통유리에 하늘과 구름이 그대로 비친다.', choices: [
+        { t: '곧장 날아간다', p: .28, ok: { food: 5, msg: '유리 앞에서 기류가 꺾이는 걸 느끼고 비켜 올랐다.' }, bad: { hp: -70, msg: '쿵. 하늘인 줄 알았다.', cause: '유리창 충돌' } },
+        { t: '낮게 돌아간다', ok: { food: -8, msg: '먼 길이었지만 무사하다.' } } ] },
+      { zone: 'plaza', title: '맹금류의 그림자', text: '광장 위로 큰 그림자가 원을 그린다. 빌딩 꼭대기에 사는 송골매다.', choices: [
+        { t: '무리 속에 섞인다', p: .12, ok: { msg: '무리가 한꺼번에 솟구쳤다. 매는 다른 녀석을 골랐다.' }, bad: { death: true, msg: '무리 밖으로 밀려났다.', cause: '송골매' } },
+        { t: '혼자 처마 밑으로 숨는다', p: .25, ok: { food: -5, msg: '처마 밑에서 숨죽였다.' }, bad: { hp: -40, msg: '급강하하던 매의 발톱이 등을 긁었다.', cause: '송골매' } } ] },
+      { zone: 'street', title: '발가락의 실', text: '어제부터 발가락에 낚싯줄이 감겨 있다. 점점 조인다.', choices: [
+        { t: '부리로 계속 쫀다', p: .5, ok: { hp: -5, msg: '한참 만에 풀렸다.' }, bad: { hp: -25, msg: '풀지 못했다. 발가락 하나가 말라 떨어졌다.', cause: '감긴 낚싯줄' } },
+        { t: '신경 쓰지 않는다', ok: { hp: -15, msg: '절뚝이며 걷는다. 도시 비둘기에게 흔한 발이다.' } } ] },
+      { zone: 'bridge', season: 'winter', title: '한파', text: '영하 15도. 물웅덩이가 다 얼었다.', choices: [
+        { t: '지하철 환기구 위로', p: .2, ok: { hp: 10, food: -5, msg: '따뜻한 바람이 올라온다.' }, bad: { hp: -15, msg: '더 큰 녀석에게 쫓겨났다.' } },
+        { t: '둥지에서 버틴다', ok: { hp: -20, msg: '깃털을 부풀리고 밤을 견뎠다.' } } ] },
+      { zone: 'bridge', title: '목덜미의 무지갯빛', text: '교각 아래, 목덜미 깃털이 초록과 보라로 반짝이는 상대가 다가온다.', choices: [
+        { t: '짝을 맺는다', ok: { kids: 2, food: -18, msg: '알 두 개. 18일 동안 번갈아 품었다.' } },
+        { t: '혼자 지낸다', ok: { food: 5, msg: '먹는 데 집중했다.' } } ] },
+      { zone: 'road', title: '차선 위 식빵', text: '차선 한가운데 식빵 반쪽이 떨어져 있다. 신호가 바뀌려 한다.', choices: [
+        { t: '바로 내려앉는다', p: .2, ok: { food: 35, msg: '버스 바퀴 옆에서 한 입 크게 뜯고 솟았다.' }, bad: { death: true, msg: '택시는 멈추지 않았다.', cause: '차량' } },
+        { t: '인도로 밀려오길 기다린다', ok: { food: 10, msg: '부스러기만 남았지만 그거면 됐다.' } } ] },
+      { zone: 'plaza', title: '먹이 주기 금지', text: '구청이 광장에 "비둘기 먹이 주기 금지" 현수막을 걸었다. 할머니가 보이지 않는다.', choices: [
+        { t: '전통시장으로 옮긴다', p: .2, ok: { food: 25, msg: '떡집 앞 바닥은 늘 풍족하다.' }, bad: { hp: -20, food: 10, msg: '시장에는 고양이가 있었다.', cause: '시장 고양이' } },
+        { t: '광장에서 버틴다', ok: { food: -20, msg: '쓰레기통 주변만 맴돌았다.' } } ] },
+      { zone: 'park', title: '화단의 흔들림', text: '모이를 쪼는데 화단 쪽 풀잎이 미세하게 흔들린다.', choices: [
+        { t: '계속 먹는다', p: .25, ok: { food: 20, msg: '바람이었다.' }, bad: { death: true, msg: '길고양이였다.', cause: '길고양이' } },
+        { t: '날아오른다', ok: { food: -3, msg: '헛걸음이어도 괜찮다.' } } ] },
+    ],
+  },
+
+  cat: {
+    name: '길고양이', latin: 'Felis catus', size: '45cm', viewCm: 320, eye: 22, speedCm: 60,
+    turnDays: 60, targetDays: 1095, startMonth: 4, decay: 18, winterDecay: 12, curve: 2, kidUnit: '새끼',
+    box: [-40, -52, 36, 0],
+    birth: { zone: 'ruin', place: '재개발 빈집', title: '철거 예정 빈집',
+      text: '빨간 스프레이로 "철거"라고 쓰인 빈집 마루 밑. 형제 넷과 함께 태어났다. 도시 길고양이는 보통 2~3년을 산다고 한다.' },
+    events: [
+      { zone: 'ruin', title: '엄마가 돌아오지 않는다', text: '사흘째 엄마가 오지 않는다. 형제 둘은 이미 기운이 없다.', choices: [
+        { t: '마루 밑에서 기다린다', p: .4, ok: { food: 30, msg: '나흘째 밤, 엄마가 쥐를 물고 돌아왔다.' }, bad: { hp: -30, food: -10, msg: '엄마는 끝내 오지 않았다.', cause: '어미를 잃음' } },
+        { t: '혼자 밖으로 나간다', p: .25, ok: { food: 20, msg: '골목 끝에서 누가 둔 사료 접시를 찾았다.' }, bad: { hp: -35, msg: '처음 본 큰 고양이에게 쫓겼다.', cause: '영역 다툼' } } ] },
+      { zone: 'alley', title: '캣맘 급식소', text: '주차장 구석, 매일 저녁 7시에 사료와 물이 채워진다. 덩치 큰 치즈 고양이가 먼저 먹고 있다.', choices: [
+        { t: '저녁에 당당히 간다', p: .3, ok: { food: 40, msg: '눈치 싸움 끝에 한 그릇 비웠다.' }, bad: { hp: -25, food: 10, msg: '치즈에게 귀를 물렸다.', cause: '영역 다툼' } },
+        { t: '새벽에 남은 것만', ok: { food: 20, msg: '남은 사료와 미지근한 물.' } } ] },
+      { zone: 'alley', season: 'winter', night: true, title: '엔진룸의 온기', text: '영하의 밤. 방금 주차한 차 보닛 아래에서 열기가 새어 나온다.', choices: [
+        { t: '엔진룸으로 들어간다', p: .18, ok: { hp: 20, msg: '따뜻한 밤이었다. 아침에 운전자가 보닛을 두드려 줬다.' }, bad: { death: true, msg: '새벽, 시동이 걸렸다.', cause: '엔진룸 시동' } },
+        { t: '스티로폼 상자 안으로', ok: { hp: -12, msg: '누군가 만들어 둔 겨울집. 춥지만 안전하다.' } } ] },
+      { zone: 'alley', title: '영역의 주인', text: '골목의 냄새가 바뀌었다. 상처투성이 수컷이 담 위에서 내려다본다.', choices: [
+        { t: '물러서지 않는다', p: .5, ok: { food: 15, msg: '한참 노려보다 상대가 먼저 고개를 돌렸다. 골목 하나를 얻었다.' }, bad: { hp: -40, msg: '목덜미를 물렸다. 상처가 곪았다.', cause: '영역 다툼' } },
+        { t: '다른 골목으로 간다', ok: { food: -12, msg: '낯선 골목, 낯선 냄새.' } } ] },
+      { zone: 'alley', night: true, title: '치킨집 뒤 봉투', text: '치킨집 뒤 쓰레기봉투. 양념 닭뼈가 잔뜩이다.', choices: [
+        { t: '뜯어 먹는다', p: .2, ok: { food: 35, msg: '짜지만 배는 부르다.' }, bad: { hp: -35, food: 15, msg: '뼛조각이 목에 걸렸다. 한참 토했다.', cause: '닭뼈' } },
+        { t: '그냥 지나친다', ok: { food: -5, msg: '냄새만 맡았다.' } } ] },
+      { zone: 'ruin', title: '포획틀', text: '빈집 앞에 철망 상자가 놓였다. 안에 참치 캔이 있다. 근처엔 귀 끝이 잘린 고양이들이 산다.', choices: [
+        { t: '들어간다', ok: { hp: -10, food: 20, msg: '갇혔다. 병원 냄새. 사흘 뒤 같은 자리에 풀려났다. 왼쪽 귀 끝이 1cm 잘려 있다.' } },
+        { t: '냄새만 맡고 떠난다', ok: { food: -5, msg: '참치 냄새가 오래 남았다.' } } ] },
+      { zone: 'street', title: '쪼그려 앉은 아이', text: '학교 끝난 아이가 쪼그려 앉아 "야옹" 한다. 손에 소시지가 있다.', choices: [
+        { t: '다가간다', p: .2, ok: { food: 25, msg: '소시지 반 개. 아이가 내일도 오겠다고 했다.' }, bad: { hp: -20, msg: '옆에 있던 큰 아이가 돌을 던졌다.', cause: '사람' } },
+        { t: '차 밑에 숨는다', ok: { food: 10, msg: '아이는 소시지를 두고 갔다.' } } ] },
+      { zone: 'road', night: true, title: '6차선 건너편', text: '건너편 아파트 화단에서 쥐 냄새가 진하다. 차들이 쉬지 않고 달린다.', choices: [
+        { t: '틈을 보고 뛴다', p: .25, ok: { food: 30, msg: '건넜다. 화단은 사냥터였다.' }, bad: { death: true, msg: '헤드라이트가 너무 빨랐다.', cause: '로드킬' } },
+        { t: '이쪽에 남는다', ok: { food: -10, msg: '오늘도 주차장 사료 접시를 기다린다.' } } ] },
+      { zone: 'ruin', title: '굴착기', text: '아침부터 굴착기가 빈집 담을 허문다. 마루 밑 은신처가 흔들린다.', choices: [
+        { t: '끝까지 숨어 있는다', p: .35, ok: { hp: -5, msg: '굴착기는 옆집에서 멈췄다. 오늘은.' }, bad: { hp: -45, msg: '무너진 벽돌에 뒷다리가 깔렸다.', cause: '철거 현장' } },
+        { t: '새 은신처를 찾는다', ok: { food: -15, msg: '상가 지하 보일러실 틈을 찾았다.' } } ] },
+      { zone: 'park', title: '잔디 위 비둘기', text: '공원 잔디에 비둘기와 참새가 모여 있다.', choices: [
+        { t: '낮게 엎드려 다가간다', p: .55, ok: { food: 35, msg: '비둘기 한 마리. 사냥 성공.' }, bad: { food: -10, msg: '모두 날아갔다.' } },
+        { t: '햇볕만 쬔다', ok: { hp: 10, food: -5, msg: '벤치 밑 햇볕은 공짜다.' } } ] },
+      { zone: 'alley', season: 'spring', night: true, title: '봄밤의 울음', text: '담 너머에서 낮게 우는 소리가 들린다. 번식기다.', choices: [
+        { t: '따라간다', ok: { kids: 4, food: -20, hp: -10, msg: '두 달 뒤, 마루 밑에서 새끼 넷이 태어났다.' } },
+        { t: '모른 척한다', ok: { food: 5, msg: '조용한 봄밤.' } } ] },
+    ],
+  },
+
+  gorani: {
+    name: '고라니', latin: 'Hydropotes inermis', size: '1m', viewCm: 900, eye: 85, speedCm: 180,
+    turnDays: 90, targetDays: 1460, startMonth: 6, decay: 15, winterDecay: 14, curve: 2, kidUnit: '새끼',
+    box: [-48, -122, 68, 0],
+    birth: { zone: 'river', place: '하천변 갈대숲', title: '하천변 갈대숲',
+      text: '도시를 가로지르는 하천, 자전거도로 옆 갈대숲에서 태어났다. 세계 고라니의 대부분이 한반도에 산다. 그리고 많은 수가 도로 위에서 죽는다.' },
+    events: [
+      { zone: 'road', title: '4차선 너머', text: '건너편 산자락에 연한 풀이 많다. 사이에는 4차선 도로.', choices: [
+        { t: '어둠을 틈타 건넌다', p: .3, ok: { food: 35, msg: '중앙분리대를 뛰어넘었다. 산자락의 풀은 달았다.' }, bad: { death: true, msg: '트럭은 브레이크를 밟지 않았다.', cause: '로드킬' } },
+        { t: '생태통로를 찾아 돈다', ok: { food: -15, msg: '2km 아래, 풀로 덮인 터널을 찾았다.' } } ] },
+      { zone: 'field', title: '주말농장', text: '비닐하우스 옆 주말농장. 상추와 고구마순이 줄지어 있다. 가장자리에 그물이 쳐 있다.', choices: [
+        { t: '그물 틈으로 들어간다', p: .25, ok: { food: 45, msg: '밤새 상추 두 이랑을 먹었다. 주인은 내일 화가 날 것이다.' }, bad: { hp: -40, food: 15, msg: '그물에 다리가 감겼다. 몸부림치다 겨우 빠져나왔다.', cause: '농작물 그물' } },
+        { t: '밭 가장자리 잡초만', ok: { food: 15, msg: '쑥과 바랭이. 배는 덜 찼다.' } } ] },
+      { zone: 'river', night: true, title: '들개 무리', text: '공사장에서 버려진 개들이 무리를 지었다. 네 마리가 하천변을 훑고 있다.', choices: [
+        { t: '갈대숲에서 꼼짝 않는다', p: .25, ok: { msg: '코앞까지 왔다가 지나갔다.' }, bad: { hp: -50, msg: '들켰다. 물속으로 뛰어들어 겨우 떨쳤다.', cause: '들개' } },
+        { t: '전력으로 달린다', p: .2, ok: { food: -10, msg: '고라니는 개보다 빠르다. 처음 알았다.' }, bad: { hp: -35, msg: '뒷다리를 물렸다.', cause: '들개' } } ] },
+      { zone: 'ruin', title: '공사장 펜스', text: '어제까지 풀밭이던 곳에 흰 펜스가 섰다. "택지개발사업 공사 중".', choices: [
+        { t: '펜스 틈으로 들어간다', p: .3, ok: { food: 20, msg: '아직 파헤치지 않은 풀이 남아 있다.' }, bad: { hp: -30, msg: '철근에 옆구리가 긁혔다.', cause: '공사 현장' } },
+        { t: '더 먼 하천으로 옮긴다', ok: { food: -15, msg: '살 곳이 또 줄었다.' } } ] },
+      { zone: 'river', season: 'winter', title: '얼어붙은 하천', text: '건너편 양지에 마른 풀이 보인다. 하천이 얼어 있다.', choices: [
+        { t: '얼음 위로 건넌다', p: .25, ok: { food: 25, msg: '얼음이 버텼다.' }, bad: { death: true, msg: '얼음이 깨졌다. 차가운 물은 빠르다.', cause: '얼음 붕괴' } },
+        { t: '이쪽 마른 갈대를 씹는다', ok: { food: 5, hp: -10, msg: '마른 줄기는 배를 채우지 못한다.' } } ] },
+      { zone: 'road', night: true, title: '헤드라이트', text: '도로를 건너던 중, 커다란 빛 두 개가 다가온다. 몸이 굳는다.', choices: [
+        { t: '그대로 멈춘다', p: .55, ok: { msg: '차가 경적을 울리며 비켜 갔다.' }, bad: { death: true, msg: '빛이 전부였다.', cause: '로드킬' } },
+        { t: '옆으로 뛴다', p: .2, ok: { msg: '가드레일을 넘었다.' }, bad: { hp: -40, msg: '사이드미러에 엉덩이를 받혔다.', cause: '차량' } } ] },
+      { zone: 'park', title: '휴대폰 카메라', text: '새벽 산책로. 사람이 멈춰 서서 휴대폰을 든다. "고라니다!"', choices: [
+        { t: '빤히 쳐다본다', p: .12, ok: { msg: '사람은 사진을 찍고 지나갔다. 다음 날 동네 커뮤니티에 올라갔다.' }, bad: { hp: -15, msg: '목줄 풀린 개가 달려들었다.', cause: '개' } },
+        { t: '갈대숲으로 뛰어든다', ok: { food: -3, msg: '물보라 소리만 남겼다.' } } ] },
+      { zone: 'river', season: 'winter', title: '짝을 찾는 계절', text: '초겨울, 하천변에 낯선 냄새가 늘었다. 고라니에겐 뿔 대신 송곳니가 있다.', choices: [
+        { t: '짝을 찾아 나선다', p: .3, ok: { kids: 2, food: -15, msg: '늦봄, 갈대숲에서 새끼 둘이 태어났다.' }, bad: { hp: -35, msg: '경쟁자의 송곳니에 목덜미가 찢겼다.', cause: '송곳니 싸움' } },
+        { t: '조용히 겨울을 난다', ok: { hp: 5, msg: '갈대숲 깊이 몸을 숨겼다.' } } ] },
+      { zone: 'road', title: '가드레일 옆 풀섶', text: '가드레일 바로 옆 풀이 유난히 푸르다. 제설제 짠맛도 난다.', choices: [
+        { t: '먹는다', p: .2, ok: { food: 35, msg: '짭짤하고 연했다.' }, bad: { death: true, msg: '커브를 돈 차가 너무 가까웠다.', cause: '로드킬' } },
+        { t: '안쪽 숲으로 간다', ok: { food: 10, msg: '질긴 풀이지만 조용하다.' } } ] },
+      { zone: 'field', title: '시멘트 농수로', text: '물을 마시러 농수로에 내려갔다. 올라가려니 벽이 너무 높다.', choices: [
+        { t: '계속 뛰어오른다', p: .4, ok: { hp: -10, msg: '다섯 번째에 턱을 걸었다.' }, bad: { hp: -45, msg: '지쳐 주저앉았다. 다음 날 아침 지나가던 농부가 꺼내 줬다.', cause: '농수로' } },
+        { t: '물길을 따라 걷는다', p: .2, ok: { food: -10, msg: '200m 끝에 경사로가 있었다.' }, bad: { hp: -25, msg: '출구가 없었다. 밤새 물속에 서 있었다.', cause: '농수로' } } ] },
+    ],
+  },
+};
+const SPECIES_KEYS = Object.keys(SPECIES);
+
+/* ───────── 장소(존) ───────── */
+const ZONES = {
+  sewer:   { name: '하수구', salt: 1, bg: '#1c1f1a', ground: '#2b2d22', top: '#4b4a33', ceiling: 150, ceilColor: '#121410', wall: { color: '#262820', brick: true }, items: { s: ['pebble', 'sludge', 'butt'], m: ['pipe'], l: [] } },
+  kitchen: { name: '식당 주방', salt: 2, bg: '#cfc6a8', ground: '#6e6757', top: '#8b8371', ceiling: 260, ceilColor: '#a9a189', wall: { color: '#d8d0b4', tile: true }, items: { s: ['crumb', 'crumb', 'cap'], m: ['stool', 'bucket'], l: ['fridge'] } },
+  alley:   { name: '골목', salt: 3, sky: ['#5d6f86', '#d9a77c'], far: '#4b5568', ground: '#3b3b3d', top: '#58585b', wall: { color: '#7b4f40', h: 900, windows: true, brick: true }, items: { s: ['butt', 'pebble', 'cap', 'leaf'], m: ['trashbag', 'trashbag', 'bike', 'pot'], l: ['pole', 'person'] } },
+  street:  { name: '대로변', salt: 4, sky: ['#7fa2c4', '#cfdbe3'], far: '#8195ab', ground: '#45484b', top: '#9a9a94', wall: { color: '#a8a49a', h: 3000, windows: true, glass: true }, items: { s: ['butt', 'leaf', 'cap'], m: ['bollard', 'bin', 'trashbag'], l: ['car', 'person', 'tree', 'pole'] } },
+  plaza:   { name: '광장', salt: 5, sky: ['#86a9c8', '#e2dccb'], far: '#8a97a6', ground: '#8c857a', top: '#a59d90', wall: { color: '#b9a58a', h: 1500, windows: true }, items: { s: ['crumb', 'crumb', 'feather', 'butt'], m: ['bench', 'bin'], l: ['person', 'person', 'tree'] } },
+  park:    { name: '공원', salt: 6, sky: ['#86b0cf', '#e3e9d6'], far: '#6f8a7e', ground: '#4f6b3a', top: '#6f8f4a', items: { s: ['leaf', 'pebble', 'feather'], m: ['bench', 'bush', 'bush'], l: ['tree', 'tree', 'person'] } },
+  river:   { name: '하천변', salt: 7, sky: ['#8fb3c9', '#e6e2cc'], far: '#7f8e9a', ground: '#5a5a3e', top: '#7a7a50', items: { s: ['pebble'], m: ['reed', 'reed', 'reed'], l: ['tree', 'pillar'] } },
+  road:    { name: '외곽 도로', salt: 8, sky: ['#6c88a6', '#d6c9a8'], far: '#4f6656', mountain: true, ground: '#3f4144', top: '#6b6d70', items: { s: ['pebble'], m: ['guardrail'], l: ['car', 'car', 'pole'] } },
+  field:   { name: '도시 외곽 밭', salt: 9, sky: ['#9ab8cf', '#efe6c6'], far: '#64806a', mountain: true, ground: '#5b4632', top: '#7b6040', items: { s: ['pebble'], m: ['lettuce', 'lettuce', 'net'], l: ['greenhouse'] } },
+  ruin:    { name: '재개발 구역', salt: 10, sky: ['#7d8590', '#c9b9a2'], far: '#6b7380', ground: '#5e5850', top: '#7d766b', wall: { color: '#8d8579', h: 600, windows: true, graffiti: true }, items: { s: ['tile', 'pebble'], m: ['bricks', 'box', 'cone'], l: ['fence', 'pole'] } },
+  bridge:  { name: '다리 밑', salt: 11, sky: ['#7d93a6', '#c9d2d4'], far: '#73828f', ground: '#55575a', top: '#77797b', ceiling: 700, ceilColor: '#4a4d50', items: { s: ['feather', 'pebble'], m: [], l: ['pillar'] } },
+};
+
+/* ───────── 캔버스 그리기 도구 ───────── */
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+const css = getComputedStyle(document.documentElement);
+const SODIUM = css.getPropertyValue('--sodium').trim() || '#f2a03d';
+const R = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
+const E = (cx, cy, rx, ry, c) => { ctx.fillStyle = c; ctx.beginPath(); ctx.ellipse(cx, cy, Math.abs(rx), Math.abs(ry), 0, 0, TAU); ctx.fill(); };
+const P = (pts, c) => { ctx.fillStyle = c; ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); ctx.fill(); };
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+function hash(n, salt) { const x = Math.sin(n * 127.1 + salt * 311.7) * 43758.5453; return x - Math.floor(x); }
+
+/* 사물은 cm 단위로 정의. d(x, 지면y, px/cm, 난수) */
+const ITEMS = {
+  pebble:   { w: 2.4, h: 1.4, d: (x, g, s, r) => E(x + 1.2 * s, g - .6 * s, 1.2 * s, .7 * s, r < .5 ? '#8b867c' : '#6f6b62') },
+  crumb:    { w: 1, h: .6, d: (x, g, s) => E(x + .5 * s, g - .3 * s, .5 * s, .3 * s, '#d4ac6e') },
+  butt:     { w: 8, h: .8, d: (x, g, s) => { R(x, g - .8 * s, 5.5 * s, .8 * s, '#ece6d8'); R(x + 5.5 * s, g - .8 * s, 2.5 * s, .8 * s, '#cf8a3e'); } },
+  cap:      { w: 3, h: .7, d: (x, g, s, r) => R(x, g - .7 * s, 3 * s, .7 * s, r < .5 ? '#3d7a55' : '#b9443a') },
+  leaf:     { w: 6, h: .6, d: (x, g, s, r) => E(x + 3 * s, g - .3 * s, 3 * s, .35 * s, r < .5 ? '#8a6d2c' : '#5f7a32') },
+  feather:  { w: 7, h: .6, d: (x, g, s) => E(x + 3.5 * s, g - .3 * s, 3.5 * s, .4 * s, '#c3c7cc') },
+  tile:     { w: 9, h: 1.5, d: (x, g, s) => R(x, g - 1.5 * s, 9 * s, 1.5 * s, '#9d5b3d') },
+  sludge:   { w: 16, h: 2, d: (x, g, s) => E(x + 8 * s, g - .6 * s, 8 * s, 1.4 * s, '#4d4730') },
+  trashbag: { w: 62, h: 72, d: (x, g, s, r) => { const c = r < .5 ? '#e4dfc6' : '#c9d48a'; E(x + 31 * s, g - 28 * s, 31 * s, 28 * s, c); E(x + 31 * s, g - 60 * s, 9 * s, 12 * s, c); } },
+  bin:      { w: 50, h: 100, d: (x, g, s) => { R(x, g - 95 * s, 50 * s, 95 * s, '#3e5b4b'); R(x - 3 * s, g - 101 * s, 56 * s, 8 * s, '#2f4639'); } },
+  bollard:  { w: 16, h: 85, d: (x, g, s) => { R(x, g - 80 * s, 16 * s, 80 * s, '#5d6064'); E(x + 8 * s, g - 80 * s, 8 * s, 5 * s, '#5d6064'); R(x, g - 70 * s, 16 * s, 6 * s, '#d8c24a'); } },
+  bench:    { w: 160, h: 85, d: (x, g, s) => { R(x + 12 * s, g - 45 * s, 8 * s, 45 * s, '#2f3133'); R(x + 140 * s, g - 45 * s, 8 * s, 45 * s, '#2f3133'); [48, 70, 85].forEach((y) => R(x, g - y * s, 160 * s, 7 * s, '#7b5a3a')); } },
+  bike:     { w: 175, h: 100, d: (x, g, s) => { ctx.strokeStyle = '#2a2d31'; ctx.lineWidth = Math.max(1, 3 * s); const r = 33 * s; ctx.beginPath(); ctx.arc(x + 35 * s, g - r, r, 0, TAU); ctx.moveTo(x + 140 * s + r, g - r); ctx.arc(x + 140 * s, g - r, r, 0, TAU); ctx.moveTo(x + 35 * s, g - r); ctx.lineTo(x + 80 * s, g - 75 * s); ctx.lineTo(x + 130 * s, g - 75 * s); ctx.lineTo(x + 140 * s, g - r); ctx.moveTo(x + 80 * s, g - 75 * s); ctx.lineTo(x + 92 * s, g - r); ctx.lineTo(x + 35 * s, g - r); ctx.stroke(); } },
+  pot:      { w: 40, h: 65, d: (x, g, s) => { R(x + 5 * s, g - 34 * s, 30 * s, 34 * s, '#a35e3f'); E(x + 20 * s, g - 48 * s, 20 * s, 16 * s, '#4f7a3a'); } },
+  stool:    { w: 36, h: 45, d: (x, g, s) => { R(x, g - 45 * s, 36 * s, 6 * s, '#c9463b'); R(x + 3 * s, g - 45 * s, 5 * s, 45 * s, '#c9463b'); R(x + 28 * s, g - 45 * s, 5 * s, 45 * s, '#c9463b'); } },
+  bucket:   { w: 30, h: 35, d: (x, g, s) => R(x, g - 35 * s, 30 * s, 35 * s, '#3d6f9d') },
+  pipe:     { w: 34, h: 60, d: (x, g, s) => { E(x + 17 * s, g - 40 * s, 17 * s, 17 * s, '#3d3e31'); E(x + 17 * s, g - 40 * s, 13 * s, 13 * s, '#0f100c'); R(x + 15 * s, g - 27 * s, 4 * s, 27 * s, 'rgba(120,130,90,.6)'); } },
+  reed:     { w: 40, h: 210, d: (x, g, s, r) => { for (let i = 0; i < 6; i++) { const hh = 140 + hash(i, r * 100) * 70; R(x + i * 7 * s, g - hh * s, Math.max(1, 1.2 * s), hh * s, '#a29a68'); E(x + i * 7 * s, g - hh * s, 3 * s, 12 * s, '#dcd2ab'); } } },
+  bush:     { w: 120, h: 80, d: (x, g, s) => { E(x + 60 * s, g - 36 * s, 60 * s, 38 * s, '#41693a'); E(x + 35 * s, g - 50 * s, 30 * s, 26 * s, '#4c7741'); } },
+  lettuce:  { w: 26, h: 16, d: (x, g, s) => E(x + 13 * s, g - 7 * s, 13 * s, 8 * s, '#83b453') },
+  net:      { w: 220, h: 120, d: (x, g, s) => { ctx.globalAlpha = .28; R(x, g - 110 * s, 220 * s, 110 * s, '#d8dfd0'); ctx.globalAlpha = 1; R(x, g - 120 * s, 4 * s, 120 * s, '#6b5a45'); R(x + 216 * s, g - 120 * s, 4 * s, 120 * s, '#6b5a45'); } },
+  cone:     { w: 36, h: 72, d: (x, g, s) => { P([[x, g], [x + 36 * s, g], [x + 18 * s, g - 72 * s]], '#e0702f'); R(x + 10 * s, g - 40 * s, 16 * s, 8 * s, '#f1ede2'); } },
+  bricks:   { w: 90, h: 44, d: (x, g, s) => { for (let row = 0; row < 4; row++) for (let c = 0; c < 4 - row; c++) R(x + (c * 22 + row * 11) * s, g - (row + 1) * 11 * s, 21 * s, 10 * s, '#8f4b38'); } },
+  box:      { w: 62, h: 40, d: (x, g, s) => { R(x, g - 40 * s, 62 * s, 40 * s, '#e9eae3'); R(x, g - 40 * s, 62 * s, 4 * s, '#c9cbc2'); } },
+  guardrail:{ w: 400, h: 78, d: (x, g, s) => { for (let i = 0; i < 3; i++) R(x + i * 190 * s, g - 75 * s, 10 * s, 75 * s, '#7e8388'); R(x, g - 72 * s, 400 * s, 26 * s, '#b8bdc1'); } },
+  pole:     { w: 30, h: 900, d: (x, g, s) => { R(x, g - 900 * s, 28 * s, 900 * s, '#6f6a63'); R(x - 50 * s, g - 840 * s, 130 * s, 10 * s, '#5a5650'); } },
+  person:   { w: 46, h: 172, d: (x, g, s, r) => { const legs = r < .5 ? '#2d3441' : '#4a4237'; const top = ['#7c3b3b', '#3d5d7c', '#c9b78f', '#2f2f2f'][Math.floor(r * 4)]; R(x + 6 * s, g - 86 * s, 14 * s, 86 * s, legs); R(x + 26 * s, g - 86 * s, 14 * s, 86 * s, legs); R(x + 4 * s, g - 6 * s, 20 * s, 6 * s, '#1d1d1d'); R(x + 24 * s, g - 6 * s, 20 * s, 6 * s, '#1d1d1d'); R(x, g - 150 * s, 46 * s, 66 * s, top); E(x + 23 * s, g - 161 * s, 11 * s, 12 * s, '#d7b08d'); } },
+  car:      { w: 430, h: 145, d: (x, g, s, r) => { const c = ['#d9dbdc', '#2e3238', '#8a1f22', '#3b5b7a'][Math.floor(r * 4)]; R(x, g - 100 * s, 430 * s, 66 * s, c); P([[x + 95 * s, g - 100 * s], [x + 150 * s, g - 145 * s], [x + 310 * s, g - 145 * s], [x + 360 * s, g - 100 * s]], c); P([[x + 112 * s, g - 102 * s], [x + 156 * s, g - 138 * s], [x + 304 * s, g - 138 * s], [x + 343 * s, g - 102 * s]], '#5f7387'); [95, 340].forEach((wx) => { E(x + wx * s, g - 32 * s, 32 * s, 32 * s, '#1b1b1b'); E(x + wx * s, g - 32 * s, 14 * s, 14 * s, '#8d9196'); }); } },
+  tree:     { w: 300, h: 620, d: (x, g, s) => { R(x + 139 * s, g - 320 * s, 24 * s, 320 * s, '#5b4733'); E(x + 150 * s, g - 430 * s, 150 * s, 150 * s, '#46693a'); E(x + 90 * s, g - 380 * s, 80 * s, 70 * s, '#3f6034'); } },
+  pillar:   { w: 220, h: 1400, d: (x, g, s) => { R(x, g - 1400 * s, 220 * s, 1400 * s, '#8a8d8f'); R(x, g - 1400 * s, 26 * s, 1400 * s, '#9da0a2'); } },
+  greenhouse:{ w: 800, h: 300, d: (x, g, s) => { ctx.globalAlpha = .55; ctx.fillStyle = '#dfe6e0'; ctx.beginPath(); ctx.ellipse(x + 400 * s, g, 400 * s, 300 * s, 0, Math.PI, TAU); ctx.fill(); ctx.globalAlpha = 1; } },
+  fridge:   { w: 80, h: 182, d: (x, g, s) => { R(x, g - 182 * s, 80 * s, 182 * s, '#e3e3db'); R(x, g - 120 * s, 80 * s, 2 * s, '#b9b9b0'); R(x + 66 * s, g - 170 * s, 4 * s, 40 * s, '#9a9a92'); } },
+  fence:    { w: 300, h: 240, d: (x, g, s) => { R(x, g - 240 * s, 298 * s, 240 * s, '#e8e8e1'); R(x, g - 150 * s, 298 * s, 30 * s, '#2f7a5c'); } },
+};
+/* 크기대별 배치 격자: 작은 것(돌·부스러기)은 촘촘히, 큰 것(차·나무)은 드문드문 */
+const BANDS = [{ k: 'l', cell: 1500, dens: .6, salt: 3 }, { k: 'm', cell: 340, dens: .55, salt: 7 }, { k: 's', cell: 26, dens: .6, salt: 11 }];
+
+/* 주인공은 몸 기준 원점(앞발 아래 지면), cm 좌표로 그린다 */
+const ANIMALS = {
+  fly(t, mv, eye) {
+    const y = -eye + Math.sin(t * 3) * .4, flap = mv ? (Math.sin(t * 90) > 0 ? 1 : .3) : .7;
+    E(0, y, .38, .17, '#2b2723'); E(.34, y - .02, .14, .13, '#2b2723'); E(.4, y - .06, .07, .08, '#b0442f');
+    ctx.globalAlpha = .6; E(-.08, y - .17, .34, .1 * flap + .02, '#e4edf4'); ctx.globalAlpha = 1;
+  },
+  pigeon(t, mv, eye) {
+    const y = -eye + Math.sin(t * 2) * 6, f = Math.sin(t * (mv ? 14 : 5));
+    P([[-14, y - 2], [-30, y + 2], [-30, y - 4]], '#6f7884');
+    E(0, y, 16, 9, '#8e97a4'); E(11, y - 4, 7, 6, '#5d8a7e'); E(16, y - 9, 5.5, 5, '#7f8996');
+    P([[21, y - 10], [25, y - 8.5], [21, y - 8]], '#d9cfc0'); E(17.5, y - 10, 1, 1, '#e2762a');
+    ctx.fillStyle = '#a6aebb'; ctx.beginPath(); ctx.moveTo(-8, y - 4); ctx.quadraticCurveTo(0, y - 4 - 20 * f, 10, y - 4); ctx.closePath(); ctx.fill();
+  },
+  cat(t, mv) {
+    const c = '#d39a55', w = mv ? t * 9 : 0;
+    ctx.strokeStyle = c; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-21, -30); ctx.quadraticCurveTo(-36, -34, -34 + Math.sin(t * 2) * 3, -52); ctx.stroke();
+    [[-15, 0], [-8, Math.PI], [12, Math.PI], [19, 0]].forEach(([lx, ph]) => R(lx + Math.sin(w + ph) * 4 - 2, -21, 4.5, 21, '#c08845'));
+    E(0, -27, 23, 11, c); E(24, -35, 9, 8, c);
+    P([[18, -40], [20, -49], [25, -41]], c); P([[25, -41], [30, -49], [32, -38]], c);
+    E(28, -36, 1.2, 1.4, '#3b5d2e');
+  },
+  gorani(t, mv) {
+    const c = '#a47c55', w = mv ? t * 7 : 0;
+    [[-30, 0], [-22, Math.PI], [24, Math.PI], [32, 0]].forEach(([lx, ph]) => R(lx + Math.sin(w + ph) * 6 - 1.7, -52, 3.5, 52, '#8d6a47'));
+    E(0, -62, 44, 19, c); E(-42, -66, 6, 5, '#e8dcc8');
+    P([[24, -72], [38, -76], [54, -104], [44, -108]], c);
+    E(53, -108, 13, 7.5, c); E(43, -117, 3.2, 7, c); E(64, -107, 2.6, 2.4, '#1e1a17'); E(52, -111, 1.4, 1.4, '#1e1a17');
+    ctx.strokeStyle = '#efe9dc'; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.moveTo(57, -103); ctx.lineTo(58, -96); ctx.stroke(); // 송곳니
+  },
+};
+
+/* ───────── 시간·계절 ───────── */
+function durLabel(d) {
+  if (d < 60) return `${d}일`;
+  const m = Math.round(d / 30.4), y = Math.floor(m / 12), mm = m % 12;
+  if (!y) return `${m}개월`;
+  return mm ? `${y}년 ${mm}개월` : `${y}년`;
+}
+const monthOf = (sp, d) => ((sp.startMonth - 1 + Math.floor(d / 30.4)) % 12) + 1;
+function seasonOf(m) { if (m >= 3 && m <= 5) return 'spring'; if (m >= 6 && m <= 8) return 'summer'; if (m >= 9 && m <= 11) return 'autumn'; return 'winter'; }
+const SEASON_KO = { spring: '봄', summer: '여름', autumn: '가을', winter: '겨울' };
+const seasonOk = (season, m) => !season || seasonOf(m) === season;
+
+/* ───────── 게임 상태 ───────── */
+let game = { phase: 'idle', spKey: null };
+const view = { zone: 'street', night: false, glow: null, weather: null, camX: 5000, speed: 0, fade: 0, t: 0 };
+let moveTimer = null, rouletteTimer = null;
+
+const newGame = (spKey) => ({ phase: 'birth', spKey, day: 0, hp: START_HP, food: START_FOOD, kids: 0, log: [], recent: [], eventIdx: null, outcome: null, dead: false, won: false, cause: null });
+
+function pickEventIdx(sp, g) {
+  const m = monthOf(sp, g.day);
+  const all = sp.events.map((e, i) => ({ e, i })).filter(({ e }) => seasonOk(e.season, m));
+  const fresh = all.filter(({ i }) => !g.recent.includes(i));
+  const pool = fresh.length ? fresh : all;
+  const seasonal = pool.filter(({ e }) => e.season);
+  const list = seasonal.length && Math.random() < .6 ? seasonal : pool;
+  return list[Math.floor(Math.random() * list.length)].i;
+}
+
+function resolve(g, choice) {
+  const sp = SPECIES[g.spKey];
+  const isBad = Boolean(choice.bad) && Math.random() < (choice.p || 0);
+  const out = isBad ? choice.bad : choice.ok;
+  const winter = seasonOf(monthOf(sp, g.day)) === 'winter';
+  const decay = sp.decay + (winter ? sp.winterDecay : 0);
+  const food = clamp(g.food + (out.food || 0) - decay, 0, 100);
+  const starving = food === 0;
+  const regen = !isBad && food >= FULL_AT ? REGEN : 0;
+  const hp = clamp(g.hp + (out.hp || 0) - (starving ? STARVE_DMG : 0) + regen, 0, 100);
+  const dead = Boolean(out.death) || hp <= 0;
+  const cause = dead ? (out.cause || (starving ? '굶주림' : '쇠약')) : null;
+  const day = dead ? g.day + Math.max(1, Math.round(sp.turnDays * Math.random())) : g.day + sp.turnDays;
+  const won = !dead && day >= sp.targetDays;
+  const kids = g.kids + (out.kids || 0);
+  const ev = sp.events[g.eventIdx];
+  const entry = { when: durLabel(g.day), title: ev.title, choice: choice.t, bad: isBad || dead };
+  return {
+    ...g, phase: 'outcome', hp, food, kids, day: won ? sp.targetDays : day, dead, won, cause,
+    log: [...g.log, entry],
+    outcome: { choice: choice.t, msg: out.msg || (dead ? `${cause}.` : '별일 없었다.'), dHp: hp - g.hp, dFood: food - g.food, kids: out.kids || 0, starving, decayed: decay, isBad },
+  };
+}
+
+const percentile = (sp, day) => { const f = Math.min(day / sp.targetDays, 1); return clamp(Math.round(100 * (1 - Math.pow(1 - f, sp.curve))), 1, 99); };
+
+/* ───────── DOM ───────── */
+const $ = (id) => document.getElementById(id);
+const sheet = $('sheet');
+function h(tag, props, ...kids) {
+  const el = document.createElement(tag);
+  Object.entries(props || {}).forEach(([k, v]) => {
+    if (k === 'class') el.className = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v);
+  });
+  kids.flat().forEach((k) => { if (k != null && k !== false) el.append(k instanceof Node ? k : document.createTextNode(String(k))); });
+  return el;
+}
+function showSheet(...nodes) {
+  sheet.hidden = false; sheet.replaceChildren(...nodes);
+  sheet.style.animation = 'none'; void sheet.offsetWidth; sheet.style.animation = '';
+  sheet.scrollTop = 0;
+  const first = sheet.querySelector('button'); if (first) first.focus({ preventScroll: true });
+}
+const hideSheet = () => { sheet.hidden = true; sheet.replaceChildren(); };
+
+function updateHud() {
+  const sp = SPECIES[game.spKey];
+  $('hud').hidden = !sp; if (!sp) return;
+  $('spName').textContent = sp.name; $('spLatin').textContent = `${sp.latin} · ${sp.size}`;
+  $('hpBar').style.transform = `scaleX(${game.hp / 100})`;
+  $('foodBar').style.transform = `scaleX(${game.food / 100})`;
+  $('kids').textContent = game.kids ? `남긴 ${sp.kidUnit} ${game.kids}` : '';
+  const season = SEASON_KO[seasonOf(monthOf(sp, game.day))];
+  $('age').textContent = `생후 ${durLabel(game.day)} · ${season}`;
+  $('target').textContent = `목표 ${durLabel(sp.targetDays)}`;
+  $('lifeBar').style.transform = `scaleX(${Math.min(game.day / sp.targetDays, 1)})`;
+}
+let lastScaleS = 0;
+function updateScaleBar(s) {
+  if (Math.abs(s - lastScaleS) < 1e-6) return; lastScaleS = s;
+  const best = SCALE_STEPS.reduce((a, b) => (Math.abs(Math.log(b * s / SCALE_TARGET_PX)) < Math.abs(Math.log(a * s / SCALE_TARGET_PX)) ? b : a));
+  $('scaleBar').style.width = `${best * s}px`;
+  $('scaleLabel').textContent = best >= 100 ? `${best / 100} m` : `${best} cm`;
+}
+
+/* ───────── 화면 흐름 ───────── */
+function setZone(zone, opts = {}) {
+  if (zone !== view.zone) { view.fade = 1; view.camX = 2000 + Math.random() * 90000; }
+  Object.assign(view, { zone, night: Boolean(opts.night), glow: opts.glow || null, weather: opts.weather || null });
+}
+
+function startRoulette(forcedKey) {
+  clearTimeout(moveTimer); clearInterval(rouletteTimer);
+  game = { phase: 'idle', spKey: null }; updateHud();
+  $('caption').hidden = true;
+  setZone(['street', 'alley', 'park'][Math.floor(Math.random() * 3)]);
+  const key = forcedKey || SPECIES_KEYS[Math.floor(Math.random() * SPECIES_KEYS.length)];
+  const name = h('div', { class: 'roulette' }, '…');
+  showSheet(h('div', { class: 'eyebrow' }, '도시에서 태어나기'), name, h('p', { class: 'muted' }, '무엇으로 태어날지는 고를 수 없다.'));
+  if (reducedMotion) { revealBirth(key); return; }
+  let n = 0;
+  rouletteTimer = setInterval(() => {
+    name.textContent = SPECIES[SPECIES_KEYS[n % SPECIES_KEYS.length]].name; n += 1;
+    if (n > 14) { clearInterval(rouletteTimer); revealBirth(key); }
+  }, 80);
+}
+
+function revealBirth(key) {
+  const sp = SPECIES[key];
+  game = newGame(key); updateHud();
+  setZone(sp.birth.zone);
+  const spec = (k, v) => h('div', null, h('dt', null, k), h('dd', null, v));
+  showSheet(
+    h('div', { class: 'eyebrow' }, `${sp.birth.place} · ${sp.latin}`),
+    h('h2', null, `${sp.name}로 태어났다`),
+    h('p', null, sp.birth.text),
+    h('dl', { class: 'specs' }, spec('몸길이', sp.size), spec('목표 생존', durLabel(sp.targetDays)), spec('한 장면', `${sp.turnDays}일`), spec('눈높이', `${sp.eye}cm`)),
+    h('div', { class: 'row' }, h('button', { class: 'primary', onclick: nextTurn }, '살아 보기')),
+  );
+}
+
+function nextTurn() {
+  const sp = SPECIES[game.spKey];
+  const idx = pickEventIdx(sp, game);
+  const ev = sp.events[idx];
+  game = { ...game, phase: 'move', eventIdx: idx, recent: [...game.recent, idx].slice(-RECENT_LIMIT) };
+  const outdoor = Boolean(ZONES[ev.zone].sky);
+  const snow = outdoor && seasonOf(monthOf(sp, game.day)) === 'winter';
+  setZone(ev.zone, { night: ev.night, glow: ev.glow, weather: ev.weather || (snow ? 'snow' : null) });
+  hideSheet(); updateHud();
+  $('capTc').textContent = `생후 ${durLabel(game.day)} · ${SEASON_KO[seasonOf(monthOf(sp, game.day))]}${ev.night ? ' · 밤' : ''}`;
+  $('capTx').textContent = ZONES[ev.zone].name;
+  $('caption').hidden = false;
+  moveTimer = setTimeout(showChoice, reducedMotion ? MOVE_MS_REDUCED : MOVE_MS);
+}
+
+function showChoice() {
+  const sp = SPECIES[game.spKey];
+  const ev = sp.events[game.eventIdx];
+  game = { ...game, phase: 'choice' };
+  $('caption').hidden = true;
+  showSheet(
+    h('div', { class: 'eyebrow' }, `생후 ${durLabel(game.day)} · ${ZONES[ev.zone].name}`),
+    h('h2', null, ev.title),
+    h('p', null, ev.text),
+    h('div', { class: 'choices' }, ev.choices.map((c, i) => h('button', { class: 'choice', onclick: () => choose(i) }, h('span', { class: 'k' }, String(i + 1)), h('span', null, c.t)))),
+  );
+}
+
+function choose(i) {
+  if (game.phase !== 'choice') return;
+  const ev = SPECIES[game.spKey].events[game.eventIdx];
+  game = resolve(game, ev.choices[i]);
+  updateHud(); showOutcome();
+}
+
+function deltaChip(label, d) { if (!d) return null; return h('span', { class: `chip ${d > 0 ? 'up' : 'down'}` }, `${label} ${d > 0 ? '+' : '−'}${Math.abs(d)}`); }
+
+function showOutcome() {
+  const sp = SPECIES[game.spKey], o = game.outcome;
+  const ended = game.dead || game.won;
+  showSheet(
+    h('div', { class: 'eyebrow' }, `선택 · ${o.choice}`),
+    h('p', { class: 'result' }, o.msg),
+    game.won ? h('p', null, `${durLabel(sp.targetDays)}을 다 살았다. ${sp.name}로서는 천수다.`) : null,
+    game.dead ? h('h2', null, '여기까지였다') : null,
+    h('div', { class: 'chips' },
+      deltaChip('체력', o.dHp), deltaChip('포만', o.dFood),
+      o.kids ? h('span', { class: 'chip kid' }, `${sp.kidUnit} +${o.kids}`) : null,
+      o.starving ? h('span', { class: 'chip down' }, '굶주림') : null),
+    !ended ? h('p', { class: 'muted' }, `${sp.turnDays}일이 지난다. 시간이 갈수록 배가 고프다 (포만 −${o.decayed}).`) : null,
+    h('div', { class: 'row' }, h('button', { class: 'primary', onclick: ended ? showEnd : nextTurn }, ended ? '생애 기록 보기' : '계속 살아가기')),
+  );
+}
+
+function showEnd() {
+  const sp = SPECIES[game.spKey];
+  const pct = percentile(sp, game.day);
+  game = { ...game, phase: 'end' };
+  setZone(view.zone, { night: true });
+  showSheet(
+    h('div', { class: 'eyebrow' }, `생애 기록 · ${sp.name}`),
+    h('h2', null, game.won ? '천수를 누렸다' : `생후 ${durLabel(game.day)}, ${game.cause}`),
+    h('p', { class: 'verdict' }, h('strong', null, `${pct}`), ` / 100 · 같은 해 도시에서 태어난 ${sp.name} 100마리 중 ${pct}마리보다 오래 살았다 (게임 속 가상 수치)`),
+    h('dl', { class: 'specs' },
+      h('div', null, h('dt', null, '산 기간'), h('dd', null, `${durLabel(game.day)} / ${durLabel(sp.targetDays)}`)),
+      h('div', null, h('dt', null, `남긴 ${sp.kidUnit}`), h('dd', null, String(game.kids)))),
+    h('ol', { class: 'log' }, game.log.map((e) => h('li', null, h('span', { class: 'when' }, e.when), h('span', { class: e.bad ? 'bad' : '' }, `${e.title} → ${e.choice}`)))),
+    h('div', { class: 'row' },
+      h('button', { class: 'primary', onclick: () => startRoulette() }, '다시 태어나기'),
+      SPECIES_KEYS.map((k) => h('button', { class: 'ghost', onclick: () => startRoulette(k) }, `${SPECIES[k].name}로`))),
+  );
+}
+
+document.addEventListener('keydown', (e) => {
+  if (game.phase !== 'choice') return;
+  const n = Number(e.key);
+  const ev = SPECIES[game.spKey].events[game.eventIdx];
+  if (n >= 1 && n <= ev.choices.length) choose(n - 1);
+});
+
+/* ───────── 렌더링 ───────── */
+let W = 0, H = 0;
+function resize() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = canvas.clientWidth; H = canvas.clientHeight;
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+addEventListener('resize', resize);
+
+const particles = Array.from({ length: 140 }, () => ({ x: Math.random(), y: Math.random(), v: .6 + Math.random() * .6 }));
+
+function drawFar(z, s, g) {
+  if (!z.far) return;
+  const fs = Math.min(s, .35) * .6, off = view.camX * fs * .5;
+  ctx.fillStyle = z.far;
+  if (z.mountain) {
+    ctx.beginPath(); ctx.moveTo(0, g);
+    for (let x = 0; x <= W + 8; x += 8) ctx.lineTo(x, g - fs * (1800 + 700 * Math.sin((x + off) / 260) + 400 * Math.sin((x + off) / 97)));
+    ctx.lineTo(W, g); ctx.closePath(); ctx.fill(); return;
+  }
+  const cell = 700 * fs, i0 = Math.floor(off / cell) - 1, i1 = Math.floor((off + W) / cell) + 1;
+  for (let i = i0; i <= i1; i++) { const bh = (1500 + hash(i, 5) * 4500) * fs; ctx.fillRect(i * cell - off, g - bh, cell * .92, bh); }
+}
+
+function drawWall(z, s, g) {
+  const w = z.wall; if (!w) return;
+  const top = Math.max(w.h ? g - w.h * s : 0, 0);
+  R(0, top, W, g - top, w.color);
+  const x0 = view.camX;
+  if ((w.brick && s > 1.2) || (w.tile && s > .8)) {
+    const bw = w.tile ? 15 : 22, bh = w.tile ? 15 : 7.5;
+    const rows = Math.min(Math.ceil((g - top) / (bh * s)), 300);
+    ctx.strokeStyle = w.tile ? 'rgba(120,110,85,.35)' : 'rgba(0,0,0,.28)'; ctx.lineWidth = 1; ctx.beginPath();
+    for (let r = 0; r <= rows; r++) {
+      const y = g - r * bh * s; ctx.moveTo(0, y); ctx.lineTo(W, y);
+      const shift = w.tile ? 0 : (r % 2) * bw / 2;
+      for (let i = Math.floor((x0 - shift) / bw); (i * bw + shift - x0) * s < W; i++) { const x = (i * bw + shift - x0) * s; ctx.moveTo(x, y); ctx.lineTo(x, y - bh * s); }
+    }
+    ctx.stroke();
+  }
+  if (!w.windows) return;
+  const gap = 320, i0 = Math.floor(x0 / gap) - 1, i1 = Math.floor((x0 + W / s) / gap) + 1;
+  if (i1 - i0 > 200) return;
+  const floors = Math.floor((w.h - 150) / 300);
+  for (let i = i0; i <= i1; i++) {
+    const x = (i * gap + 95 - x0) * s;
+    for (let f = 0; f < floors; f++) {
+      const y = g - (260 + f * 300) * s; if (y > g || y + 150 * s < 0) continue;
+      const lit = view.night && hash(i * 31 + f, 9) < .35;
+      R(x, y, 130 * s, 150 * s, lit ? '#f2c46d' : w.glass ? '#8fa9bd' : '#2e3540');
+    }
+    if (w.graffiti && hash(i, 4) < .35 && 70 * s > 8) { ctx.fillStyle = '#c0392b'; ctx.font = `${70 * s}px "Black Han Sans", sans-serif`; ctx.fillText('철거', x - 60 * s, g - 120 * s); }
+  }
+}
+
+function drawItems(z, s, g) {
+  BANDS.forEach((b) => {
+    const list = z.items[b.k]; if (!list || !list.length) return;
+    const i0 = Math.floor(view.camX / b.cell) - 2, i1 = Math.floor((view.camX + W / s) / b.cell) + 1;
+    if (i1 - i0 > 600) return;
+    const salt = b.salt + z.salt * 13;
+    for (let i = i0; i <= i1; i++) {
+      if (hash(i, salt) > b.dens) continue;
+      const it = ITEMS[list[Math.floor(hash(i, salt + 1) * list.length)]];
+      if (Math.max(it.w, it.h) * s < 1.5) continue;
+      const x = (i * b.cell + hash(i, salt + 2) * b.cell * .7 - view.camX) * s;
+      if (x > W || x + it.w * s < 0) continue;
+      it.d(x, g, s, hash(i, salt + 3));
+    }
+  });
+}
+
+function drawWeather(dt) {
+  if (!view.weather) return;
+  const rain = view.weather === 'rain';
+  ctx.strokeStyle = 'rgba(200,215,230,.5)'; ctx.fillStyle = 'rgba(240,244,248,.85)'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  particles.forEach((p) => {
+    p.y += dt * p.v * (rain ? 1.6 : .12); if (p.y > 1) { p.y -= 1; p.x = Math.random(); }
+    const x = p.x * W + (rain ? 0 : Math.sin(view.t + p.v * 9) * 8), y = p.y * H;
+    if (rain) { ctx.moveTo(x, y); ctx.lineTo(x - 2, y + 14); } else ctx.rect(x, y, 2.2, 2.2);
+  });
+  rain ? ctx.stroke() : ctx.fill();
+}
+
+function drawTracker(sp, cx, g, s) {
+  const [x0, y0, x1, y1] = sp.box, pad = 6;
+  const L = cx + x0 * s - pad, T = g + y0 * s - pad, Rr = cx + x1 * s + pad, B = g + y1 * s + pad, k = Math.min(10, (Rr - L) / 3);
+  ctx.strokeStyle = SODIUM; ctx.lineWidth = 1.5; ctx.beginPath();
+  [[L, T, 1, 1], [Rr, T, -1, 1], [L, B, 1, -1], [Rr, B, -1, -1]].forEach(([x, y, dx, dy]) => { ctx.moveTo(x + dx * k, y); ctx.lineTo(x, y); ctx.lineTo(x, y + dy * k); });
+  ctx.stroke();
+  ctx.fillStyle = SODIUM; ctx.font = '500 11px "IBM Plex Mono", monospace'; ctx.fillText(`나 · ${sp.size}`, L, T - 6);
+}
+
+function draw(dt) {
+  const sp = SPECIES[game.spKey] || null, z = ZONES[view.zone];
+  const s = W / (sp ? sp.viewCm : 600), eye = sp ? sp.eye : 30;
+  const g = clamp(H * .42 + eye * s, H * .45, H * .76);
+  if (z.sky) {
+    const gr = ctx.createLinearGradient(0, 0, 0, g);
+    gr.addColorStop(0, view.night ? '#0b1226' : z.sky[0]); gr.addColorStop(1, view.night ? '#2b2c3c' : z.sky[1]);
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, W, g);
+  } else R(0, 0, W, H, z.bg);
+  drawFar(z, s, g);
+  drawWall(z, s, g);
+  if (z.ceiling) { const cy = g - z.ceiling * s; if (cy > 0) R(0, 0, W, cy, z.ceilColor); }
+  R(0, g, W, H - g, z.ground);
+  R(0, g, W, Math.max(2, Math.min(1.2 * s, 8)), view.weather === 'snow' ? '#e8ecef' : z.top);
+  drawItems(z, s, g);
+  if (view.night) {
+    R(0, 0, W, H, 'rgba(6,10,28,.52)');
+    const gx = W * .72, gy = Math.max(60, g - Math.min(H * .3, 600 * s)), rad = Math.min(W, H) * .45;
+    const rg = ctx.createRadialGradient(gx, gy, 0, gx, gy, rad);
+    rg.addColorStop(0, (view.glow || SODIUM) + '55'); rg.addColorStop(1, (view.glow || SODIUM) + '00');
+    ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+  }
+  drawWeather(dt);
+  if (sp) {
+    const cx = W * .34, moving = view.speed > sp.speedCm * .3;
+    ctx.save(); ctx.translate(cx, g); ctx.scale(s, s);
+    ANIMALS[game.spKey](view.t, moving, sp.eye);
+    ctx.restore();
+    drawTracker(sp, cx, g, s);
+    updateScaleBar(s);
+  }
+  if (view.fade > 0) R(0, 0, W, H, `rgba(5,7,8,${view.fade})`);
+}
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, .05); last = now; view.t += dt;
+  const sp = SPECIES[game.spKey];
+  const cruise = sp ? sp.speedCm : 60;
+  const target = game.phase === 'move' ? cruise : cruise * .05;
+  view.speed += (target - view.speed) * Math.min(1, dt * 3);
+  view.camX += view.speed * dt;
+  view.fade = Math.max(0, view.fade - dt / FADE_S);
+  draw(dt);
+  requestAnimationFrame(frame);
+}
+
+/* ───────── 시작 (뷰어 업데이트 시 진행 상태 유지) ───────── */
+window.claude?.hot?.snapshot?.(() => ({ game, zone: view.zone }));
+function boot(data) {
+  resize(); requestAnimationFrame(frame);
+  const saved = data && data.game;
+  if (!saved || !SPECIES[saved.spKey] || saved.phase === 'idle') { startRoulette(); return; }
+  game = saved; updateHud();
+  const sp = SPECIES[game.spKey];
+  if (game.phase === 'birth') revealBirth(game.spKey);
+  else if (game.phase === 'outcome') { setZone(data.zone || sp.birth.zone); showOutcome(); }
+  else if (game.phase === 'end') { setZone(data.zone || sp.birth.zone); showEnd(); }
+  else { const ev = sp.events[game.eventIdx]; setZone(ev.zone, ev); showChoice(); }
+}
+window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
+</script>
