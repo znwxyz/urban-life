@@ -1,0 +1,140 @@
+:root {
+  /* Layout: full-bleed paper-cut diorama. Cut-paper name tags pinned top-left/right with washi tape;
+     one torn-edge paper card at the bottom that you drag left or right (Reigns-style).
+     Type: New Gulim when the device has it, otherwise Galmuri pixel faces. One committed look, no dark variant. */
+  --paper: #fffaf0;
+  --paper-2: #f6ead6;
+  --ink: #3b3049;
+  --dim: #85798f;
+  --rule: rgba(59, 48, 73, .18);
+  --pink: #ff8fa3;
+  --pink-deep: #e0607a;
+  --mint: #6fd3ae;
+  --butter: #ffcf5c;
+  --sky: #8ec5ff;
+  --berry: #d8465f;
+  --gold: #e3a21a;
+  --teal: #3f9c97;
+  --tape-pink: rgba(255, 166, 186, .78);
+  --tape-blue: rgba(150, 206, 255, .78);
+  --night: #2a2438;
+  --f-body: "New Gulim", "새굴림", "NewGulim", "Galmuri14", "Apple SD Gothic Neo", sans-serif;
+  --f-small: "New Gulim", "새굴림", "NewGulim", "Galmuri11", "Apple SD Gothic Neo", sans-serif;
+  color-scheme: light;
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--night); color: var(--ink); font-family: var(--f-body); font-size: 14px; overflow: hidden; -webkit-font-smoothing: none; }
+.app { position: relative; height: 100%; overflow: hidden; }
+#stage { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+button { font: inherit; color: inherit; }
+
+/* 종이 이름표 + 마스킹 테이프 */
+.tag { position: relative; background: var(--paper); padding: 9px 12px 8px; filter: drop-shadow(0 2px 0 rgba(59, 48, 73, .25)); }
+.tag::before {
+  content: ""; position: absolute; top: -7px; left: 50%; width: 46px; height: 14px; translate: -50% 0; rotate: -4deg;
+  background: var(--tape-pink); clip-path: polygon(0 10%, 6% 0, 12% 12%, 88% 0, 94% 14%, 100% 0, 100% 90%, 94% 100%, 88% 88%, 12% 100%, 6% 86%, 0 100%);
+}
+.hud {
+  position: absolute; top: 0; left: 0; right: 0; padding: 18px 16px 0; pointer-events: none;
+  display: grid; grid-template-columns: auto auto; justify-content: space-between; align-items: start; gap: 10px 16px;
+}
+.who { display: flex; flex-direction: column; gap: 3px; rotate: -1.2deg; }
+.who b { font-size: 28px; font-weight: 400; line-height: 1; }
+.who small, .who span { font-family: var(--f-small); font-size: 11px; color: var(--dim); }
+.who span { color: var(--ink); }
+.vitals { display: flex; flex-direction: column; gap: 5px; rotate: 1deg; font-family: var(--f-small); font-size: 11px; }
+.vitals::before { background: var(--tape-blue); }
+.vrow { display: flex; align-items: center; gap: 7px; }
+.seg { display: flex; gap: 2px; }
+.seg i { display: block; width: 7px; height: 9px; background: var(--rule); }
+.seg.hp i.on { background: var(--mint); }
+.seg.food i.on { background: var(--butter); }
+.num { min-width: 3ch; text-align: right; font-variant-numeric: tabular-nums; }
+.kids { color: var(--pink-deep); }
+.kids:empty { display: none; }
+.scale { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; font-family: var(--f-small); font-size: 11px; color: var(--paper); text-shadow: 0 1px 0 rgba(42, 36, 56, .6); }
+.scale i { display: block; height: 5px; border: 2px solid var(--paper); border-top: 0; transition: width .4s; }
+
+.roulette {
+  position: absolute; left: 50%; top: 42%; translate: -50% -50%; padding: 16px 28px 14px; font-size: 28px;
+  background: var(--paper); color: var(--pink-deep); filter: drop-shadow(0 3px 0 rgba(59, 48, 73, .3)); rotate: -2deg;
+}
+
+/* 이동 중 자막: 종이 띠 두 장 */
+.caption { position: absolute; left: 16px; bottom: 24px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.caption .tc { font-family: var(--f-small); font-size: 11px; background: var(--ink); color: var(--paper); padding: 4px 8px 3px; rotate: -1deg; }
+.caption .tx { font-size: 28px; background: var(--paper); padding: 8px 14px 6px; filter: drop-shadow(0 3px 0 rgba(59, 48, 73, .3)); rotate: .8deg; }
+
+/* 카드: 찢은 종이 한 장, 좌우로 밀어 고른다 */
+.deck { position: absolute; left: 0; right: 0; bottom: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; padding-inline: 16px; pointer-events: none; }
+.card-wrap {
+  position: relative; width: min(420px, 100%); pointer-events: auto; touch-action: pan-y; cursor: grab; user-select: none;
+  filter: drop-shadow(0 4px 0 rgba(59, 48, 73, .28)); rotate: .7deg;
+}
+.card-wrap.tilt-l { rotate: -.7deg; }
+.card-wrap:active { cursor: grabbing; }
+.card-wrap::before {
+  content: ""; position: absolute; z-index: 2; top: -8px; left: 50%; width: 70px; height: 18px; translate: -50% 0; rotate: 3deg;
+  background: var(--tape-blue); clip-path: polygon(0 10%, 6% 0, 12% 12%, 88% 0, 94% 14%, 100% 0, 100% 90%, 94% 100%, 88% 88%, 12% 100%, 6% 86%, 0 100%);
+}
+.card-wrap.deal { animation: deal .38s cubic-bezier(.2, 1.3, .4, 1); }
+@keyframes deal { from { transform: translateY(40px) rotate(-6deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.card { position: relative; background: var(--paper); clip-path: var(--deckle); padding: 22px 22px 18px; max-height: 52vh; overflow: auto; }
+.card-body { display: flex; flex-direction: column; gap: 8px; }
+.card h2 { margin: 0; font-size: 28px; font-weight: 400; line-height: 1.2; text-wrap: balance; }
+.card p { margin: 0; line-height: 1.7; max-width: 60ch; }
+.card .result { font-size: 14px; }
+.card .meta { font-family: var(--f-small); font-size: 11px; color: var(--dim); }
+.card .ouch { color: var(--berry); }
+.eyebrow { font-family: var(--f-small); font-size: 11px; color: var(--pink-deep); }
+
+/* 밀 때 드러나는 선택지 */
+.hint {
+  position: absolute; top: 10px; z-index: 1; max-width: 62%; padding: 6px 10px 5px; font-size: 14px; line-height: 1.4;
+  background: var(--ink); color: var(--paper); opacity: 0; pointer-events: none;
+}
+.hint.l { left: 10px; rotate: -3deg; }
+.hint.r { right: 10px; rotate: 3deg; text-align: right; }
+
+/* 카드 아래 종이 꼬리표 (누르거나 ← → 키로도 고른다) */
+.picks { display: flex; gap: 10px; width: min(420px, 100%); pointer-events: auto; }
+.pick {
+  flex: 1 1 0; min-width: 0; border: 0; cursor: pointer; padding: 10px 12px 9px; line-height: 1.4; text-align: left;
+  background: var(--paper-2); color: var(--ink); clip-path: polygon(0 0, 100% 3%, 98% 100%, 2% 96%);
+  transition: background .12s, color .12s, translate .12s;
+}
+.pick.r { text-align: right; }
+.pick.solo { text-align: center; flex: 0 1 auto; padding-inline: 28px; }
+.pick .arrow { color: var(--pink-deep); }
+.pick:hover, .pick:focus-visible { background: var(--pink); color: var(--paper); translate: 0 -2px; outline: none; }
+.pick:hover .arrow, .pick:focus-visible .arrow { color: var(--paper); }
+.pick:active { translate: 0 1px; }
+
+/* 스탯 도장, 엔딩 인장 */
+.stamps { display: flex; flex-wrap: wrap; gap: 6px; }
+.stamp { font-family: var(--f-small); font-size: 11px; padding: 3px 6px 2px; border: 2px solid currentColor; rotate: -2deg; }
+.stamp:nth-child(2n) { rotate: 2deg; }
+.stamp.up { color: var(--teal); }
+.stamp.down { color: var(--berry); }
+.stamp.kid { color: var(--gold); }
+.seal { align-self: flex-start; font-size: 14px; padding: 6px 10px 4px; border: 3px double currentColor; rotate: -5deg; margin-bottom: 2px; }
+.seal.happy { color: var(--gold); }
+.seal.normal { color: var(--teal); }
+.seal.dead { color: var(--berry); }
+
+@media (min-width: 900px) {
+  .deck { left: auto; right: 24px; bottom: 24px; width: 460px; padding: 0; }
+}
+@media (max-width: 480px) {
+  .who b { font-size: 22px; }
+  .seg i { width: 5px; }
+  .caption .tx { font-size: 22px; }
+  .card { padding: 20px 18px 16px; }
+  .card h2 { font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-wrap.deal { animation: none; }
+  .pick, .scale i { transition: none; }
+}

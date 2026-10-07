@@ -1,0 +1,110 @@
+/* 집비둘기 시나리오. 설계 문서: docs/scenarios/pigeon.md (문구는 이 파일이 기준) */
+(function register(sp) {
+  if (typeof module !== 'undefined' && module.exports) module.exports = sp;
+  else registerSpecies(sp);
+})({
+  key: 'pigeon', name: '집비둘기', latin: 'Columba livia', size: '32cm', body: 'pigeon',
+  viewCm: 900, eye: 200, speedCm: 160, bornMonth: 5, kidUnit: '새끼',
+  box: [-26, -226, 26, -180],
+  stats: { hp: 100, food: 60, decay: 15 },
+  place: '빌라 실외기 받침',
+  intro: '빌라 3층 에어컨 실외기 받침대, 나뭇가지 몇 개로 엮은 둥지에서 깼다. 도시 비둘기는 보통 3~5년을 산다.',
+  start: 'P1', weakEnding: 'W0',
+  main: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+
+  scenes: {
+    P1: { bg: 'villaAlley', day: 28, next: 'P2', title: '첫 비행',
+      text: '부모가 먹이를 덜 가져오기 시작했다. 둥지 밖 골목 바닥이 까마득하다.',
+      choices: [
+        { t: '지금 바로 뛰어내린다', msg: '골목 바닥에 굴렀지만, 다시 날아올라 전깃줄에 앉았다.',
+          risk: { p: .3, ending: 'D1', msg: '골목 바닥에 떨어지자 고양이가 다가왔다.' } },
+        { t: '날갯짓을 하루 더 연습한다', fx: { food: -5 }, msg: '다음 날 아침, 바람을 타고 전깃줄까지 날았다.' },
+      ] },
+    P2: { bg: 'park', day: 60, next: 'P3', title: '모이 주는 할머니',
+      text: '근린공원 벤치에서 할머니가 쌀을 한 줌씩 뿌린다. 서른 마리가 몰려든다.',
+      choices: [
+        { t: '무리 가장자리에서 줍는다', fx: { food: 25 }, msg: '느리지만 배는 찼다.' },
+        { t: '무리 한가운데로 파고든다', fx: { food: 40 }, msg: '부리로 밀치며 배를 채웠다.',
+          risk: { p: .25, ending: 'D2', msg: '아이가 비둘기 떼 속으로 뛰어들었다.' } },
+      ] },
+    P3: { bg: 'foodAlley', day: 180, next: 'P4', title: '엉킨 실',
+      text: '식당가 바닥에 빵조각이 떨어져 있다. 빵조각에 낚싯줄과 머리카락이 엉켜 있다.',
+      choices: [
+        { t: '빵조각을 통째로 문다', fx: { food: 30 }, msg: '큰 빵조각을 삼켰다.',
+          risk: { p: .2, ending: 'D3', msg: '낚싯줄이 발가락을 조여 왔다.' },
+          hurt: { p: .5, fx: { hp: -30 }, msg: '낚싯줄이 발가락에 감겼다. 발가락 하나를 잃었다.' } },
+        { t: '실 없는 부스러기만 줍는다', fx: { food: 15 }, msg: '발밑을 살피며 천천히 먹었다.' },
+      ] },
+    P4: { bg: 'convenience', day: 245, night: true, next: 'P5', title: '편의점 앞 겨울',
+      text: '1월의 밤. 편의점 간판 조명이 따뜻하다. 문 앞 바닥에는 사람들이 흘린 부스러기가 있다.',
+      choices: [
+        { t: '간판 조명 위 틈에 앉는다', fx: { hp: 5, food: 10 }, msg: '조명 열기 덕분에 밤새 깃털이 따뜻했다. 새벽에 내려와 부스러기를 주웠다.' },
+        { t: '문 앞 바닥 부스러기를 줍는다', fx: { food: 25 }, msg: '삼각김밥 밥알이 잔뜩이었다.',
+          risk: { p: .3, ending: 'D4', msg: '사람 발밑만 보다가 배달 자전거를 보지 못했다.' } },
+      ] },
+    P5: { bg: 'aptGarden', day: 340, next: 'P6', title: '목덜미의 무지갯빛',
+      text: '아파트 화단, 목덜미가 초록과 보라로 반짝이는 상대가 구구 소리를 내며 다가온다.',
+      choices: [
+        { t: '혼자 지낸다', to: 'S1', fx: { food: 10 }, msg: '먹는 데 집중했다.' },
+        { t: '목을 부풀리며 같이 운다', fx: { food: 5 }, msg: '짝이 생겼다. 비둘기는 한 번 맺은 짝과 평생을 함께한다.' },
+      ] },
+    P6: { bg: 'villaParking', day: 370, next: 'P7', title: '둥지 자리',
+      text: '빌라 필로티 천장으로 배관이 지나간다. 화단 나무도 괜찮아 보인다.',
+      choices: [
+        { t: '필로티 천장 배관 위', msg: '비바람이 들이치지 않는다. 알 두 개를 낳았다.' },
+        { t: '아파트 화단 나무 위', msg: '흔들리는 나뭇가지 위 둥지. 무사히 알을 낳았다.',
+          risk: { p: .35, ending: 'D5', msg: '까치가 둥지를 노리고 있었다.' } },
+      ] },
+    P7: { bg: 'villaParking', day: 400, next: 'P8', title: '사다리',
+      text: '주민이 사다리를 놓고 둥지를 올려다본다. 손에 빗자루가 있다.',
+      choices: [
+        { t: '날개를 퍼덕이며 둥지를 지킨다', fx: { kids: 2 }, msg: '주민이 놀라 사다리에서 내려갔다. 새끼 둘이 무사히 자랐다.',
+          risk: { p: .35, ending: 'D6', msg: '주민도 겁이 났다. 빗자루가 날아왔다.' } },
+        { t: '물러나서 지켜본다', fx: { kids: 2 }, msg: '주민은 한참 보더니 사다리를 내렸다. "다 크면 치울게." 새끼 둘이 무사히 둥지를 떠났다.' },
+      ] },
+    P8: { bg: 'park', day: 1100, next: 'P9', title: '먹이 주기 금지',
+      text: '공원에 "비둘기 먹이 주기 금지" 현수막이 걸렸다. 할머니가 보이지 않는다.',
+      choices: [
+        { t: '식당가로 옮긴다', fx: { food: 30 }, msg: '식당가 뒷골목에는 언제나 무언가 떨어져 있다.' },
+        { t: '공원에서 버틴다', fx: { food: -20 }, msg: '할머니가 몰래 새벽에 왔다. 겨우 버텼다.',
+          risk: { p: .3, ending: 'D7', msg: '현수막은 반년 동안 걸려 있었다.' } },
+      ] },
+    P9: { bg: 'foodAlley', day: 1500, next: 'P10', title: '낯선 낟알',
+      text: '골목 바닥에 누군가 낟알을 잔뜩 뿌려 놓았다. 냄새가 조금 이상하다.',
+      choices: [
+        { t: '배부르게 먹는다', fx: { food: 30 }, msg: '이상하게 아무 일도 없었다. 운이 좋았다.',
+          risk: { p: .4, ending: 'D8', msg: '누군가 일부러 뿌린 독이었다.' } },
+        { t: '낯선 낟알은 피한다', fx: { food: 15 }, msg: '다음 날 골목에 비둘기 여럿이 쓰러져 있었다. 경찰이 왔다.' },
+      ] },
+    P10: { bg: 'villaAlley', day: 2190, next: 'H1', title: '무거운 날개',
+      text: '여섯 번째 봄. 날개가 무겁다. 짝도 예전처럼 높이 날지 못한다.',
+      choices: [
+        { t: '짝과 실외기 받침으로 돌아간다' },
+        { t: '마지막으로 공원까지 날아간다', msg: '공원 하늘을 한 바퀴 돌고 실외기 받침으로 돌아왔다.',
+          risk: { p: .35, ending: 'D9', msg: '새로 생긴 통유리 건물에 하늘이 비쳤다.' } },
+      ] },
+    S1: { bg: 'aptGarden', after: 300, title: '혼자 사는 비둘기',
+      text: '아파트 화단 벤치. 매일 아침 같은 할아버지가 앉는다. 분수대 쪽에서 낯선 비둘기가 구구거린다.',
+      choices: [
+        { t: '분수대 쪽 비둘기에게 간다', to: 'P6', fx: { food: 5 }, msg: '분리수거장을 지나 분수대에 닿았다. 새 짝이 생겼다.',
+          risk: { p: .25, ending: 'D10', msg: '분리수거장에서 까마귀 떼를 만났다.' } },
+        { t: '할아버지 발치에서 기다린다', to: 'N1' },
+      ] },
+  },
+
+  endings: {
+    H1: { kind: 'happy', day: 2200, title: '실외기 위의 노부부', cause: '노환', line: '태어난 그 실외기 받침에서, 짝의 곁에서 눈을 감았다. 새끼들은 이 골목 어딘가에 산다.' },
+    N1: { kind: 'normal', day: 1460, title: '할아버지의 비둘기', cause: '노환', line: '매일 아침 같은 벤치, 같은 과자 부스러기. 혼자였지만 굶지는 않았다.' },
+    D1: { kind: 'dead', after: 1, title: '첫 비행', cause: '길고양이', line: '날개보다 고양이가 빨랐다.' },
+    D2: { kind: 'dead', after: 0, title: '아이의 발', cause: '압사', line: '아이는 그냥 비둘기를 날려 보고 싶었다.' },
+    D3: { kind: 'dead', after: 60, title: '발가락의 실', cause: '감염', line: '발가락이 없는 도시 비둘기가 많은 이유다.' },
+    D4: { kind: 'dead', after: 0, title: '배달 자전거', cause: '충돌', line: '편의점 앞은 밤에도 바쁘다.' },
+    D5: { kind: 'dead', after: 3, title: '까치', cause: '까치', line: '도시의 까치는 비둘기 둥지를 노린다.' },
+    D6: { kind: 'dead', after: 0, title: '빗자루', cause: '타격', line: '서로 겁이 났던 것이다.' },
+    D7: { kind: 'dead', after: 90, title: '빈 공원', cause: '굶주림', line: '할머니는 다시 오지 않았다.' },
+    D8: { kind: 'dead', after: 1, title: '낯선 낟알', cause: '중독', line: '도시에는 비둘기를 미워하는 사람도 있다.' },
+    D9: { kind: 'dead', after: 0, title: '유리 건물', cause: '유리창 충돌', line: '통유리에 하늘이 비쳤다.' },
+    D10: { kind: 'dead', after: 0, title: '까마귀', cause: '까마귀', line: '분리수거장은 까마귀의 영역이었다.' },
+    W0: { kind: 'dead', after: 0, title: '쇠약', cause: '굶주림', line: '날개가 더는 몸을 들어 올리지 못했다.' },
+  },
+});

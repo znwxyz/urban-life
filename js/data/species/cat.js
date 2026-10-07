@@ -1,0 +1,131 @@
+/* 길고양이 시나리오. 설계 문서: docs/scenarios/cat.md (문구는 이 파일이 기준)
+   선택지는 [왼쪽, 오른쪽] 2개. risk = 확률로 즉사, hurt = 확률로 다침. to가 없으면 장면의 next로 간다 */
+(function register(sp) {
+  if (typeof module !== 'undefined' && module.exports) module.exports = sp;
+  else registerSpecies(sp);
+})({
+  key: 'cat', name: '길고양이', latin: 'Felis catus', size: '45cm', body: 'cat',
+  viewCm: 420, eye: 22, speedCm: 60, bornMonth: 4, kidUnit: '새끼',
+  box: [-34, -56, 34, 0],
+  stats: { hp: 100, food: 60, decay: 15 },
+  place: '빌라 주차장',
+  intro: '빌라 필로티 주차장 구석, 종이 상자 안에서 형제 넷과 함께 태어났다. 길 위의 고양이는 보통 2~3년, 집고양이는 15년 안팎을 산다.',
+  start: 'C1', weakEnding: 'W0',
+  main: [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1],
+
+  scenes: {
+    C1: { bg: 'villaParking', day: 21, prop: 'box', next: 'C2', title: '상자 속',
+      text: '엄마가 사흘째 돌아오지 않는다. 형제 둘은 이미 움직이지 않는다.',
+      choices: [
+        { t: '크게 운다', fx: { hp: -5 }, msg: '목이 쉬도록 울었다. 계단에서 슬리퍼 소리가 내려온다.' },
+        { t: '상자 밖으로 기어 나간다', fx: { food: 5 }, msg: '주차장 바닥의 과자 부스러기를 핥았다. 낑낑대는 소리에 계단에서 슬리퍼 소리가 내려왔다.',
+          risk: { p: .25, ending: 'D1', msg: '후진하는 바퀴가 다가왔다.' } },
+      ] },
+    C2: { bg: 'villaParking', day: 35, prop: 'box', next: 'C3', title: '302호 아주머니',
+      text: '울음소리를 듣고 내려온 아주머니가 주사기로 분유를 먹인다. 집에 개가 있어서 데려가지는 못한다고 한다.',
+      choices: [
+        { t: '하악질하고 차 밑으로 숨는다', to: 'S1', fx: { food: -10, hp: -10 }, msg: '차 밑 어둠 속에서 혼자 버텼다. 며칠 뒤, 배고픔을 따라 도심 쪽으로 걸었다.' },
+        { t: '젖병을 문다', fx: { food: 40 }, msg: '따뜻한 분유. 아주머니는 하루에 두 번씩 내려왔다.' },
+      ] },
+    C3: { bg: 'aptGarden', day: 120, prop: 'feeder', next: 'C4', title: '급식소의 치즈',
+      text: '아주머니가 아파트 화단에 만든 급식소. 덩치 큰 치즈 고양이가 늘 먼저 먹는다.',
+      choices: [
+        { t: '치즈가 다 먹을 때까지 기다린다', fx: { food: 15 }, msg: '남은 사료를 먹었다. 치즈는 이제 나를 못 본 척해 준다.' },
+        { t: '그릇에 머리를 들이민다', fx: { food: 30 }, msg: '배는 불렀다. 치즈가 한참 노려봤다.',
+          risk: { p: .3, ending: 'D2', msg: '치즈의 앞발이 얼굴을 갈랐다.' } },
+      ] },
+    C4: { bg: 'recycling', day: 210, prop: 'trapCage', next: 'C5', title: '철망 상자',
+      text: '분리수거장 구석에 철망 상자가 놓였다. 안에 참치 캔이 있다. 이 동네엔 귀 끝이 잘린 고양이들이 산다.',
+      choices: [
+        { t: '철망 냄새가 싫어 피한다', fx: { food: -5 }, msg: '참치를 포기했다.',
+          risk: { p: .2, ending: 'D3', msg: '봄밤, 번식기 수컷들의 싸움에 휘말렸다.' },
+          hurt: { p: .4, fx: { hp: -25 }, msg: '봄밤 싸움에 휘말려 귀가 찢어졌다.' } },
+        { t: '참치 냄새를 따라 들어간다', fx: { hp: -10, food: 20 }, msg: '철컥. 갇혔다. 병원 냄새. 사흘 뒤 같은 자리에 풀려났다. 왼쪽 귀 끝이 1cm 잘려 있다. 중성화를 마친 고양이라는 표시다.' },
+      ] },
+    C5: { bg: 'villaParking', day: 280, prop: 'styroHouse', next: 'C6', title: '첫 한파',
+      text: '영하 12도. 바람이 필로티 기둥 사이로 몰아친다.',
+      choices: [
+        { t: '아주머니가 둔 스티로폼 집으로', fx: { hp: -5, food: 10 }, msg: '좁고 춥지만 바람은 막힌다. 아침마다 아주머니가 따뜻한 물을 갈아 줬다.' },
+        { t: '막 주차한 차의 엔진룸으로', fx: { hp: 10 }, msg: '따뜻했다. 새벽에 누군가 보닛을 두드려 줬다.',
+          risk: { p: .25, ending: 'D4', msg: '새벽, 시동이 걸렸다.' } },
+      ] },
+    C6: { bg: 'convenience', day: 400, night: true, next: 'C7', title: '밤 11시의 사람',
+      text: '매일 밤 11시, 퇴근길에 편의점에 들러 츄르를 하나씩 사 주는 사람이 생겼다.',
+      choices: [
+        { t: '그 사람을 따라 대로를 건넌다', fx: { food: 10 }, msg: '그 사람이 사는 빌라를 알아냈다. 다음 날 문 앞에 앉아 있자 그 사람이 깜짝 놀랐다.',
+          risk: { p: .3, ending: 'D5', msg: '헤드라이트가 너무 빨랐다.' } },
+        { t: '다리에 몸을 비빈다', fx: { food: 20 }, msg: '그 사람이 쪼그려 앉아 한참 웃었다. "내일도 올게."' },
+      ] },
+    C7: { bg: 'villaAlley', day: 430, night: true, weather: 'rain', prop: 'carrier', next: 'C8', title: '이동장',
+      text: '비 오는 밤. 그 사람이 이동장을 들고 왔다. "우리 집 갈래?"',
+      choices: [
+        { t: '이동장에 들어간다', fx: { food: 10 }, msg: '흔들리는 이동장 안. 빗소리가 멀어진다.' },
+        { t: '겁이 나서 도망친다', to: 'S1', fx: { hp: -5 }, msg: '빗속을 한참 달렸다. 돌아보니 낯선 골목이었다.' },
+      ] },
+    C8: { bg: 'living', day: 433, next: 'C9', title: '새 집',
+      text: '낯선 냄새, 낯선 소리. 7층 베란다 창이 조금 열려 있다.',
+      choices: [
+        { t: '베란다 방충망을 밀어 본다', msg: '방충망이 덜컹했다. 집사가 달려와 창을 닫고, 다음 날 방묘창을 달았다.',
+          risk: { p: .25, ending: 'D6', msg: '방충망이 빠졌다. 7층이었다.' } },
+        { t: '소파 밑에서 사흘을 보낸다', fx: { food: 30, hp: 20 }, msg: '사흘째 밤, 소파 밑에서 나와 사료 그릇을 비웠다. 집사가 숨죽여 지켜봤다.' },
+      ] },
+    C9: { bg: 'kitchen', day: 730, prop: 'vaseTable', next: 'C10', title: '식탁 위 꽃병',
+      text: '집사가 백합 한 다발을 사 왔다. 노란 꽃가루가 식탁에 떨어져 있다.',
+      choices: [
+        { t: '꽃병 대신 택배 상자에 들어간다', fx: { food: 20 }, msg: '택배 상자는 언제나 옳다. 백합을 검색해 본 집사의 얼굴이 하얘졌다. 다음 날 백합은 사라졌다.' },
+        { t: '꽃가루를 핥아 본다', fx: { hp: -30 }, msg: '이상한 맛. 집사가 보자마자 병원으로 달려갔다. 수액을 맞고 겨우 살았다.',
+          risk: { p: .35, ending: 'D7', msg: '혀끝에 꽃가루가 묻었다.' } },
+      ] },
+    C10: { bg: 'entrance', day: 1825, prop: 'box', next: 'C11', title: '열린 현관',
+      text: '택배를 받던 집사가 현관문을 열어 둔 채 통화 중이다. 계단 쪽에서 바람이 들어온다.',
+      choices: [
+        { t: '계단으로 나가 본다', msg: '계단 냄새를 실컷 맡고, 놀란 집사에게 안겨 돌아왔다.',
+          risk: { p: .3, ending: 'D8', msg: '계단을 내려가고, 또 내려갔다.' } },
+        { t: '현관 앞에 앉아 집사를 부른다', fx: { food: 20 }, msg: '집사가 문을 닫고 한참 쓰다듬었다. 그날 저녁 현관에 안전문이 달렸다.' },
+      ] },
+    C11: { bg: 'living', day: 4380, title: '자꾸 목이 마르다',
+      text: '요즘 물을 많이 마시고 화장실에 자주 간다. 고양이는 아픔을 숨기는 동물이다.',
+      choices: [
+        { t: '아픈 티를 내지 않는다', to: 'N1' },
+        { t: '집사 앞에서 물그릇을 계속 비운다', to: 'H1' },
+      ] },
+    S1: { bg: 'foodAlley', after: 30, night: true, next: 'S2', title: '식당가 뒷골목',
+      text: '냄새가 많은 골목. 먹을 것은 많고, 주인 없는 것은 없다.',
+      choices: [
+        { t: '상인이 던져 준 생선 대가리', fx: { food: 30 }, msg: '횟집 상인은 매일 이 시간에 하나씩 던져 준다.' },
+        { t: '구석에 놓인 고기 덩어리', fx: { food: 40 }, msg: '배부르게 먹었다.',
+          risk: { p: .3, ending: 'D9', msg: '쥐를 잡으려고 놓은 미끼였다.' } },
+      ] },
+    S2: { bg: 'foodAlley', after: 180, next: 'S3', title: '골목의 주인',
+      text: '상처투성이 수컷이 담 위에서 내려다본다. 이 골목에서 살려면 지나가야 하는 상대다.',
+      choices: [
+        { t: '물러서지 않는다', fx: { hp: -20, food: 10 }, msg: '귀가 찢어졌지만 상대가 먼저 등을 돌렸다. 이 골목은 이제 내 것이다.',
+          hurt: { p: .4, fx: { hp: -25 }, msg: '목덜미 상처가 곪았다.', ending: 'D3' } },
+        { t: '그 수컷 뒤를 따라다닌다', fx: { food: 15 }, msg: '수컷은 귀찮아하면서도 남은 걸 먹게 해 줬다.' },
+      ] },
+    S3: { bg: 'park', day: 1005, title: '공원의 겨울',
+      text: '1월. 근린공원에 겨울을 나려는 고양이들이 모였다. 벤치에서 누군가 이동장을 열어 둔 채 기다린다.',
+      choices: [
+        { t: '이동장에 들어가 본다', to: 'C8', fx: { food: 20 }, msg: '공원 캣맘이 조용히 문을 닫았다. 이번에는 도망치지 않았다.' },
+        { t: '화장실 뒤 겨울집에서 버틴다', to: 'N2',
+          risk: { p: .3, ending: 'D10', msg: '영하 15도의 밤이었다.' } },
+      ] },
+  },
+
+  endings: {
+    H1: { kind: 'happy', day: 5840, title: '열여섯 번째 봄', cause: '노환', line: '집사의 무릎 위에서, 창밖 빌라 주차장을 내려다보며 잠들었다. 신장병은 일찍 발견됐고, 4년을 더 살았다.' },
+    N1: { kind: 'normal', day: 4500, title: '조용한 신장병', cause: '만성 신장병', line: '집사가 알아챘을 땐 늦었다. 그래도 따뜻한 집이었다.' },
+    N2: { kind: 'normal', day: 1460, title: '골목의 왕', cause: '폐렴', line: '겨울 끝에 숨이 가빠졌다. 길고양이 평균보다 두 배 가까이 살았다.' },
+    D1: { kind: 'dead', after: 1, title: '후진하는 바퀴', cause: '주차장 차량', line: '운전석에서는 상자 밖으로 나온 새끼 고양이가 보이지 않았다.' },
+    D2: { kind: 'dead', after: 30, title: '치즈의 앞발', cause: '상처 감염', line: '얼굴의 상처가 곪았다. 급식소에도 순서가 있었다.' },
+    D3: { kind: 'dead', after: 40, title: '봄밤의 싸움', cause: '영역 다툼', line: '목덜미의 상처가 끝내 아물지 않았다.' },
+    D4: { kind: 'dead', after: 1, title: '새벽 시동', cause: '엔진룸', line: '겨울마다 보닛을 두드려 달라는 데는 이유가 있다.' },
+    D5: { kind: 'dead', after: 0, title: '대로의 헤드라이트', cause: '로드킬', line: '그 사람은 다음 날에도 편의점 앞에서 한참 기다렸다.' },
+    D6: { kind: 'dead', after: 0, title: '7층 베란다', cause: '고층 낙상', line: '방충망은 고양이를 막지 못한다.' },
+    D7: { kind: 'dead', after: 3, title: '백합', cause: '급성 신부전', line: '백합은 꽃가루만으로도 고양이에게 치명적이다.' },
+    D8: { kind: 'dead', after: 20, title: '길 잃은 집고양이', cause: '실종', line: '집고양이는 바깥 길을 모른다. 동네에 전단지가 붙었다.' },
+    D9: { kind: 'dead', after: 2, title: '쥐약', cause: '중독', line: '쥐를 잡으려고 놓은 미끼였다.' },
+    D10: { kind: 'dead', after: 5, title: '한파', cause: '저체온', line: '겨울집 안에도 바람이 들었다.' },
+    W0: { kind: 'dead', after: 0, title: '쇠약', cause: '굶주림과 상처', line: '몸이 더는 버티지 못했다.' },
+  },
+});

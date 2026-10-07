@@ -1,0 +1,11 @@
+{
+  "name": "urban-life",
+  "version": "0.2.0",
+  "private": true,
+  "description": "도시에서 태어나기: 도시동물 분기형 생존 게임",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "coverage": "node --test --experimental-test-coverage tests/*.test.js"
+  },
+  "license": "UNLICENSED"
+}
