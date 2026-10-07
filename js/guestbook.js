@@ -156,20 +156,35 @@ const SUPPORT_LINKS = Object.freeze([
 /** 설정된 링크 중 모양이 올바른 것만 쓴다 */
 const supportLinks = () => SUPPORT_LINKS.filter(([key, , re]) => re.test(SUPPORT[key] || ''));
 
+/* PC에서는 카카오페이 웹이 "모바일에서만 가능"이라, 버튼을 누르면 링크 대신 휴대폰으로 찍을 QR을 펼친다 */
+const PC_QUERY = '(min-width: 900px) and (hover: hover)';
+
+function kakaopayQr(link) {
+  if (!link || !SUPPORT.kakaopayQr) return null;
+  const qr = h('figure', { class: 'support-qr', id: 'supportQr', hidden: '' },
+    h('img', { src: SUPPORT.kakaopayQr, width: '240', height: '224', alt: '카카오페이 송금 QR 코드', loading: 'lazy' }),
+    h('figcaption', null, '휴대폰 카메라로 찍으면 카카오페이가 열려요'));
+  link.setAttribute('aria-controls', 'supportQr');
+  link.addEventListener('click', (e) => {
+    if (!window.matchMedia(PC_QUERY).matches) return;
+    e.preventDefault();
+    qr.hidden = !qr.hidden;
+    link.setAttribute('aria-expanded', String(!qr.hidden));
+  });
+  return qr;
+}
+
 function setupSupport() {
   const links = supportLinks(), toggle = $('supportToggle'), box = $('support');
   if (!links.length) return;
   toggle.hidden = false;
+  const anchors = links.map(([key, label]) =>
+    h('a', { class: `support-link ${key}`, href: SUPPORT[key], target: '_blank', rel: 'noopener noreferrer' }, label));
+  const qr = kakaopayQr(anchors.find((a) => a.classList.contains('kakaopay')));
   box.replaceChildren(
     h('p', null, '이것저것 만드는 디자이너입니다. 아이스 라떼를 몹시 좋아합니다.'),
-    h('div', { class: 'support-links' }, links.map(([key, label]) =>
-      h('a', { class: `support-link ${key}`, href: SUPPORT[key], target: '_blank', rel: 'noopener noreferrer' }, label))),
-    // PC에서는 송금 앱이 열리지 않으니 휴대폰으로 찍을 QR을 보여 준다 (CSS로 넓은 화면에서만 표시)
-    SUPPORT.kakaopayQr && links.some(([key]) => key === 'kakaopay')
-      ? h('figure', { class: 'support-qr' },
-        h('img', { src: SUPPORT.kakaopayQr, width: '240', height: '224', alt: '카카오페이 송금 QR 코드', loading: 'lazy' }),
-        h('figcaption', null, '휴대폰 카메라로 찍으면 카카오페이가 열려요'))
-      : null,
+    h('div', { class: 'support-links' }, anchors),
+    qr,
   );
   toggle.addEventListener('click', () => {
     const open = box.hidden;
