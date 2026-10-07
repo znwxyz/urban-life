@@ -62,12 +62,15 @@ button { font: inherit; color: inherit; }
 /* 칸이 찰 때와 줄어들 때 */
 .seg i.gain { animation: segGain .55s cubic-bezier(.2, 1.6, .4, 1); }
 @keyframes segGain { 0% { transform: scale(2.2); background: #fff; box-shadow: 0 0 8px #fff; } 100% { transform: none; } }
-.seg i.lost { animation: segLost .8s steps(1, end) forwards; }
-@keyframes segLost { 0%, 50% { background: var(--berry); } 25%, 75% { background: var(--rule); } 100% { background: var(--rule); } }
-.vrow.hurt { animation: rowHurt .4s ease; }
-.vrow.hurt .num { animation: numHurt .8s steps(1, end); }
-@keyframes rowHurt { 20% { transform: translateX(-3px); } 40% { transform: translateX(3px); } 60% { transform: translateX(-2px); } 80% { transform: translateX(1px); } }
-@keyframes numHurt { 0%, 50% { color: var(--berry); } 25%, 75%, 100% { color: inherit; } }
+.seg i.lost { animation: segLost 2.4s ease-out forwards; }
+@keyframes segLost { 0%, 40% { background: var(--berry); } 100% { background: var(--rule); } }
+/* 깎일 때: 줄 전체가 붉게 물들었다가 천천히 원래 색으로 돌아온다 */
+.vrow { border-radius: 2px; margin-inline: -4px; padding-inline: 4px; }
+.vrow.hurt { animation: rowShake .4s ease, rowTint 2.4s ease-out; }
+.vrow.hurt span:first-child, .vrow.hurt .num { animation: textTint 2.4s ease-out; }
+@keyframes rowShake { 20% { translate: -3px 0; } 40% { translate: 3px 0; } 60% { translate: -2px 0; } 80% { translate: 1px 0; } }
+@keyframes rowTint { 0%, 40% { background: rgba(216, 70, 95, .22); } 100% { background: rgba(216, 70, 95, 0); } }
+@keyframes textTint { 0%, 40% { color: var(--berry); } 100% { color: var(--ink); } }
 .vrow.ping .num, .vrow.fill .num { animation: numPing .35s ease; }
 @keyframes numPing { 50% { transform: scale(1.35); color: var(--teal); } }
 
@@ -185,7 +188,8 @@ button { font: inherit; color: inherit; }
   .card h2 { font-size: 22px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  body.shake .app, .seg i.gain, .seg i.lost, .vrow.hurt, .vrow.hurt .num { animation: none; }
+  body.shake .app, .seg i.gain, .vrow.hurt { animation: none; }
+  .vrow.hurt { animation: rowTint 2.4s ease-out; }
   .card-wrap.deal { animation: none; }
   .pick, .scale i { transition: none; }
 }
