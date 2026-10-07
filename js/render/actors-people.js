@@ -2,11 +2,12 @@
    d(시간, 색조함수). w·h는 화면에 보이는지 판단할 때 쓴다 */
 const SKIN = '#f3c9a5';
 
-const NAIL = '#f8ddd0', SHOE = '#3b3049', SOLE = '#e9e4ec';
+const SHOE = '#3b3049', SOLE = '#e9e4ec';
 const ARM_POSE = Object.freeze({ down: [.03, .26], out: [.2, .1], up: [.13, -.12] });
+const HAND_PER_ARM = 1.8;   // 손 길이 = 팔 굵기 × 이 값 (artHandOnArm 크기)
 
 /**
- * 사람 한 명. o: { h 키, top 윗옷, bottom 바지, hair 머리색, arm 'down'|'out'|'up', extra(머리장식 등) }
+ * 사람 한 명. o: { h 키, top 윗옷, bottom 바지, hair 머리색, arm 'down'|'out'|'up', handPose 'flat'|'offer'|'grip'(기본: 내린 팔은 flat, 나머지는 grip), extra(머리장식 등) }
  * 손 끝 위치(어깨 + ARM_POSE, sin(time*3)만큼 흔들림)와 머리 중심은 장면 그림들이 물건을 쥐여 주는 기준이라 바꾸지 않는다.
  * 제자리에서 숨 쉬고 손만 살짝 흔든다 (걷는 동작이 없어야 화면이 흘러갈 때 뒷걸음질처럼 보이지 않는다)
  */
@@ -58,28 +59,21 @@ function personTorso(H, top, legH, o, t) {
 function personBackArm(H, top, o, t) {
   ctx.strokeStyle = t(shade(o.top)); ctx.lineWidth = H * .05; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(-H * .06, top + H * .05); ctx.quadraticCurveTo(-H * .095, top + H * .17, -H * .08, top + H * .27); ctx.stroke();
-  E(-H * .078, top + H * .29, H * .024, H * .028, t(shade(SKIN)));
+  // 손바닥이 몸 쪽(+x)으로 굽게 뒤집어 그려 손끝이 몸통 밖으로 삐져나오지 않게 한다
+  ctx.save(); ctx.translate(-H * .08, top + H * .27); ctx.rotate(Math.atan2(H * .1, H * .015)); ctx.scale(1, -1);
+  artHand(t, { pose: 'flat', s: H * .05 * HAND_PER_ARM, coat: shade(SKIN) });
+  ctx.restore();
 }
 
-/** 앞쪽 팔: 팔꿈치에서 살짝 굽은 소매, 소맷부리, 손가락이 있는 손 */
+/** 앞쪽 팔: 팔꿈치에서 살짝 굽은 소매 끝에 손목을 붙인 Twemoji 손. 쥔 자리(주먹 가운데)가 손 끝 위치(hx, hy)에 온다 */
 function personArm(sx, sy, hx, hy, H, o, t) {
   const dx = hx - sx, dy = hy - sy, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len;
   const ex = sx + dx * .5 - nx * H * .025, ey = sy + dy * .5 - ny * H * .025, ang = Math.atan2(hy - ey, hx - ex);
+  const pose = o.handPose || (o.arm === 'down' || !o.arm ? 'flat' : 'grip'), s = H * .055 * HAND_PER_ARM;
+  const reach = HAND_HOLD[pose][0] * s, wx = hx - Math.cos(ang) * reach, wy = hy - Math.sin(ang) * reach;
   ctx.strokeStyle = t(o.top); ctx.lineWidth = H * .055; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(ex, ey, hx - Math.cos(ang) * H * .035, hy - Math.sin(ang) * H * .035); ctx.stroke();
-  ctx.strokeStyle = t(shade(o.top)); ctx.lineWidth = H * .058; ctx.lineCap = 'butt';                     // 소맷부리
-  ctx.beginPath(); ctx.moveTo(hx - Math.cos(ang) * H * .045, hy - Math.sin(ang) * H * .045); ctx.lineTo(hx - Math.cos(ang) * H * .028, hy - Math.sin(ang) * H * .028); ctx.stroke();
-  ctx.lineCap = 'round';
-  miniHand(hx, hy, ang, H * .03, t);
-}
-
-/** 작은 손: 손바닥, 모은 네 손가락, 엄지. ang 방향으로 뻗는다 */
-function miniHand(x, y, ang, r, t) {
-  ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
-  E(0, 0, r * 1.05, r * .95, t(SKIN));
-  for (let k = 0; k < 4; k++) RR(r * .5, -r * .78 + k * r * .43, r * (1.15 - Math.abs(k - 1.3) * .14), r * .42, r * .21, t(k % 2 ? shade(SKIN) : SKIN));
-  RR(-r * .1, -r * 1.25, r * .95, r * .45, r * .22, t(SKIN));                                            // 엄지
-  ctx.restore();
+  ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(ex, ey, wx, wy); ctx.stroke();
+  artHandOnArm(t, wx, wy, ang, s, { pose });
 }
 
 /** 머리: 얼굴, 귀, 코, 머리카락 덩어리, 눈썹, 눈, 볼터치 */
@@ -96,32 +90,17 @@ function personHead(H, hy, headR, o, t) {
   blush(r * .55, hy + r * .38, r * .17, r * .1);
 }
 
-/** 휘두르는 손바닥: 손가락 마디와 손톱, 엄지, 손목의 소맷부리까지 */
+/** 휘두르는 손바닥: 소맷부리에서 손끝이 위로 선 🫳 손을 옆에서 본 모양 */
 function slapHand(t) {
-  const skin = t(SKIN), dark = t(shade(SKIN)), crease = t(mix(SKIN, '#a0645a', .35));
-  RR(-6.2, -4.2, 12.4, 4.2, 1.6, t('#8fa9c4')); R(-6.2, -4.2, 12.4, 1, t(mix('#8fa9c4', '#ffffff', .3)));   // 소매
-  curvy([[-4.6, -4], [-5.4, -9, -5.6, -14], [-5, -16.4], [4.9, -16.4], [5.6, -12, 4.6, -4]], skin);          // 손바닥
-  [[-4.1, 8.6, -.1], [-1.4, 9.8, -.03], [1.4, 9.4, .04], [3.9, 7.6, .12]].forEach(([fx, len, a]) => {
-    ctx.save(); ctx.translate(fx, -15.6); ctx.rotate(a);
-    RR(-1.25, -len, 2.5, len + 1, 1.25, skin);
-    RR(-.85, -len + .25, 1.7, 1.9, .8, t(NAIL));                                                         // 손톱
-    L(-.8, -len * .62, .8, -len * .62, crease, .22); L(-.8, -len * .3, .8, -len * .3, crease, .22);         // 마디
-    ctx.restore();
-  });
-  E(3.4, -8.4, 2.6, 3.4, skin);                                                                          // 엄지 두덩
-  ctx.save(); ctx.translate(4.2, -7.6); ctx.rotate(-.75);                                                  // 엄지
-  RR(0, -1.4, 7.6, 2.8, 1.4, skin); RR(5.4, -1.1, 1.9, 2.2, .9, t(NAIL)); L(3.4, -1.2, 3.4, 1.2, crease, .22);
+  ctx.save(); ctx.translate(0, -6.4); ctx.rotate(-Math.PI / 2);
+  artHand(t, { pose: 'flat', s: 16, sleeve: '#8fa9c4' });
   ctx.restore();
-  ctx.strokeStyle = crease; ctx.lineWidth = .3; ctx.beginPath();
-  ctx.moveTo(-3.5, -12); ctx.quadraticCurveTo(0, -10.5, 3.6, -12.6); ctx.moveTo(-3, -9); ctx.quadraticCurveTo(1, -9.4, 3.2, -7.4);   // 손금
-  ctx.moveTo(3.8, -5.2); ctx.quadraticCurveTo(1.2, -7.4, 1.8, -10.6); ctx.stroke();                       // 엄지 두덩
-  R(-4.6, -5.2, 9.2, .8, dark);                                                                           // 손목 주름
 }
 
 const ACTORS = {
-  grandma: { w: 60, h: 150, d: (time, t) => person(time, t, { h: 150, top: '#c97b9c', bottom: '#6b5f7c', hair: '#c9c4cc', arm: 'out',
+  grandma: { w: 60, h: 150, d: (time, t) => person(time, t, { h: 150, top: '#c97b9c', bottom: '#6b5f7c', hair: '#c9c4cc', arm: 'out', handPose: 'flat',
     extra: (hy, r) => E(-r * .7, hy - r * .8, r * .45, r * .4, t('#c9c4cc')) }) },
-  auntie: { w: 60, h: 158, d: (time, t) => person(time, t, { h: 158, top: '#8fb8a8', bottom: '#5f6f86', hair: '#4a3a3a', arm: 'out',
+  auntie: { w: 60, h: 158, d: (time, t) => person(time, t, { h: 158, top: '#8fb8a8', bottom: '#5f6f86', hair: '#4a3a3a', arm: 'out', handPose: 'offer',
     extra: (hy, r) => [-.6, 0, .5].forEach((k) => E(r * k, hy - r * .85, r * .35, r * .3, t('#4a3a3a'))) }) },
   owner: { w: 60, h: 168, d: (time, t) => person(time, t, { h: 168, top: '#f0c27a', bottom: '#5f8fb0', hair: '#2f2a3a', arm: 'down' }) },
   kid: { w: 45, h: 120, d: (time, t) => person(time, t, { h: 120, top: '#ff8fa3', bottom: '#5f8fb0', hair: '#2f2a3a', arm: 'out',

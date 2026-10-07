@@ -150,27 +150,13 @@
   }
 
   /* ───── 사람 ───── */
-  /** 손. (x, y)는 손목, ang 방향으로 뻗는다. pose 'open' 편 손 · 'grip' 쥔 손 · 'pinch' 집은 손. 손톱과 마디를 그린다 */
-  function hand(x, y, ang, s, t, pose = 'open', glove = null) {
-    const base = glove || SKIN, skin = t(base), dk = t(shade(base)), nail = t(lite(base, .55));
-    at(x, y, () => {
-      ctx.rotate(ang); ctx.scale(s, s);
-      blob([[-.6, -2.6], [4.4, -3.4], [6.8, -2.2], [7, 2.4], [4.6, 3.4], [-.6, 2.8]], skin);
-      if (pose === 'open') {
-        [[-2.1, 4.3], [-.7, 4.9], [.75, 4.6], [2.1, 3.8]].forEach(([fy, len]) => {
-          curve([[6.2, fy], [6.2 + len * .55, fy - .1], [6.2 + len, fy + .25]], dk, 1.62);
-          curve([[6.2, fy - .1], [6.2 + len * .55, fy - .2], [6.2 + len - .1, fy + .1]], skin, 1.32);
-          E(6.2 + len - .35, fy - .02, .42, .4, nail);
-        });
-      } else {
-        [-2.1, -.7, .75, 2.1].forEach((fy, i) => { E(7.2 + (i === 3 ? -.3 : 0), fy, 1.15, .78, dk); E(7.05, fy - .08, 1, .66, skin); L(6, fy + .7, 6.8, fy + .7, dk, .22); });
-        if (pose === 'pinch') E(8.4, -2.3, .45, .4, nail);
-      }
-      curve([[1.2, -2.6], [3.6, -4.6], [6.2 + (pose === 'open' ? 0 : 1.6), -4.8]], dk, 1.9);
-      curve([[1.2, -2.7], [3.6, -4.6], [6 + (pose === 'open' ? 0 : 1.6), -4.8]], skin, 1.6);
-      E(6 + (pose === 'open' ? 0 : 1.6), -4.85, .45, .4, nail);
-      faded(.5, () => L(1.4, -1.2, 4, -1.6, dk, .25));
-    });
+  /** 팔 끝(손목 x, y)에 Twemoji 손을 붙인다. o.reach[3] 자세, o.glove 장갑색.
+      hold(손목 x, y, 쥔 x, 쥔 y)는 손 뒤에(쥔 물건이 주먹을 지나가게), front(손목 x, y)는 손 앞에 그린다 */
+  function armHand(t, x, y, ang, w, o) {
+    const pose = o.reach[3], s = w * HAND_PER_ARM, k = HAND_HOLD[pose][0] * s;
+    if (o.hold) o.hold(x, y, x + Math.cos(ang) * k, y + Math.sin(ang) * k);
+    artHandOnArm(t, x, y, ang, s, { pose, coat: o.glove });
+    if (o.front) o.front(x, y);
   }
 
   /** 팔: 어깨 → 팔꿈치 → 손목. 소매와 소매단까지 */
@@ -181,7 +167,7 @@
     at(wr[0], wr[1], () => { ctx.rotate(a); RR(-2.6, -w * .58, 3, w * 1.16, 1, t(cuff || lite(sleeve, .25))); });
   }
 
-  /** 쪼그려 앉은 사람(키 약 115). o: 옷색 + face(hx, hy, r) + reach: [팔꿈치, 손목, 손각도, 자세] + hold(손목 x, y) */
+  /** 쪼그려 앉은 사람(키 약 115). o: 옷색 + face(hx, hy, r) + reach: [팔꿈치, 손목, 손각도, 자세] + hold(손목 x, y, 쥔 x, 쥔 y) */
   function crouch(time, t, o) {
     const br = Math.sin(time * 1.8) * .6, pants = o.bottom;
     const legPath = (dx, c, w) => { curve([[-14 + dx, -38], [14 + dx, -47]], c, w + 1); curve([[14 + dx, -47], [5 + dx, -5]], c, w - 1); };
@@ -198,11 +184,9 @@
     const hx = 12, hy = -106 + br;
     blob([[6, -96 + br], [14, -96 + br], [14, -88 + br], [6, -88 + br]], t(shade(SKIN)));
     o.face(hx, hy, 12.4);
-    const [el, wr, ang, pose] = o.reach;
+    const [el, wr, ang] = o.reach;
     arm([4, -86 + br], el, wr, o.top, 7.2, t);
-    if (o.hold) o.hold(wr[0], wr[1]);
-    hand(wr[0], wr[1], ang, 1, t, pose);
-    if (o.front) o.front(wr[0], wr[1]);
+    armHand(t, wr[0], wr[1], ang, 7.2, o);
   }
 
   /** 서 있는 사람(키 약 168). 다리는 제자리에 서 있고, 몸만 숨 쉬듯 오르내린다 */
@@ -221,11 +205,9 @@
     if (o.vest) o.vest(br);
     blob([[-3, -134 + br], [5, -134 + br], [5, -126 + br], [-3, -126 + br]], t(shade(SKIN)));
     o.face(2, -146 + br, 12.4);
-    const [el, wr, ang, pose] = o.reach;
+    const [el, wr, ang] = o.reach;
     arm([4, -122 + br], el, [wr[0], wr[1] + br * .5], o.top, 7.4, t);
-    if (o.hold) o.hold(wr[0], wr[1] + br * .5);
-    hand(wr[0], wr[1] + br * .5, ang, 1, t, pose, o.glove);
-    if (o.front) o.front(wr[0], wr[1] + br * .5);
+    armHand(t, wr[0], wr[1] + br * .5, ang, 7.4, o);
   }
 
   /** 옆얼굴(오른쪽을 본다). hair(hx, hy, r): 머리 모양. mood 'smile' | 'squint' | 기본 */
@@ -433,11 +415,11 @@
       ...ALBA, face: face(time, t, ponytail(t, ALBA.hair), null),
       vest: (br) => { const v = [[-24.6, -37], [-23.6, -62], [-12, -85 + br], [-3, -89 + br], [4, -78], [9, -61], [4, -42], [-12, -33]]; blob(v, t(ALBA.top)); inside(v, () => { blob([[4, -82], [12, -78], [9, -56], [3, -42], [0, -62]], t(shade(ALBA.top))); curve([[-3, -89], [3, -78], [7, -60]], t('#f2d16b'), 1.2); }); RR(-1, -70, 7, 3.6, .8, t('#fffaf0')); R(0, -69, 4, .7, t('#5f8fb0')); E(-6, -54, 1.2, 1.2, t(shade(ALBA.top))); },
       top: '#f4f1ea', under: null,
-      reach: [[20, -70], [32, -50], .35, 'open'],
-      hold: (x, y) => {
+      reach: [[20, -70], [32, -50], .35, 'grip'],
+      hold: (x, y, gx, gy) => {
         const sway = Math.sin(time * 2) * 1.5;
-        curve([[x + 6, y - 2], [x + 10, y + 12], [x + 6 + sway, y + 26], [x + 2 + sway, y + 30]], t('#a8323a'), 2.2);
-        curve([[x + 6, y - 2.4], [x + 10, y + 11.6], [x + 6 + sway, y + 25.6]], t('#e04a52'), 1);
+        curve([[gx, gy - 2], [x + 10, y + 12], [x + 6 + sway, y + 26], [x + 2 + sway, y + 30]], t('#a8323a'), 2.2);
+        curve([[gx, gy - 2.4], [x + 10, y + 11.6], [x + 6 + sway, y + 25.6]], t('#e04a52'), 1);
         ctx.strokeStyle = t('#d9404a'); ctx.lineWidth = 1.8; ctx.beginPath(); ctx.ellipse(x + 3 + sway, y + 34, 5, 3.4, .3, 0, TAU); ctx.stroke();
         RR(x + 6 + sway, y + 33, 2.6, 2.4, .5, t('#d9c27a'));
       },
@@ -476,7 +458,7 @@
       vest: () => { [-110, -100, -90].forEach((y) => L(-13, y, 12, y + 1, t(shade('#e9b44c')), .7)); RR(-14, -128, 28, 6, 3, t('#d9534f')); },
       face: face(time, t, ponytail(t, ALBA.hair), 'smile'),
       reach: [[16, -98], [26, -86], .4, 'grip'],
-      front: (x, y) => { const k = Math.sin(time * 1.6) * .6; curve([[x + 7, y + 4], [x + 15, y + 18 + k], [x + 23, y + 32], [x + 31, y + 44]], t('#d9404a'), 1.4); },
+      hold: (x, y, gx, gy) => { const k = Math.sin(time * 1.6) * .6; curve([[gx, gy - 2], [x + 15, y + 18 + k], [x + 23, y + 32], [x + 31, y + 44]], t('#d9404a'), 1.4); },
     }) },
     /* G11 멀리 산등성이, 바위 위에서 우는 검둥이와 달 */
     'dog:howlRidge': { w: 224, h: 128, d: (time, t) => sized(.8, () => {
@@ -522,7 +504,7 @@
           const k = Math.sin(time * 1.8) * .02;
           at(x + 4, y, () => { ctx.rotate(.42 + k); RR(-30, -1.6, 100, 3.2, 1.6, t('#b7bcc8')); RR(-30, -1.6, 100, 1, .5, t(lite('#b7bcc8', .5))); RR(-34, -2.4, 14, 4.8, 2, t('#3b3049')); ctx.strokeStyle = t('#e6765f'); ctx.lineWidth = 1.6; ctx.beginPath(); ctx.ellipse(76, 0, 7, 5, 0, 0, TAU); ctx.stroke(); });
         } });
-      hand(13, -96 + Math.sin(time * 1.8) * .35, .42, 1, t, 'grip', '#e8e1c8');
+      artHandOnArm(t, 8, -96, -.1, 7 * HAND_PER_ARM, { pose: 'grip', coat: '#e8e1c8' });   // 뒤쪽 팔 끝에서 장대를 함께 쥔다
     } },
     /* S2 분리수거장에 놓인 개 포획틀 */
     'dog:cageTrap': { w: 104, h: 64, d: (time, t) => {
@@ -619,8 +601,8 @@
     for (let row = 0; row < 2; row++) for (let c = 0; c < 4; c++) cageBox(time, t, -170 + c * 58, -66 - row * 52, cage, row * 4 + c);
     at(-96, 0, () => stand(time, t, { top: '#7a8a5e', bottom: '#4a4560', shoe: '#2f2a3a', backArm: [[-10, -100], [-8, -80]],
       face: face(time, t, (hx, hy, r) => { RR(hx - r * 1.1, hy - r * 1.06, r * 2.1, r * .6, r * .3, t('#3d4c66')); RR(hx + r * .3, hy - r * .66, r, r * .22, r * .1, t('#3d4c66')); }, 'smile'),
-      reach: [[18, -132], [26, -150], -1.2, 'pinch'],
-      front: (x, y) => at(x + 3, y - 8, () => { ctx.rotate(Math.sin(time * 4) * .25); blob([[-3, -1], [2, -5], [6, -3], [5, 4], [-1, 5]], t(MEAT)); E(1, -2, 1.4, .8, t('#f2c6c0')); }) }));
+      reach: [[18, -132], [26, -150], -1.2, 'grip'],
+      hold: (x, y, gx, gy) => at(gx + 1.5, gy - 4, () => { ctx.rotate(Math.sin(time * 4) * .25); blob([[-3, -1], [2, -5], [6, -3], [5, 4], [-1, 5]], t(MEAT)); E(1, -2, 1.4, .8, t('#f2c6c0')); }) }));
   }
 
   function cageBox(time, t, x, y, c, i) {

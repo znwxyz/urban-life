@@ -18,8 +18,6 @@
     ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.beginPath(); build(); ctx.stroke(); ctx.restore();
   }
-  /** 손가락·다리처럼 끝이 둥근 막대 */
-  const capsule = (x1, y1, x2, y2, r, c) => strokePath(c, r * 2, () => { ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); });
   /** 변환을 잠깐 걸고 그린다 */
   function at(x, y, rot, sx, sy, draw) { ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(sx, sy); draw(); ctx.restore(); }
 
@@ -79,23 +77,8 @@
     }
   }
 
-  /** 사람 손등 하나. 손목이 원점, 손가락은 위(-y)로. 엄지는 +x 쪽 */
-  function drawHand(t, curl = 0) {
-    const sk = t(SKIN), sh = t(SKIN_SH), hi = t(SKIN_HI);
-    RR(-3.6, -1, 7.2, 3.4, 1, t('#7a9cc6')); RR(-3.6, -1, 7.2, .8, .4, t('#9fbbe0'));
-    capsule(3.4, -3, 6, -7.2, 1.05, sh); capsule(3.3, -3.1, 5.8, -7.1, .9, sk);
-    E(6.05, -7.5, .55, .45, t(NAIL));
-    fillPath(sk, () => { ctx.moveTo(-3.3, 0); ctx.bezierCurveTo(-4.1, -3, -4.3, -6.5, -3.4, -8.6); ctx.lineTo(3.4, -8.8); ctx.bezierCurveTo(4, -6, 3.8, -2.5, 3.2, 0); ctx.closePath(); });
-    fillPath(sh, () => { ctx.moveTo(1.8, 0); ctx.bezierCurveTo(2.8, -2.6, 3.2, -6, 3.4, -8.8); ctx.lineTo(3.2, -8.8); ctx.bezierCurveTo(3.9, -5.6, 3.8, -2.4, 3.2, 0); ctx.closePath(); });
-    [[-2.6, 5.6], [-.85, 6.6], [.9, 6.3], [2.55, 4.9]].forEach(([x, len], i) => {
-      const tip = -8.6 - len * (1 - curl * .5), tx = x + (i - 1.5) * .35;
-      capsule(x, -8.2, tx, tip, .86, sh); capsule(x - .1, -8.2, tx - .1, tip, .74, sk);
-      E(tx - .1, tip + .25, .45, .62, t(NAIL)); faded(.6, () => E(tx - .22, tip + .1, .15, .25, WHITE));
-      [.35, .65].forEach((f) => L(x - .55 + (tx - x) * f, -8.2 + (tip + 8.2) * f, x + .35 + (tx - x) * f, -8.2 + (tip + 8.2) * f, sh, .08));
-    });
-    [-2.6, -.85, .9, 2.55].forEach((x) => E(x, -8.4, .45, .22, hi));
-    faded(.35, () => strokePath(t('#8fa9d8'), .1, () => { ctx.moveTo(-.5, -.5); ctx.quadraticCurveTo(-1, -4, -.2, -7); }));
-  }
+  /** 짝! 치는 손 하나: 손목이 원점, 손끝이 위(-y), 손바닥이 +x 쪽(🫳을 세운 옆모습). 소맷부리가 손목에 붙는다 */
+  function clapHand(t) { at(0, 0, -Math.PI / 2, 1, 1, () => artHand(t, { pose: 'flat', s: 14, sleeve: '#7a9cc6' })); }
 
   /** 다리 털 몇 가닥 */
   function hairs(x0, x1, y0, y1, n, salt, t) {
@@ -283,8 +266,8 @@
     'mosquito:palmClap': { w: 26, h: 17, d: (time, t) => {
       const gap = 1.2 + (1 + Math.sin(time * 5)) * 2.2;
       faded(.5, () => [-1, 1].forEach((s) => [0, 1, 2].forEach((i) => L(s * (gap + 10.5), -6 - i * 2.2, s * (gap + 12.5 + i * .6), -6.6 - i * 2.2, WHITE, .18))));
-      at(-gap - 4, 3, -.25, -1, 1, () => drawHand(t));
-      at(gap + 4, 3, .25, 1, 1, () => drawHand(t));
+      at(-gap - 8, 2, .3, 1, 1, () => clapHand(t));
+      at(gap + 8, 2, -.3, -1, 1, () => clapHand(t));
       faded(.6, () => [0, 1, 2, 3].forEach((i) => { const a = -Math.PI / 2 + (i - 1.5) * .45; L(Math.cos(a) * 1, -8 + Math.sin(a) * 1, Math.cos(a) * 2, -8 + Math.sin(a) * 2, t('#ffe08a'), .15); }));
     } },
 
@@ -339,24 +322,16 @@
       RR(-21, -21, 2.4, 1.2, .5, t('#ffb347'));
     } },
 
-    /* M5 — 소파에서 잠든 사람의 팔. 손바닥을 바닥에 대고 손가락이 내 쪽으로 늘어졌다 */
+    /* M5 — 소파에서 잠든 사람의 팔. 손등을 바닥에 대고 손가락을 살짝 오므린 손이 내 쪽으로 늘어졌다 */
     'mosquito:sleepingArm': { w: 36, h: 32, d: (time, t) => {
       const b = Math.sin(time * 1.2) * .25, sk = t(SKIN), sh = t(SKIN_SH);
       faded(.25, () => E(-5, -.05, 10, .35, t(INK)));
-      fillPath(sk, () => { ctx.moveTo(-1.5, -4.9); ctx.bezierCurveTo(3, -8, 9, -18 + b, 12, -32); ctx.lineTo(20, -32); ctx.bezierCurveTo(16, -18 + b, 8, -4, 2, -.2); ctx.lineTo(-1.5, -.2); ctx.closePath(); });
+      artHandOnArm(t, .5, -3.2, Math.PI + .06, 16, { pose: 'offer' });   // 손목 끝은 팔 아래로 숨긴다
+      fillPath(sk, () => { ctx.moveTo(-1.5, -4.9); ctx.bezierCurveTo(3, -8, 9, -18 + b, 12, -32); ctx.lineTo(20, -32); ctx.bezierCurveTo(16, -18 + b, 8, -4, 2, -.2); ctx.lineTo(-1.5, -.2); ctx.quadraticCurveTo(-3.4, -2.55, -1.5, -4.9); ctx.closePath(); });
       fillPath(sh, () => { ctx.moveTo(.6, -.2); ctx.bezierCurveTo(7, -4.2, 14.6, -17 + b, 18, -32); ctx.lineTo(20, -32); ctx.bezierCurveTo(16, -18 + b, 8, -4, 2, -.2); ctx.closePath(); });
       faded(.45, () => strokePath(t('#8fa9d8'), .16, () => { ctx.moveTo(1, -3.2); ctx.bezierCurveTo(5, -6, 9, -12, 12.6, -22); ctx.moveTo(6.4, -8.4); ctx.quadraticCurveTo(9.6, -10, 11, -15); }));
       faded(.35, () => E(5.5, -9, 1.2, 4, t(SKIN_HI)));
       hairs(5, 15, -8, -28, 12, 91, t);
-      capsule(-8, -2.5, -14.2, -1.6, .95, sh);
-      capsule(-8, -3.3, -13.4, -2.7, .9, sh); E(-13.9, -2.8, .5, .45, t(NAIL));
-      fillPath(sk, () => { ctx.moveTo(.4, -.2); ctx.lineTo(.4, -5); ctx.bezierCurveTo(-3, -5.6, -6.4, -4.6, -8.8, -3.4); ctx.quadraticCurveTo(-9.6, -1.4, -9, -.2); ctx.closePath(); });
-      [[-8.6, -3.6], [-7.6, -4.1]].forEach(([x, y]) => E(x, y, .7, .5, t(SKIN_HI)));
-      capsule(-8.4, -1.3, -15.2, -.95, .9, sk);
-      [-11, -13].forEach((x) => L(x, -2.1, x - .1, -.3, sh, .07));
-      E(-15.5, -1.15, .55, .5, t(NAIL)); faded(.6, () => E(-15.6, -1.35, .2, .12, WHITE));
-      capsule(-2.6, -1, -6.8, -.75, .8, t(SKIN_HI)); E(-7.2, -.9, .42, .4, t(NAIL));
-      L(-3.4, -.4, -6.4, -.3, sh, .1);
     } },
 
     /* M5·D6 — 초록 모기향. 받침 위 소용돌이 끝이 빨갛게 타고, 매운 연기가 감아 오른다 */
@@ -584,7 +559,7 @@
         faded(.6 * (1 - ph), () => E(4 + Math.cos(a) * ph * 12, -22 + Math.sin(a) * ph * 12 + ph * 3, .2 + ph * .9, .2 + ph * .9, t(SMOKE)));
       }
       at(6, 0, .25, 1, 1, () => drawCan(t, time));
-      at(9.2, -21.8, -.6, 1, 1, () => { capsule(0, 0, 2.4, -.6, .8, t(SKIN)); E(-.5, .2, .4, .4, t(NAIL)); });
+      at(6, 0, .25, 1, 1, () => artHandAt(t, 0, -14, Math.PI, 12, { pose: 'grip', sleeve: '#7a9cc6' }));
     } },
 
     /* D5 — 달리는 차 안에서 본 앞유리. 바깥 가로등이 줄이 되어 지나간다 */

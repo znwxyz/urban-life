@@ -1,5 +1,5 @@
 /* 참새 장면 전용 그림과 주인공 참새. 키는 'sparrow:이름'. 원점은 발밑 가운데, cm 좌표, 오른쪽을 본다. d(시간, 색조함수)
-   참새 눈높이(화면 폭 약 4m)에 맞춰 실제 크기로 그린다: 참새 14cm, 아이 손 12cm, 간판 120cm.
+   참새 눈높이(화면 폭 약 4m)에 맞춰 실제 크기로 그린다: 참새 14cm, 아이 손 13cm, 간판 120cm.
    실루엣은 SVG 경로(Path2D)로 오리고, 색은 2~4겹 종이처럼 겹친다. Node에서는 키 목록만 내보낸다 */
 (function register(art, hero) {
   if (typeof module !== 'undefined' && module.exports) module.exports = Object.keys(art);
@@ -112,22 +112,6 @@
     }
   }
 
-  /** 손가락이 있는 손. 원점은 손목, 손가락은 +x 방향. open 0~1, k = 손 길이(cm) */
-  function hand(t, x, y, ang, k, open = 1) {
-    at(x, y, ang, null, () => {
-      const skin = t(SKIN), dark = t(shade(SKIN));
-      [[-.32, .82], [-.11, .95], [.11, .9], [.3, .74]].forEach(([dy, len], i) => {
-        const a = (dy * .9) * open;
-        ctx.strokeStyle = i % 2 ? skin : dark; ctx.lineWidth = k * .17; ctx.lineCap = 'round'; ctx.beginPath();
-        ctx.moveTo(k * .42, dy * k * .5); ctx.lineTo(k * .42 + Math.cos(a) * k * .55 * len, dy * k * .5 + Math.sin(a) * k * .55 * len); ctx.stroke();
-      });
-      fp(`M0 ${-k * .22} C${k * .2} ${-k * .3} ${k * .5} ${-k * .26} ${k * .52} 0 C${k * .5} ${k * .26} ${k * .2} ${k * .3} 0 ${k * .22} Z`, skin);
-      ctx.strokeStyle = skin; ctx.lineWidth = k * .19; ctx.beginPath();
-      ctx.moveTo(k * .2, -k * .2); ctx.quadraticCurveTo(k * .35, -k * .45, k * .55, -k * .5 - open * k * .06); ctx.stroke();
-      E(k * .3, k * .05, k * .1, k * .06, t(BLUSH));
-    });
-  }
-
   /** 겹겹이 오린 덤불 잎 무더기 */
   function bush(time, t, cx, w, h, seed) {
     for (let layer = 0; layer < 3; layer++) {
@@ -226,8 +210,9 @@
       fp('M-10 -36 C-11 -46 -6 -58 2 -64 C-2 -54 -4 -46 0 -36 Z', pinkD);
       ctx.strokeStyle = pink; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.beginPath();
       ctx.moveTo(8, -62); ctx.quadraticCurveTo(22, -52, 28, -34); ctx.stroke();
+      // 맨팔이라 손을 먼저 그리고 둥근 팔 끝으로 손목을 덮어 이음매를 숨긴다
+      artHandOnArm(t, 30.6, -25, 1.15 + Math.sin(time * 2) * .08, 13, { pose: 'offer' });
       ctx.strokeStyle = t(SKIN); ctx.lineWidth = 5.5; ctx.beginPath(); ctx.moveTo(27, -36); ctx.lineTo(31, -24); ctx.stroke();
-      hand(t, 31, -23, 1.15 + Math.sin(time * 2) * .08, 11, .9);
       E(15, -80, 11.5, 12, t(SKIN));
       fp('M3 -82 C2 -96 22 -98 27 -86 C22 -88 14 -90 10 -86 C8 -84 6 -80 4 -76 Z', t('#2f2a3a'));
       fp('M2 -80 C-4 -78 -6 -72 -3 -68 C0 -72 2 -76 4 -78 Z', t('#2f2a3a'));
@@ -340,7 +325,7 @@
       at(-10, -70, -.4, null, () => { RR(-6, -10, 14, 20, 2, t('#e6453a')); RR(-6, -10, 14, 4, 1, t('#f6eedc')); E(1, 2, 4, 2.6, t('#ffb08a')); });
       const toss = Math.sin(time * 3);
       ctx.strokeStyle = t('#e9e4ec'); ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(6, -94); ctx.quadraticCurveTo(24, -88, 28, -76 + toss * 3); ctx.stroke();
-      hand(t, 28, -76 + toss * 3, .5 + toss * .3, 10, .6 + toss * .4);
+      artHandOnArm(t, 28, -76 + toss * 3, .5 + toss * .3, 14, { pose: 'flat' });
       for (let i = 0; i < 5; i++) {
         const ph = (time * .6 + i / 5) % 1;
         at(34 + ph * 8 + hash(i, 3) * 6, -72 + ph * 72, ph * 8, null, () => fp('M-2 0 Q0 -1.4 2 0 Q0 -.4 -2 0 Z', t('#f2b36a')));
