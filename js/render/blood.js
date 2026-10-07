@@ -18,17 +18,19 @@ function resizeFx() {
   fxCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
-/** 주인공 둘레(cx, cy, 반지름 r)에 피를 튀긴다 */
-function startDeath(rect) {
-  const r = Math.max(rect.r * BLOOD_COVER, MIN_BLOOD_R);
+/**
+ * 주인공에게 피를 튀긴다. 위치·크기는 매 프레임 locate()로 다시 구해서,
+ * 창 크기나 화면 배율이 바뀌어도 핏자국이 주인공을 따라간다. 모양 값은 반지름에 대한 비율로 저장한다
+ */
+function startDeath(locate) {
   death = {
-    t0: performance.now(), cx: rect.cx, cy: rect.cy, r,
+    t0: performance.now(), locate,
     phase: [rand(0, 6.3), rand(0, 6.3), rand(0, 6.3), rand(0, 6.3)],
     arms: Array.from({ length: randInt(ARMS) }, () => ({
-      a: rand(0, Math.PI * 2), len: r * rand(.14, .42), w: r * rand(.07, .13), bulb: r * rand(.09, .15), bend: rand(-.6, .6),
+      a: rand(0, Math.PI * 2), len: rand(.14, .42), w: rand(.07, .13), bulb: rand(.09, .15), bend: rand(-.6, .6),
     })),
     drops: Array.from({ length: randInt(DROPS) }, () => ({
-      a: rand(0, Math.PI * 2), d: r * rand(1.25, 1.65), size: r * rand(.05, .12), delay: rand(0, 90),
+      a: rand(0, Math.PI * 2), d: rand(1.25, 1.65), size: rand(.05, .12), delay: rand(0, 90),
     })),
   };
   document.body.classList.add('dead', 'shake');
@@ -57,35 +59,36 @@ function bodyPath(cx, cy, r, ph) {
 }
 
 /** 몸통에서 흘러나온 굽은 줄기. 굵기가 점점 가늘어지다 끝에서 동그랗게 맺힌다 (겹친 원으로 매끈한 곡선을 만든다) */
-function drawArm(cx, cy, body, s, grow) {
-  const ca = Math.cos(s.a), sa = Math.sin(s.a), nx = -sa, ny = ca;
-  const start = body * .62, end = body * .8 + s.len * grow, mid = (start + end) / 2, sway = s.len * s.bend * grow;
+function drawArm(cx, cy, r, body, s, grow) {
+  const ca = Math.cos(s.a), sa = Math.sin(s.a), nx = -sa, ny = ca, len = s.len * r;
+  const start = body * .62, end = body * .8 + len * grow, mid = (start + end) / 2, sway = len * s.bend * grow;
   const p0 = [cx + ca * start, cy + sa * start], p2 = [cx + ca * end, cy + sa * end];
   const p1 = [cx + ca * mid + nx * sway, cy + sa * mid + ny * sway];
   for (let i = 0; i <= ARM_BEADS; i++) {
     const u = i / ARM_BEADS;
     const x = (1 - u) ** 2 * p0[0] + 2 * (1 - u) * u * p1[0] + u * u * p2[0];
     const y = (1 - u) ** 2 * p0[1] + 2 * (1 - u) * u * p1[1] + u * u * p2[1];
-    const w = s.w * (2.1 - 1.35 * Math.sin(u * Math.PI * .5));
+    const w = s.w * r * (2.1 - 1.35 * Math.sin(u * Math.PI * .5));
     fxCtx.beginPath(); fxCtx.arc(x, y, w, 0, Math.PI * 2); fxCtx.fill();
   }
-  fxCtx.beginPath(); fxCtx.arc(p2[0], p2[1], s.bulb * grow, 0, Math.PI * 2); fxCtx.fill();
+  fxCtx.beginPath(); fxCtx.arc(p2[0], p2[1], s.bulb * r * grow, 0, Math.PI * 2); fxCtx.fill();
 }
 
 function drawDeath(now) {
   if (!death) return;
-  const { cx, cy, r } = death, t = now - death.t0;
+  const rect = death.locate(), t = now - death.t0;
+  const { cx, cy } = rect, r = Math.max(rect.r * BLOOD_COVER, MIN_BLOOD_R);
   fxCtx.clearRect(0, 0, fxCanvas.clientWidth, fxCanvas.clientHeight);
   const body = r * overshoot(Math.min(1, t / SPLAT_MS));
   const arm = easeOut(Math.min(1, Math.max(0, (t - SPLAT_MS * .4) / ARM_MS)));
   fxCtx.fillStyle = BLOOD;
 
   bodyPath(cx, cy, body * .82, death.phase); fxCtx.fill();
-  if (arm) death.arms.forEach((s) => drawArm(cx, cy, body, s, arm));
+  if (arm) death.arms.forEach((s) => drawArm(cx, cy, r, body, s, arm));
   death.drops.forEach((d) => {
     const u = Math.max(0, Math.min(1, (t - SPLAT_MS * .5 - d.delay) / DROP_MS));
     if (!u) return;
     const e = easeOut(u);
-    fxCtx.beginPath(); fxCtx.arc(cx + Math.cos(d.a) * d.d * e, cy + Math.sin(d.a) * d.d * e, d.size, 0, Math.PI * 2); fxCtx.fill();
+    fxCtx.beginPath(); fxCtx.arc(cx + Math.cos(d.a) * d.d * r * e, cy + Math.sin(d.a) * d.d * r * e, d.size * r, 0, Math.PI * 2); fxCtx.fill();
   });
 }

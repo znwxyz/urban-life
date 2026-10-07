@@ -53,3 +53,29 @@ function animateStats(prev, next) {
     flyStars(source, row, n, stat, () => setStat(stat, prev[stat], next[stat]));
   });
 }
+
+/* 태어날 때: 주인공 둘레만 또렷하고 나머지는 흐릿하게 가렸다가, 조명이 퍼지듯 화면 전체가 드러난다 */
+const irisEl = document.getElementById('iris');
+const IRIS_HOLD_MS = 700, IRIS_GROW_MS = 1900, IRIS_MIN_R = 46, IRIS_HERO_K = 1.9;
+let iris = null;
+
+function startIris(locate) {
+  if (reducedMotionUi) return;
+  iris = { t0: performance.now(), locate };
+  irisEl.hidden = false;
+  updateIris(iris.t0);
+}
+
+const easeInOut = (u) => (u < .5 ? 2 * u * u : 1 - ((-2 * u + 2) ** 2) / 2);
+
+function updateIris(now) {
+  if (!iris) return;
+  const rect = iris.locate(), u = Math.min(1, Math.max(0, (now - iris.t0 - IRIS_HOLD_MS) / IRIS_GROW_MS));
+  const start = Math.max(rect.r * IRIS_HERO_K, IRIS_MIN_R), full = Math.hypot(irisEl.clientWidth, irisEl.clientHeight);
+  irisEl.style.setProperty('--x', `${rect.cx}px`);
+  irisEl.style.setProperty('--y', `${rect.cy}px`);
+  irisEl.style.setProperty('--r', `${start + (full - start) * easeInOut(u)}px`);
+  if (u >= 1) { iris = null; irisEl.hidden = true; }
+}
+
+function stopIris() { iris = null; irisEl.hidden = true; }

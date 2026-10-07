@@ -29,6 +29,14 @@ body { margin: 0; background: var(--night); color: var(--ink); font-family: var(
 .app { position: relative; height: 100%; overflow: hidden; }
 #stage, #fx { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 #fx { pointer-events: none; }
+/* 태어날 때 조명: 동그라미 밖은 흐릿하고 살짝 어둡게. --r이 커지며 화면이 드러난다 */
+.iris {
+  position: absolute; inset: 0; pointer-events: none;
+  background: rgba(42, 36, 56, .3);
+  -webkit-backdrop-filter: blur(8px) saturate(.75); backdrop-filter: blur(8px) saturate(.75);
+  -webkit-mask-image: radial-gradient(circle at var(--x, 30%) var(--y, 55%), transparent var(--r, 50px), #000 calc(var(--r, 50px) + 70px));
+  mask-image: radial-gradient(circle at var(--x, 30%) var(--y, 55%), transparent var(--r, 50px), #000 calc(var(--r, 50px) + 70px));
+}
 #stage { transition: filter .5s ease; }
 /* 죽음: 장면만 대비 강한 흑백으로. 피(#fx)와 카드는 색을 유지한다 */
 body.dead #stage { filter: grayscale(1) contrast(1.5) brightness(.92); }

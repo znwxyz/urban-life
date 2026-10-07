@@ -29,7 +29,7 @@ function travelAhead(cruise, ms) {
 function showPicker() {
   clearTimeout(moveTimer);
   run = null; phase = 'picker';
-  clearDeath();
+  clearDeath(); stopIris();
   updateHud(null, null); hideCaption(); hideCard();
   setScene('villaAlley');
   $('pickGrid').replaceChildren(...SPECIES_KEYS.map((key) => {
@@ -49,6 +49,7 @@ function revealBirth(key) {
   clearTimeout(moveTimer); $('picker').hidden = true;
   run = newRun(sp); phase = 'birth';
   clearDeath();
+  startIris(() => heroRect(sp));
   const first = sp.scenes[sp.start];
   setScene(first.bg, { prop: first.prop });
   view.propX = view.camX + PROP_SCREEN_X * sp.viewCm;
@@ -104,7 +105,7 @@ function chooseOption(i) {
   updateHud(sp, run);
   if (sp.endings[run.ending].kind !== 'dead') { showEnding(); return; }
   phase = 'ending';
-  startDeath(heroRect(sp));
+  startDeath(() => heroRect(sp));
   setTimeout(showEnding, reducedMotion ? 0 : DEATH_HOLD_MS);
 }
 
@@ -127,7 +128,7 @@ function showEnding() {
   const sp = currentSp(), end = sp.endings[run.ending], kind = ENDING_KIND[end.kind];
   phase = 'ending';
   view.prop = null;
-  if (end.kind === 'dead' && !document.body.classList.contains('dead')) startDeath(heroRect(sp));
+  if (end.kind === 'dead' && !document.body.classList.contains('dead')) startDeath(() => heroRect(sp));
   hideCaption();
   showCard({
     body: [
@@ -153,6 +154,7 @@ function frame(now) {
   view.fade = Math.max(0, view.fade - dt / FADE_S);
   const s = drawScene(view, sp, dt);
   drawDeath(now);
+  updateIris(now);
   if (sp) updateScaleBar(s);
   requestAnimationFrame(frame);
 }
