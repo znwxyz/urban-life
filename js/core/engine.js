@@ -1,5 +1,7 @@
 /* 게임 규칙: 분기형 장면 진행, 스탯, 시간·계절. 순수 함수만 둔다 (Node 테스트 가능) */
-const RULES = Object.freeze({ STARVE_DMG: 20, REGEN: 5, FULL_AT: 60, MAX: 100 });
+const RULES = Object.freeze({ REGEN: 5, FULL_AT: 60, MAX: 100 });
+/** 선택지 순서 = 카드를 미는 방향 */
+const DIRECTIONS = Object.freeze(['left', 'right', 'up', 'down']);
 const DAYS_PER_MONTH = 30.4;
 const DAYS_PER_WEEK = 7;
 const SEASON_KO = Object.freeze({ spring: '봄', summer: '여름', autumn: '가을', winter: '겨울' });
@@ -66,7 +68,8 @@ const addFx = (a, b) => ({ hp: (a.hp || 0) + (b.hp || 0), food: (a.food || 0) + 
 /**
  * 선택 하나를 적용한 새 진행 상태를 돌려준다.
  * - risk: 확률로 즉사 (그 위험의 데드엔딩)
- * - hurt: 확률로 다침 (체력이 0이 되면 hurt.ending 또는 쇠약 엔딩)
+ * - hurt: 확률로 다침
+ * - 체력이 0이 되면 쇠약(weakEnding, 다쳐서면 hurt.ending), 포만이 0이 되면 굶주림(starveEnding). 스토리와 상관없이 끝난다
  * rand는 테스트에서 운을 고정하려고 주입한다.
  */
 function applyChoice(sp, run, idx, rand = Math.random) {
@@ -83,11 +86,12 @@ function applyChoice(sp, run, idx, rand = Math.random) {
   const food = clamp(run.food + fx.food - sp.stats.decay, 0, RULES.MAX);
   const starving = food === 0;
   const regen = food >= RULES.FULL_AT && !hurt ? RULES.REGEN : 0;
-  const hp = clamp(run.hp + fx.hp - (starving ? RULES.STARVE_DMG : 0) + regen, 0, RULES.MAX);
+  const hp = clamp(run.hp + fx.hp + regen, 0, RULES.MAX);
 
   let target = resolveTarget(scene, choice, flags);
   if (fatal) target = choice.risk.ending;
   else if (hp <= 0) target = (hurt && choice.hurt.ending) || sp.weakEnding;
+  else if (starving) target = sp.starveEnding;
   const ending = sp.endings[target];
   const next = ending ? null : sp.scenes[target];
   if (!ending && !next) throw new Error(`없는 목적지: ${target}`);
@@ -121,6 +125,6 @@ function isValidRun(sp, run) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { RULES, SEASON_KO, ENDING_KIND, PALETTE_ROLES, clamp, durLabel, monthOf, seasonOf,
+  module.exports = { RULES, DIRECTIONS, SEASON_KO, ENDING_KIND, PALETTE_ROLES, clamp, durLabel, monthOf, seasonOf,
     newRun, applyChoice, choiceTargets, happyDay, isValidRun };
 }

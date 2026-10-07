@@ -1,0 +1,33 @@
+/* 장면에 등장하는 인물·동물·위험 요소 목록. 시나리오는 이 키만 쓴다 (그림은 js/render/actors-*.js).
+   크기는 cm. 같은 할머니도 파리에게는 다리 기둥, 비둘기에게는 사람 한 명으로 보인다 */
+const CAST = Object.freeze({
+  grandma: { name: '할머니(모이·쌀을 뿌림)', h: 150 },
+  auntie: { name: '캣맘 아주머니', h: 158 },
+  owner: { name: '집사/세입자(젊은 사람)', h: 168 },
+  kid: { name: '아이', h: 120 },
+  worker: { name: '작업복 입은 사람(방역·수거·관리인)', h: 172 },
+  cheeseCat: { name: '덩치 큰 치즈 고양이', h: 38 },
+  scarCat: { name: '상처투성이 수컷 고양이', h: 36 },
+  kitten: { name: '새끼 고양이', h: 16 },
+  strayCat: { name: '길고양이(회색 줄무늬)', h: 32 },
+  dog: { name: '개(산책하는 개·들개)', h: 55 },
+  spider: { name: '거미(거미줄에 매달림)', h: 3 },
+  magpie: { name: '까치', h: 26 },
+  crow: { name: '까마귀', h: 30 },
+  sparrow: { name: '참새', h: 9 },
+  pigeonFlock: { name: '비둘기 무리', h: 30 },
+  roachFriend: { name: '다른 바퀴벌레', h: .5 },
+  slipper: { name: '날아오는 슬리퍼', h: 8 },
+  hand: { name: '휘두르는 손바닥', h: 20 },
+  swatter: { name: '파리채', h: 45 },
+  eSwatter: { name: '전기 파리채', h: 50 },
+  ribbon: { name: '끈끈이 리본', h: 60 },
+  zapper: { name: '파란 전기 해충퇴치기', h: 35 },
+  gel: { name: '먹이형 살충제 젤 방울', h: .6 },
+  truck: { name: '쓰레기 수거차', h: 300 },
+  scooter: { name: '배달 오토바이', h: 120 },
+  rice: { name: '흩뿌려진 쌀알', h: 1 },
+  web: { name: '거미줄', h: 40 },
+});
+
+if (typeof module !== 'undefined' && module.exports) module.exports = { CAST };

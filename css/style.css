@@ -150,6 +150,8 @@ button { font: inherit; color: inherit; }
 }
 .hint.l { left: 10px; rotate: -3deg; }
 .hint.r { right: 10px; rotate: 3deg; text-align: right; }
+.hint.u { left: 50%; translate: -50% 0; rotate: -1deg; text-align: center; }
+.hint.d { top: auto; bottom: 10px; left: 50%; translate: -50% 0; rotate: 1deg; text-align: center; }
 
 /* 카드 아래 종이 꼬리표 (누르거나 ← → 키로도 고른다) */
 .picks { display: flex; gap: 10px; width: min(420px, 100%); pointer-events: auto; }
@@ -158,16 +160,20 @@ button { font: inherit; color: inherit; }
   background: var(--paper-2); color: var(--ink); clip-path: polygon(0 0, 100% 3%, 98% 100%, 2% 96%);
   transition: background .12s, color .12s, translate .12s;
 }
-.pick.r { text-align: right; }
+.pick.right { text-align: right; }
+/* 선택지 4개: ◀ ▶ / ▲ ▼ 를 2×2로 */
+.picks.four { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; }
 .pick.solo { text-align: center; flex: 0 1 auto; padding-inline: 28px; }
 .pick .arrow { color: var(--pink-deep); }
 .pick:hover, .pick:focus-visible { background: var(--pink); color: var(--paper); translate: 0 -2px; outline: none; }
 .pick:hover .arrow, .pick:focus-visible .arrow { color: var(--paper); }
 .pick:active { translate: 0 1px; }
 /* 고른 꼬리표는 카드와 같이 날아가고, 안 고른 쪽은 작아지며 사라진다 */
-.pick.gone-l, .pick.gone-r { transition: transform .24s ease-in; pointer-events: none; }
-.pick.gone-l { transform: translateX(-120vw) rotate(-16deg); }
-.pick.gone-r { transform: translateX(120vw) rotate(16deg); }
+.pick[class*="gone-"] { transition: transform .24s ease-in; pointer-events: none; }
+.pick.gone-left { transform: translateX(-120vw) rotate(-16deg); }
+.pick.gone-right { transform: translateX(120vw) rotate(16deg); }
+.pick.gone-up { transform: translateY(-120vh); }
+.pick.gone-down { transform: translateY(120vh); }
 .pick.fade { transition: opacity .22s ease, transform .22s ease; opacity: 0; transform: scale(.8); pointer-events: none; }
 
 /* 스탯 도장, 엔딩 인장 */

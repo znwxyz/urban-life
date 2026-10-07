@@ -1,12 +1,13 @@
 /* 게임 흐름: 탄생 → 장면으로 이동 → 좌우 선택 → 결과 → 다음 장면 … → 엔딩. 프레임 루프 */
 const MOVE_MS = 2600, MOVE_MS_REDUCED = 700, FADE_S = .45, ACCEL = 3, IDLE_RATIO = .05, DEFAULT_SPEED = 60;
-const DEAL_MS = 380, DEATH_HOLD_MS = 950, PROP_SCREEN_X = .58, SETTLE_S = 1.5, SIM_DT = 1 / 60;
+const DEAL_MS = 380, DEATH_HOLD_MS = 1250, KILLER_LEAD_MS = 320, PROP_SCREEN_X = .58, SETTLE_S = 1.5, SIM_DT = 1 / 60;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const SPECIES_KEYS = Object.keys(SPECIES);
 
 let run = null;
 let phase = 'idle';
-const view = { scene: 'villaAlley', night: false, glow: null, weather: null, prop: null, propX: 0, camX: 5000, speed: 0, fade: 0, t: 0 };
+const view = { scene: 'villaAlley', night: false, glow: null, weather: null, prop: null, propX: 0, camX: 5000, speed: 0, fade: 0, t: 0,
+  cast: [], heroStopX: 0, killer: null };
 let moveTimer = null;
 
 const currentSp = () => (run ? SPECIES[run.spKey] : null);
@@ -14,8 +15,12 @@ const currentSp = () => (run ? SPECIES[run.spKey] : null);
 function setScene(bg, opts = {}) {
   if (!SCENES[bg]) throw new Error(`없는 배경: ${bg}`);
   if (bg !== view.scene) { view.fade = 1; view.camX = 2000 + Math.random() * 90000; }
-  Object.assign(view, { scene: bg, night: Boolean(opts.night), glow: SCENES[bg].glow || null, weather: opts.weather || null, prop: opts.prop || null });
+  Object.assign(view, { scene: bg, night: Boolean(opts.night), glow: SCENES[bg].glow || null, weather: opts.weather || null,
+    prop: opts.prop || null, cast: opts.cast || [], killer: null });
 }
+
+/** 주인공이 멈춰 설 자리: 소품 자리에서 화면 간격만큼 뒤 */
+const placeCast = (sp) => { view.heroStopX = view.propX - (PROP_SCREEN_X - HERO_SCREEN_X) * sp.viewCm; };
 
 /** 이동 연출 동안 카메라가 갈 거리를 미리 계산해, 멈췄을 때 소품이 주인공 앞에 오게 한다 */
 function travelAhead(cruise, ms) {
@@ -51,8 +56,9 @@ function revealBirth(key) {
   clearDeath();
   startIris(() => heroRect(sp));
   const first = sp.scenes[sp.start];
-  setScene(first.bg, { prop: first.prop });
+  setScene(first.bg, { prop: first.prop, cast: first.cast });
   view.propX = view.camX + PROP_SCREEN_X * sp.viewCm;
+  placeCast(sp);
   updateHud(sp, run); hideCaption();
   showCard({
     body: [
@@ -69,9 +75,10 @@ function enterScene() {
   phase = 'move';
   const month = monthOf(sp, run.day), sc = SCENES[node.bg];
   const weather = node.weather || (!sc.indoor && seasonOf(month) === 'winter' ? 'snow' : null);
-  setScene(node.bg, { night: node.night, prop: node.prop, weather });
+  setScene(node.bg, { night: node.night, prop: node.prop, weather, cast: node.cast });
   const ms = reducedMotion ? MOVE_MS_REDUCED : MOVE_MS;
   view.propX = view.camX + travelAhead(sp.speedCm, ms) + PROP_SCREEN_X * sp.viewCm;
+  placeCast(sp);
   hideCard(); updateHud(sp, run);
   showCaption(`생후 ${durLabel(run.day)} · ${SEASON_KO[seasonOf(month)]}${node.night ? ' · 밤' : ''}`, `${sc.area} · ${sc.name}`);
   clearTimeout(moveTimer);
@@ -82,10 +89,9 @@ function showChoice() {
   const sp = currentSp(), node = sp.scenes[run.at];
   phase = 'choice';
   hideCaption();
-  const side = (i) => ({ label: node.choices[i].t, act: () => chooseOption(i) });
   showCard({
     body: [h('div', { class: 'eyebrow' }, SCENES[node.bg].name), h('h2', null, node.title), h('p', null, node.text)],
-    left: side(0), right: side(1),
+    choices: node.choices.map((c, i) => ({ label: c.t, act: () => chooseOption(i) })),
   });
 }
 
@@ -105,7 +111,9 @@ function chooseOption(i) {
   updateHud(sp, run);
   if (sp.endings[run.ending].kind !== 'dead') { showEnding(); return; }
   phase = 'ending';
-  startDeath(() => heroRect(sp));
+  const killer = sp.endings[run.ending].actor;
+  if (killer) view.killer = { ...killer, t0: performance.now() };
+  setTimeout(() => startDeath(() => heroRect(sp)), killer && !reducedMotion ? KILLER_LEAD_MS : 0);
   setTimeout(showEnding, reducedMotion ? 0 : DEATH_HOLD_MS);
 }
 
@@ -138,8 +146,7 @@ function showEnding() {
       h('p', { class: 'result' }, end.line),
       h('p', { class: 'meta' }, `생후 ${durLabel(run.day)} · ${end.cause}${run.kids ? ` · 남긴 ${sp.kidUnit} ${run.kids}` : ''}`),
     ],
-    left: { label: `${sp.name}로 다시`, act: () => revealBirth(sp.key) },
-    right: { label: '다른 동물 고르기', act: showPicker },
+    choices: [{ label: `${sp.name}로 다시`, act: () => revealBirth(sp.key) }, { label: '다른 동물 고르기', act: showPicker }],
   });
 }
 

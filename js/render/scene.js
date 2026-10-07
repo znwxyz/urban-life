@@ -79,6 +79,36 @@ function drawProp(f) {
   paper(() => it.d(x, g, s, .5, t), 1.1);
 }
 
+const KILLER_POP_MS = 240;
+/* 넓은 화면에서는 오른쪽 아래를 카드가 차지하므로, 등장인물이 카드 밑으로 들어가지 않게 간격을 좁힌다 */
+const WIDE_SCREEN = 900, CAST_LIMIT_WIDE = .5, CAST_LIMIT_NARROW = .94;
+
+/** 등장인물 하나. sx, sy는 발밑의 화면 좌표, pop은 튀어나오는 크기(0~1) */
+function drawActor(key, sx, sy, s, flip, time, t, pop = 1) {
+  const act = ACTORS[key];
+  if (!act || sx - act.w * s > W || sx + act.w * s < 0) return;
+  paper(() => { ctx.translate(sx, sy); ctx.scale(s * pop * (flip ? -1 : 1), s * pop); act.d(time, t); }, .9);
+}
+
+/** 장면 속 인물들: 주인공이 멈춰 설 자리(heroStopX)를 기준으로 cm만큼 떨어져 선다 */
+function drawCast(f) {
+  const { v, s, g, t } = f, cast = v.cast || [];
+  if (!cast.length) return;
+  const heroX = (v.heroStopX - v.camX) * s, limit = W * (W >= WIDE_SCREEN ? CAST_LIMIT_WIDE : CAST_LIMIT_NARROW);
+  const far = Math.max(...cast.map((c) => c.x + ((ACTORS[c.a] && ACTORS[c.a].w) || 0) / 2));
+  const k = far > 0 ? Math.min(1, (limit - heroX) / (far * s)) : 1;
+  cast.forEach((c) => drawActor(c.a, heroX + c.x * Math.max(k, .3) * s, g - (c.y || 0) * s, s, c.flip, v.t, t));
+}
+
+/** 죽음의 가해자: 주인공 바로 옆에 통 튀어나온다 */
+function drawKiller(f) {
+  const { v, s, g, t } = f, k = v.killer;
+  if (!k) return;
+  const u = Math.min(1, (performance.now() - k.t0) / KILLER_POP_MS);
+  const pop = u < 1 ? Math.sin(u * Math.PI * .5) * 1.15 : 1;
+  drawActor(k.a, W * HERO_SCREEN_X + k.x * s, g - (k.y || 0) * s, s, k.flip, v.t, t, pop);
+}
+
 function drawHero(f, sp) {
   const { s, g, v } = f;
   const draw = ANIMALS[sp.body];
@@ -185,8 +215,9 @@ function drawScene(v, sp, dt) {
   const f = { sc, p, t: makeTone(p), s, g, v, scroll: v.camX * s };
   lastFrame = { s, g };
   drawSky(f); drawFar(f); drawWalls(f); drawCeiling(f); drawGround(f);
-  drawItems(f); drawProp(f);
+  drawItems(f); drawProp(f); drawCast(f);
   if (sp) drawHero(f, sp);
+  drawKiller(f);
   drawForeground(f); drawGlow(f); drawWeather(f, dt);
   drawGrain(W, H); drawVignette();
   if (sp) drawTracker(f, sp);

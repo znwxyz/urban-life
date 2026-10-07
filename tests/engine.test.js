@@ -6,7 +6,7 @@ const E = require('../js/core/engine.js');
 const HIT = () => 0, MISS = () => .999;
 const SP = {
   key: 'test', bornMonth: 11, stats: { hp: 100, food: 50, decay: 10 },
-  start: 'A', weakEnding: 'W0',
+  start: 'A', weakEnding: 'W0', starveEnding: 'W1',
   scenes: {
     A: { bg: 'x', day: 10, next: 'B', title: 'A', text: '', choices: [
       { t: '먹는다', fx: { food: 30 }, msg: '배부르다' },
@@ -23,6 +23,7 @@ const SP = {
     N1: { kind: 'normal', day: 100, title: 'n', cause: 'c', line: 'l' },
     D1: { kind: 'dead', after: 1, title: 'd', cause: 'c', line: 'l' },
     W0: { kind: 'dead', after: 0, title: 'w', cause: 'c', line: 'l' },
+    W1: { kind: 'dead', after: 0, title: 'starve', cause: 'c', line: 'l' },
   },
 };
 
@@ -88,12 +89,17 @@ test('applyChoice는 입력 상태를 바꾸지 않는다', () => {
   assert.equal(before.at, 'A');
 });
 
-test('포만이 0이면 굶주림으로 체력이 깎인다', () => {
+test('포만이 0이 되면 스토리와 상관없이 굶주림 엔딩으로 끝난다', () => {
   const hungry = { ...E.newRun(SP), food: 5, hp: 50 };
   const run = E.applyChoice(SP, hungry, 2, MISS);
   assert.equal(run.food, 0);
-  assert.equal(run.hp, 50 - E.RULES.STARVE_DMG);
+  assert.equal(run.ending, 'W1');
   assert.equal(run.outcome.starving, true);
+});
+
+test('체력이 0이 되면 포만이 남아 있어도 쇠약 엔딩이 먼저다', () => {
+  const run = E.applyChoice(SP, { ...E.newRun(SP), food: 5 }, 2, HIT);
+  assert.equal(run.ending, 'W0');
 });
 
 test('플래그에 따라 같은 선택이 다른 엔딩으로 간다', () => {

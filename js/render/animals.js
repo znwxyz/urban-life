@@ -13,24 +13,35 @@ function blush(x, y, rx, ry) {
   ctx.globalAlpha = .55; E(x, y, rx, ry, BLUSH); ctx.globalAlpha = 1;
 }
 
+/** 고양이 한 마리. 주인공 고양이와 등장 고양이(치즈, 상처 수컷, 길고양이, 새끼)가 같이 쓴다 */
+const CAT_COATS = Object.freeze({
+  hero: { fur: '#f2a65a', dark: '#d9823f', belly: '#fde6c4' },
+  cheese: { fur: '#f5b04a', dark: '#d98a1f', belly: '#fff0cf' },
+  scar: { fur: '#8a7f86', dark: '#5f5560', belly: '#c9c0c4', scar: true },
+  gray: { fur: '#a3a9b5', dark: '#717887', belly: '#e3e6ec' },
+});
+
+function drawCat(time, moving, t, coat) {
+  const fur = t(coat.fur), dark = t(coat.dark), belly = t(coat.belly), pink = t('#ff9aa8');
+  const w = moving ? time * 10 : 0, bob = moving ? Math.abs(Math.sin(w)) * 1.2 : Math.sin(time * 2) * .4;
+  ctx.strokeStyle = fur; ctx.lineWidth = 5.5; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-14, -16 - bob); ctx.quadraticCurveTo(-30, -18, -27 + Math.sin(time * 2.4) * 3, -36); ctx.stroke();
+  [[-11, 0], [-4, Math.PI], [7, Math.PI], [13, 0]].forEach(([lx, ph]) => RR(lx + Math.sin(w + ph) * 2.5 - 3, -10, 6.5, 10, 3, dark));
+  E(0, -16 - bob, 17, 11.5, fur); E(2, -12 - bob, 11, 6, belly);
+  const hx = 16, hy = -33 - bob;
+  P([[hx - 11, hy - 6], [hx - 9, hy - 19], [hx - 1, hy - 10]], fur); P([[hx + 2, hy - 11], [hx + 10, hy - 19], [hx + 12, hy - 5]], fur);
+  P([[hx - 9, hy - 8], [hx - 8.5, hy - 15], [hx - 3, hy - 10]], pink); P([[hx + 4, hy - 10], [hx + 9, hy - 15], [hx + 10, hy - 7]], pink);
+  E(hx, hy, 13, 11.5, fur);
+  [-2, 1.5, 5].forEach((dx) => RR(hx + dx, hy - 11.5, 1.6, 4.5, .8, dark));
+  // 눈 사이를 넓게 벌려 살짝 멍한 얼굴로
+  cuteEye(hx - 1.8, hy + 1, 2.8, 2.2, time, t); cuteEye(hx + 8.8, hy + 1, 2.8, 2.2, time, t);
+  blush(hx - 6, hy + 5.5, 2.4, 1.5); blush(hx + 13, hy + 5.5, 2.4, 1.5);
+  E(hx + 3.5, hy + 3.6, 1.2, .9, pink);
+  if (coat.scar) { L(hx - 6, hy - 6, hx - 1, hy + 3, t(INK), .8); L(hx - 5, hy - 2, hx - 2, hy - 3, t(INK), .6); }
+}
+
 const ANIMALS = {
-  cat(time, moving, eye, t) {
-    const fur = t('#f2a65a'), dark = t('#d9823f'), belly = t('#fde6c4'), pink = t('#ff9aa8');
-    const w = moving ? time * 10 : 0, bob = moving ? Math.abs(Math.sin(w)) * 1.2 : Math.sin(time * 2) * .4;
-    ctx.strokeStyle = fur; ctx.lineWidth = 5.5; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(-14, -16 - bob); ctx.quadraticCurveTo(-30, -18, -27 + Math.sin(time * 2.4) * 3, -36); ctx.stroke();
-    [[-11, 0], [-4, Math.PI], [7, Math.PI], [13, 0]].forEach(([lx, ph]) => RR(lx + Math.sin(w + ph) * 2.5 - 3, -10, 6.5, 10, 3, dark));
-    E(0, -16 - bob, 17, 11.5, fur); E(2, -12 - bob, 11, 6, belly);
-    const hx = 16, hy = -33 - bob;
-    P([[hx - 11, hy - 6], [hx - 9, hy - 19], [hx - 1, hy - 10]], fur); P([[hx + 2, hy - 11], [hx + 10, hy - 19], [hx + 12, hy - 5]], fur);
-    P([[hx - 9, hy - 8], [hx - 8.5, hy - 15], [hx - 3, hy - 10]], pink); P([[hx + 4, hy - 10], [hx + 9, hy - 15], [hx + 10, hy - 7]], pink);
-    E(hx, hy, 13, 11.5, fur);
-    [-2, 1.5, 5].forEach((dx) => RR(hx + dx, hy - 11.5, 1.6, 4.5, .8, dark));
-    // 눈 사이를 넓게 벌려 살짝 멍한 얼굴로
-    cuteEye(hx - 1.8, hy + 1, 2.8, 2.2, time, t); cuteEye(hx + 8.8, hy + 1, 2.8, 2.2, time, t);
-    blush(hx - 6, hy + 5.5, 2.4, 1.5); blush(hx + 13, hy + 5.5, 2.4, 1.5);
-    E(hx + 3.5, hy + 3.6, 1.2, .9, pink);
-  },
+  cat(time, moving, eye, t) { drawCat(time, moving, t, CAT_COATS.hero); },
 
   cockroach(time, moving, eye, t) {
     const w = moving ? time * 26 : 0;
