@@ -34,7 +34,7 @@ function travelAhead(cruise, ms) {
 function showPicker() {
   clearTimeout(moveTimer);
   run = null; phase = 'picker';
-  clearDeath(); stopIris();
+  clearDeath(); stopIris(); closeWall();
   updateHud(null, null); hideCaption(); hideCard();
   setScene('villaAlley');
   $('pickGrid').replaceChildren(...SPECIES_KEYS.map((key) => {
@@ -145,7 +145,7 @@ function showEnding() {
       h('h2', null, end.title),
       h('p', { class: 'result' }, end.line),
       h('p', { class: 'meta' }, `생후 ${durLabel(run.day)} · ${end.cause}${run.kids ? ` · 남긴 ${sp.kidUnit} ${run.kids}` : ''}`),
-      guestbookSection(sp, run.ending),
+      guestbookSection(sp, run.ending, run.day),
     ],
     choices: [{ label: `${sp.name}로 다시`, act: () => revealBirth(sp.key) }, { label: '다른 동물 고르기', act: showPicker }],
   });
@@ -170,7 +170,7 @@ function frame(now) {
 /* 시작. 뷰어가 페이지를 갱신해도 진행 중인 판을 이어 간다 */
 window.claude?.hot?.snapshot?.(() => ({ run, phase }));
 function boot(data) {
-  resizeStage(); resizeFx();
+  resizeStage(); resizeFx(); setupWall();
   addEventListener('resize', () => { resizeStage(); resizeFx(); });
   requestAnimationFrame(frame);
   const saved = data && data.run;

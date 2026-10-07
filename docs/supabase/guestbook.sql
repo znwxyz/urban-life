@@ -7,6 +7,7 @@ create table if not exists public.guestbook (
   species text not null check (species in ('cat', 'cockroach', 'pigeon', 'fly')),
   ending text not null check (char_length(ending) between 1 and 8),
   message text not null check (char_length(message) between 1 and 80),
+  days integer check (days between 0 and 10000),
   created_at timestamptz not null default now()
 );
 
@@ -33,3 +34,6 @@ grant select, insert on public.guestbook to anon;
 -- alter table public.guestbook drop constraint guestbook_species_check;
 -- alter table public.guestbook add constraint guestbook_species_check
 --   check (species in ('cat', 'cockroach', 'pigeon', 'fly', 'sparrow'));
+
+-- [추가] 이미 테이블을 만들었다면, 글쓴이의 생존 기간(일) 칸만 따로 추가한다
+alter table public.guestbook add column if not exists days integer check (days between 0 and 10000);

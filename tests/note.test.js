@@ -34,3 +34,13 @@ test('canPostAt은 마지막으로 남긴 뒤 쿨다운이 지나야 true다', (
   assert.equal(N.canPostAt(1000, 1000 + N.COOLDOWN_MS - 1), false);
   assert.equal(N.canPostAt(1000, 1000 + N.COOLDOWN_MS), true);
 });
+
+test('noteDays는 생존 일수가 올바른 정수일 때만 돌려준다', () => {
+  assert.equal(N.noteDays({ days: 270 }), 270);
+  assert.equal(N.noteDays({ days: 0 }), 0);
+  assert.equal(N.noteDays({ days: -3 }), null);
+  assert.equal(N.noteDays({ days: '270' }), null);
+  assert.equal(N.noteDays({ days: 1.5 }), null);
+  assert.equal(N.noteDays({ days: N.MAX_NOTE_DAYS + 1 }), null);
+  assert.equal(N.noteDays({}), null);
+});

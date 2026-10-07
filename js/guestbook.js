@@ -12,21 +12,39 @@ const gbHeaders = (extra = {}) => ({
   ...extra,
 });
 
-async function fetchNotes(species) {
-  const q = new URLSearchParams({ species: `eq.${species}`, select: 'message,ending,created_at', order: 'created_at.desc', limit: String(GUESTBOOK_LIST_LIMIT) });
-  const res = await fetch(`${GUESTBOOK.url}/rest/v1/guestbook?${q}`, { headers: gbHeaders() });
+/* 생존 기간(days) 칸은 나중에 추가한 칸이라, 테이블에 아직 없으면 빼고 다시 요청한다 */
+const BASE_FIELDS = 'species,message,ending,created_at';
+let hasDaysColumn = true;
+
+/** species를 주면 그 동물에게 남긴 글만, 없으면 모든 동물의 글을 최신순으로 */
+async function fetchNotes(species, limit = GUESTBOOK_LIST_LIMIT) {
+  const query = (fields) => {
+    const q = new URLSearchParams({ select: fields, order: 'created_at.desc', limit: String(limit) });
+    if (species) q.set('species', `eq.${species}`);
+    return fetch(`${GUESTBOOK.url}/rest/v1/guestbook?${q}`, { headers: gbHeaders() });
+  };
+  let res = await query(hasDaysColumn ? `${BASE_FIELDS},days` : BASE_FIELDS);
+  if (res.status === 400 && hasDaysColumn) { hasDaysColumn = false; res = await query(BASE_FIELDS); }
   if (!res.ok) throw new Error(`방명록 읽기 실패 (${res.status})`);
   const rows = await res.json();
   return Array.isArray(rows) ? rows.filter(isNoteRow) : [];
 }
 
-async function postNote(species, ending, message) {
-  const res = await fetch(`${GUESTBOOK.url}/rest/v1/guestbook`, {
+async function postNote(species, ending, message, days) {
+  const send = (body) => fetch(`${GUESTBOOK.url}/rest/v1/guestbook`, {
     method: 'POST',
     headers: gbHeaders({ 'Content-Type': 'application/json', Prefer: 'return=minimal' }),
-    body: JSON.stringify({ species, ending, message }),
+    body: JSON.stringify(body),
   });
+  let res = await send(hasDaysColumn ? { species, ending, message, days } : { species, ending, message });
+  if (res.status === 400 && hasDaysColumn) { hasDaysColumn = false; res = await send({ species, ending, message }); }
   if (!res.ok) throw new Error(`방명록 쓰기 실패 (${res.status})`);
+}
+
+/** "9개월 생존" 같은 라벨. 생존 기간이 없으면 null */
+function survivedLabel(row) {
+  const d = noteDays(row);
+  return d === null ? null : h('span', { class: 'note-days' }, `${durLabel(d)} 생존`);
 }
 
 function readLastPost() {
@@ -38,21 +56,22 @@ function writeLastPost(now) {
 
 function noteItem(sp, row) {
   const end = sp.endings[row.ending];
-  return h('li', null, h('span', { class: 'note-text' }, row.message), end ? h('span', { class: 'note-end' }, end.title) : null);
+  const meta = h('span', { class: 'note-meta' }, survivedLabel(row), end ? h('span', { class: 'note-end' }, end.title) : null);
+  return h('li', null, h('span', { class: 'note-text' }, row.message), meta);
 }
 
 /** 엔딩 카드에 붙는 방명록 영역 */
-function guestbookSection(sp, endingId) {
+function guestbookSection(sp, endingId, days) {
   const list = h('ul', { class: 'notes' });
   const status = h('p', { class: 'note-status', role: 'status' });
   const input = h('input', { type: 'text', maxlength: String(NOTE_MAX), placeholder: `${NOTE_MAX}자까지 짧게`, 'aria-label': `${sp.name}에게 한 마디` });
   const button = h('button', { type: 'submit', class: 'note-send' }, '남기기');
   const form = h('form', { class: 'note-form' }, input, button);
-  const section = h('section', { class: 'guestbook' }, h('h3', null, `${sp.name}에게 한 마디`), form, status, list);
+  const goWall = h('button', { type: 'button', class: 'wall-link', onclick: () => { showPicker(); openWall(sp.key); } }, '방명록 보러가기 →');
+  const section = h('section', { class: 'guestbook' }, h('h3', null, `${sp.name}에게 한 마디`), form, status, list, goWall);
 
   if (!guestbookReady()) {
     input.disabled = true; button.disabled = true;
-    status.textContent = '방명록은 곧 열려요.';
     return section;
   }
 
@@ -69,16 +88,61 @@ function guestbookSection(sp, endingId) {
     if (!note.ok) { status.textContent = note.error; return; }
     if (!canPostAt(readLastPost(), Date.now())) { status.textContent = '조금 뒤에 다시 남길 수 있어요.'; return; }
     button.disabled = true; status.textContent = '남기는 중…';
-    postNote(sp.key, endingId, note.text)
+    postNote(sp.key, endingId, note.text, days)
       .then(() => {
         writeLastPost(Date.now());
         input.value = '';
         status.textContent = '남겼어요.';
-        list.prepend(noteItem(sp, { message: note.text, ending: endingId }));
+        list.prepend(noteItem(sp, { message: note.text, ending: endingId, days }));
       })
       .catch((err) => { console.warn(err); status.textContent = '남기지 못했어요. 잠시 뒤에 다시 시도해 주세요.'; })
       .finally(() => { button.disabled = false; });
   });
   refresh();
   return section;
+}
+
+/* 홈 화면 "방명록 모아보기": 모든 동물에게 남긴 글. 스포일러가 되지 않게 엔딩 이름은 보여 주지 않는다 */
+const WALL_LIMIT = 40;
+
+function wallItem(row) {
+  const sp = SPECIES[row.species];
+  return h('li', null, h('span', { class: 'wall-who' }, sp ? `${sp.name}에게` : ''), h('span', { class: 'note-text' }, row.message), survivedLabel(row));
+}
+
+function renderWall(wall, filter) {
+  const status = h('p', { class: 'note-status', role: 'status' }, '불러오는 중…');
+  const list = h('ul', { class: 'notes wall-notes' });
+  const tabs = h('div', { class: 'wall-tabs', role: 'tablist' },
+    [['', '전체'], ...SPECIES_KEYS.map((k) => [k, SPECIES[k].name])].map(([key, label]) =>
+      h('button', { class: `wall-tab${key === filter ? ' on' : ''}`, role: 'tab', 'aria-selected': String(key === filter), onclick: () => renderWall(wall, key) }, label)));
+  wall.replaceChildren(tabs, status, list);
+  if (!guestbookReady()) { status.textContent = '방명록은 곧 열려요.'; return; }
+  fetchNotes(filter || null, WALL_LIMIT)
+    .then((rows) => {
+      list.replaceChildren(...rows.filter((r) => typeof r.species === 'string').map(wallItem));
+      status.textContent = rows.length ? '' : '아직 남긴 말이 없어요. 한 번 살아 보고 첫 마디를 남겨 주세요.';
+    })
+    .catch((err) => { console.warn(err); status.textContent = '방명록을 불러오지 못했어요. 잠시 뒤에 다시 열어 주세요.'; });
+}
+
+/** 방명록 모아보기를 펼친다. filter에 동물 키를 주면 그 동물 탭으로 연다 */
+function openWall(filter = '') {
+  const toggle = $('wallToggle'), wall = $('wall');
+  wall.hidden = false;
+  toggle.setAttribute('aria-expanded', 'true');
+  toggle.textContent = '방명록 접기 ▲';
+  wall.style.setProperty('--deckle', deckle());
+  renderWall(wall, filter);
+  wall.scrollIntoView({ block: 'nearest', behavior: reducedMotionUi ? 'auto' : 'smooth' });
+}
+
+function closeWall() {
+  $('wall').hidden = true;
+  $('wallToggle').setAttribute('aria-expanded', 'false');
+  $('wallToggle').textContent = '방명록 모아보기 ▼';
+}
+
+function setupWall() {
+  $('wallToggle').addEventListener('click', () => ($('wall').hidden ? openWall('') : closeWall()));
 }

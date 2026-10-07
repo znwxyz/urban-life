@@ -1,6 +1,7 @@
 /* 방명록 한 마디의 규칙: 입력 다듬기, 서버에서 온 행 검사, 연속 등록 막기. 순수 함수 (Node 테스트 가능) */
 const NOTE_MAX = 80;
 const COOLDOWN_MS = 30000;
+const MAX_NOTE_DAYS = 10000;
 const CONTROL_CHARS = /[\u0000-\u001f\u007f]/g;
 
 /** 사용자가 쓴 글(외부 입력)을 다듬고 검사한다 */
@@ -18,6 +19,12 @@ function isNoteRow(row) {
     && [...row.message].length <= NOTE_MAX && typeof row.ending === 'string';
 }
 
+/** 글쓴이가 게임에서 산 기간(일). 서버 값이 이상하면 null */
+function noteDays(row) {
+  const d = row && row.days;
+  return Number.isInteger(d) && d >= 0 && d <= MAX_NOTE_DAYS ? d : null;
+}
+
 const canPostAt = (lastAt, now) => !Number.isFinite(lastAt) || now - lastAt >= COOLDOWN_MS;
 
-if (typeof module !== 'undefined' && module.exports) module.exports = { NOTE_MAX, COOLDOWN_MS, cleanNote, isNoteRow, canPostAt };
+if (typeof module !== 'undefined' && module.exports) module.exports = { NOTE_MAX, COOLDOWN_MS, MAX_NOTE_DAYS, cleanNote, isNoteRow, noteDays, canPostAt };
