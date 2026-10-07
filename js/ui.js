@@ -46,6 +46,9 @@ function showCard(opts) {
   cardWrap.style.setProperty('--deckle', deckle());
   cardWrap.classList.toggle('tilt-l', Math.random() < .5);
   cardBody.replaceChildren(...opts.body.filter(Boolean));
+  // 위에 따로 붙이는 엽서 (엔딩의 '○○에게 한 마디')
+  $('noteWrap').hidden = !opts.top;
+  if (opts.top) { $('noteWrap').style.setProperty('--deckle', deckle()); $('noteCard').replaceChildren(opts.top); }
   const slots = opts.next ? DIRECTIONS.map(() => opts.next) : opts.choices;
   cardActions = Object.fromEntries(DIRECTIONS.map((d, i) => [d, slots[i] ? slots[i].act : null]));
   DIRECTIONS.forEach((d, i) => { hints[d].textContent = slots[i] ? slots[i].label : ''; });
@@ -63,7 +66,7 @@ function showCard(opts) {
   if (first) first.focus({ preventScroll: true });
 }
 
-function hideCard() { deck.hidden = true; cardActions = null; }
+function hideCard() { deck.hidden = true; cardActions = null; $('noteWrap').hidden = true; }
 
 /** 끄는 방향 쪽 선택지를 드러낸다 */
 function setHint(dx, dy) {
@@ -92,6 +95,7 @@ function commit(dir) {
 
 const reducedMotionUi = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let drag = null;
+$('noteWrap').addEventListener('keydown', (e) => e.stopPropagation());
 const isTyping = (el) => Boolean(el && el.closest && el.closest('input, textarea, button, form'));
 cardWrap.addEventListener('pointerdown', (e) => {
   if (!cardActions || isTyping(e.target)) return;

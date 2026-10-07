@@ -17,7 +17,7 @@
   main: [1, 0, 2, 3, 0, 1, 2, 3, 0, 2, 1],
 
   scenes: {
-    C1: { bg: 'villaParking', day: 21, prop: 'box', cast: [{ a: 'kitten', x: 40 }], next: 'C2', title: '상자 속',
+    C1: { bg: 'villaParking', day: 21, prop: 'box', cast: [{ a: 'cat:siblingsBox', x: 45 }, { a: 'cat:stairSlipper', x: 150 }], next: 'C2', title: '상자 속',
       text: '엄마가 사흘째 안 와. 형제 둘은 이제 꼼짝도 안 해. 배가 너무 고파. …어떡하지?',
       choices: [
         { t: '형제 곁에 붙어 있을래', fx: { food: -5, hp: 5 }, msg: '서로 체온으로 버텼어. 배가 등에 붙을 것 같아. 해 질 녘, 계단에서 슬리퍼 소리가 내려와.' },
@@ -27,7 +27,7 @@
         { t: '젖은 바닥이라도 핥을래', fx: { food: 5 }, msg: '빗물 맛이야. 그래도 뭔가 넘어갔어. 슬리퍼 소리가 다가와.',
           hurt: { p: .4, fx: { hp: -20 }, msg: '배가 꾸르륵거려. 밤새 덜덜 떨었어.' } },
       ] },
-    C2: { bg: 'villaParking', day: 35, prop: 'box', cast: [{ a: 'auntie', x: 70, flip: true }, { a: 'kitten', x: 30 }], next: 'C3', title: '302호 아줌마',
+    C2: { bg: 'villaParking', day: 35, prop: 'box', cast: [{ a: 'cat:auntieSyringe', x: 60, flip: true }, { a: 'kitten', x: 30 }, { a: 'cat:formulaCan', x: 110 }], next: 'C3', title: '302호 아줌마',
       text: '울음소리 듣고 내려온 아줌마가 주사기로 분유를 먹여 줘. 집에 개가 있어서 데려가진 못한대. 이 냄새, 믿어도 될까?',
       choices: [
         { t: '천천히 받아먹을래', fx: { food: 30 }, msg: '따뜻해. 아줌마는 하루에 두 번씩 내려와 줬어.' },
@@ -36,7 +36,7 @@
         { t: '하악! 차 밑으로 숨을래', to: 'S1', fx: { food: -5, hp: -10 }, msg: '차 밑 어둠에서 혼자 버텼어. 눈곱이 껴서 눈이 잘 안 떠져. 며칠 뒤, 배고픈 냄새를 따라 큰길 쪽으로 걸었어.' },
         { t: '형제 먼저 먹으라고 할래', fx: { food: 10 }, msg: '형제가 먼저 배를 채웠어. 남은 몇 방울을 핥았어.' },
       ] },
-    C3: { bg: 'aptGarden', day: 120, prop: 'feeder', cast: [{ a: 'cheeseCat', x: 60, flip: true }, { a: 'auntie', x: 140, flip: true }], next: 'C4', title: '급식소의 치즈',
+    C3: { bg: 'aptGarden', day: 120, prop: 'feeder', cast: [{ a: 'cat:grasshopper', x: -50 }, { a: 'cat:cheeseFirst', x: 70, flip: true }, { a: 'auntie', x: 150, flip: true }], next: 'C4', title: '급식소의 치즈',
       text: '아줌마가 아파트 화단에 밥자리를 만들어 줬어. 근데 저 덩치 큰 치즈가 늘 먼저 먹어. 눈 마주치면 안 될 것 같아.',
       choices: [
         { t: '그릇에 머리 들이밀래', fx: { food: 35 }, msg: '배는 불렀어. 치즈가 한참 노려보더라.',
@@ -47,7 +47,7 @@
         { t: '아줌마 발밑으로 갈래', fx: { food: 25 }, msg: '아줌마가 나한테만 한 줌 따로 덜어 줬어.',
           hurt: { p: .4, fx: { hp: -20 }, msg: '뒤에서 치즈가 덮쳤어. 옆구리가 찢어졌어.' } },
       ] },
-    C4: { bg: 'recycling', day: 210, prop: 'trapCage', cast: [{ a: 'strayCat', x: 110, flip: true }, { a: 'kid', x: 170, flip: true }], next: 'C5', title: '철망 상자',
+    C4: { bg: 'recycling', day: 210, prop: 'trapCage', cast: [{ a: 'cat:tnrTrap', x: 55 }, { a: 'cat:earTipCat', x: 120, flip: true }, { a: 'kid', x: 180, flip: true }], next: 'C5', title: '철망 상자',
       text: '분리수거장 구석에 철망 상자가 놓였어. 안에서 참치 냄새가 나. 이 동네 형들은 다 귀 끝이 잘려 있던데. 들어가면 어떻게 되는 거지?',
       choices: [
         { t: '놀이터 쪽으로 피할래', fx: { food: -5 }, msg: '참치는 포기했어. 미끄럼틀 밑에서 하루를 보냈어.',
@@ -58,7 +58,7 @@
           hurt: { p: .4, fx: { hp: -15 }, msg: '철컥! 문이 내려와서 꼬리를 찧었어.' } },
         { t: '참치 따라 들어갈래', fx: { hp: -10, food: 20 }, msg: '철컥. 갇혔어. 병원 냄새가 나. 사흘 뒤 같은 자리에 풀려났는데 왼쪽 귀 끝이 잘려 있어. 아줌마가 "이제 수술한 애라는 표시야" 하고 쓰다듬었어.' },
       ] },
-    C5: { bg: 'villaParking', day: 280, prop: 'styroHouse', cast: [{ a: 'auntie', x: 120, flip: true }, { a: 'car', x: 190, flip: true }], next: 'C6', title: '첫 한파',
+    C5: { bg: 'villaParking', day: 280, prop: 'styroHouse', cast: [{ a: 'cat:warmBonnet', x: 170, flip: true }, { a: 'cat:winterHouse', x: 50 }, { a: 'cat:snowWind', x: 40 }], next: 'C6', title: '첫 한파',
       text: '영하 12도. 바람이 기둥 사이로 막 몰아쳐. 방금 들어온 차 보닛에서 따뜻한 김이 올라와. …저기 들어가면 살 것 같은데.',
       choices: [
         { t: '스티로폼 집으로 갈래', fx: { hp: -5, food: 10 }, msg: '좁고 춥지만 바람은 막혀. 아침마다 아줌마가 따뜻한 물을 갈아 줘.',
@@ -70,7 +70,7 @@
         { t: '음식물 통 뒤질래', fx: { food: 25 }, msg: '언 밥알이랑 뼈다귀를 찾았어.',
           hurt: { p: .4, fx: { hp: -20 }, msg: '언 뼈가 잇몸을 찔렀어. 피 맛이 나.' } },
       ] },
-    C6: { bg: 'convenience', day: 400, night: true, cast: [{ a: 'owner', x: 70, flip: true }, { a: 'car', x: 180 }], next: 'C7', title: '밤 11시의 사람',
+    C6: { bg: 'convenience', day: 400, night: true, cast: [{ a: 'cat:crosswalk', x: 160 }, { a: 'cat:churuOwner', x: 60, flip: true }], next: 'C7', title: '밤 11시의 사람',
       text: '매일 밤 11시, 편의점 앞에서 츄르를 하나씩 사 주는 사람이 생겼어. 오늘도 왕복 4차로 건너편으로 돌아가네. 따라가 볼까?',
       choices: [
         { t: '저 길 건너가 볼래', fx: { food: 10 }, msg: '차들 사이로 냅다 뛰었어. 그 사람 사는 빌라를 알아냈어! 다음 날 문 앞에 앉아 있으니까 깜짝 놀라더라.',
@@ -80,7 +80,7 @@
         { t: '봉지째 물고 튈래', fx: { food: 30 }, msg: '츄르 다섯 개를 한꺼번에 먹었어. 그 사람은 웃으면서 하나 더 샀어.',
           hurt: { p: .4, fx: { hp: -20 }, msg: '튀다가 배달 오토바이에 스쳤어. 옆구리가 욱신거려.' } },
       ] },
-    C7: { bg: 'villaAlley', day: 430, night: true, weather: 'rain', prop: 'carrier', cast: [{ a: 'owner', x: 80, flip: true }], next: 'C8', title: '이동장',
+    C7: { bg: 'villaAlley', day: 430, night: true, weather: 'rain', prop: 'carrier', cast: [{ a: 'cat:umbrellaOwner', x: 110, flip: true }, { a: 'cat:openCarrier', x: 45 }], next: 'C8', title: '이동장',
       text: '비 오는 밤. 그 사람이 이동장을 들고 왔어. "우리 집 갈래?" 저 안은 좁고 어두워. 들어가면 다시 못 나올지도 몰라.',
       choices: [
         { t: '무서워, 도망칠래', to: 'S1', fx: { hp: -5 }, msg: '빗속을 한참 달렸어. 돌아보니 모르는 골목이야.',
@@ -91,7 +91,7 @@
           hurt: { p: .3, fx: { hp: -10 }, msg: '문 닫히는 소리에 놀라서 철망에 이마를 박았어.' } },
         { t: '계단 밑에서 비 피할래', fx: { food: -10, hp: 5 }, msg: '다음 날, 그 사람이 계단 밑까지 찾아와서 이동장 문을 열어 뒀어.' },
       ] },
-    C8: { bg: 'living', day: 433, cast: [{ a: 'owner', x: 140, flip: true }, { a: 'magpie', x: 60, y: 90 }], next: 'C9', title: '새 집',
+    C8: { bg: 'living', day: 433, cast: [{ a: 'cat:balconyWindow', x: 80 }, { a: 'cat:fancyBowl', x: -50 }, { a: 'owner', x: 170, flip: true }], next: 'C9', title: '새 집',
       text: '낯선 냄새, 낯선 소리. 7층 베란다 창이 조금 열려 있고, 난간에 까치가 앉아 있어. 저거, 잡을 수 있을 것 같은데.',
       choices: [
         { t: '까치한테 뛰어오를래', msg: '방충망이 덜컹했어. 집사가 달려와 창을 닫더니, 다음 날 방묘창을 달았어.',
@@ -102,7 +102,7 @@
           hurt: { p: .4, fx: { hp: -15 }, msg: '너무 급하게 먹었나 봐. 거실에 다 토했어.' } },
         { t: '소파 밑에 숨어 있을래', fx: { food: 15, hp: 10 }, msg: '사흘째 밤에야 소파 밑에서 나와 사료 그릇을 비웠어. 집사가 숨죽여 지켜봤어.' },
       ] },
-    C9: { bg: 'kitchen', day: 730, prop: 'vaseTable', cast: [{ a: 'owner', x: 130, flip: true }], next: 'C10', title: '식탁 위 꽃병',
+    C9: { bg: 'kitchen', day: 730, prop: 'vaseTable', cast: [{ a: 'cat:lilyTable', x: 70 }, { a: 'cat:openParcel', x: -50 }, { a: 'owner', x: 150, flip: true }], next: 'C10', title: '식탁 위 꽃병',
       text: '집사가 백합 한 다발을 사 왔어. 노란 꽃가루가 식탁에 떨어져 있어. 냄새 진하다. 무슨 맛일까?',
       choices: [
         { t: '택배 상자에 들어갈래', fx: { food: 20 }, msg: '택배 상자는 언제나 옳아. 백합을 검색해 본 집사 얼굴이 하얘지더니, 다음 날 백합이 사라졌어.' },
@@ -112,7 +112,7 @@
           hurt: { p: .5, fx: { hp: -15 }, msg: '유리 조각에 발바닥이 베였어.' } },
         { t: '식탁 밑에서 잘래', fx: { food: -5, hp: 5 }, msg: '꽃잎이 바닥에 떨어졌지만 냄새가 싫어서 안 건드렸어.' },
       ] },
-    C10: { bg: 'entrance', day: 1825, prop: 'box', cast: [{ a: 'owner', x: 130, flip: true }, { a: 'dog', x: 70, flip: true }], next: 'C11', title: '열린 현관',
+    C10: { bg: 'entrance', day: 1825, prop: 'box', cast: [{ a: 'cat:openDoor', x: 110 }, { a: 'cat:leashDog', x: 70, flip: true }, { a: 'cat:phoneOwner', x: 170, flip: true }], next: 'C11', title: '열린 현관',
       text: '택배 받던 집사가 현관문을 열어 둔 채 통화 중이야. 계단에서 바람이랑 낯선 개 냄새가 들어와. 바깥 냄새, 진짜 오랜만이다.',
       choices: [
         { t: '계단으로 나가 볼래', msg: '계단 냄새를 실컷 맡고, 놀란 집사한테 안겨서 돌아왔어.',
@@ -122,7 +122,7 @@
         { t: '개한테 하악질할래', fx: { food: 5 }, msg: '개가 꼬리를 내리고 물러갔어.',
           hurt: { p: .4, fx: { hp: -20 }, msg: '개가 달려들어서 뒷다리를 물었어.' } },
       ] },
-    C11: { bg: 'living', day: 4380, cast: [{ a: 'owner', x: 110, flip: true }], title: '자꾸 목이 마르다',
+    C11: { bg: 'living', day: 4380, cast: [{ a: 'cat:litterBox', x: -55 }, { a: 'cat:waterBowl', x: 40 }, { a: 'cat:ownerHand', x: 95, flip: true }], title: '자꾸 목이 마르다',
       text: '요즘 자꾸 목이 말라. 화장실도 자주 가고, 좀 나른해. …티 내면 또 병원 가겠지?',
       choices: [
         { t: '아무렇지 않은 척할래', to: 'N1', msg: '평소처럼 창가에서 졸았어.' },
@@ -130,7 +130,7 @@
         { t: '옷장 속에서 잘래', to: 'N1', fx: { food: -5 }, msg: '어둡고 조용한 데가 좋아.' },
         { t: '집사 무릎에서 울래', to: 'H1', fx: { food: 5 }, msg: '집사가 내 얼굴을 한참 들여다봤어.' },
       ] },
-    S1: { bg: 'foodAlley', after: 30, night: true, prop: 'trashbag', cast: [{ a: 'worker', x: 110, flip: true }, { a: 'car', x: 200 }], next: 'S2', title: '식당가 뒷골목',
+    S1: { bg: 'foodAlley', after: 30, night: true, prop: 'trashbag', cast: [{ a: 'cat:poisonMeat', x: -45 }, { a: 'cat:fishTosser', x: 110, flip: true }, { a: 'cat:chickenBags', x: 170 }], next: 'S2', title: '식당가 뒷골목',
       text: '냄새가 엄청 많은 골목이야. 먹을 건 많은데 주인 없는 건 없어. 길 건너 치킨집 앞엔 봉투가 산더미야. 차가 계속 지나가긴 하는데.',
       choices: [
         { t: '생선 대가리 받아먹을래', fx: { food: 25 }, msg: '횟집 아저씨가 매일 이 시간에 하나씩 던져 줘.' },
@@ -141,7 +141,7 @@
           hurt: { p: .3, fx: { hp: -20 }, msg: '치킨집 사장 빗자루에 옆구리를 맞았어.' } },
         { t: '환풍기 밑에서 잘래', fx: { food: -5, hp: 10 }, msg: '환풍기 아래 따뜻한 자리에서 오래 잤어.' },
       ] },
-    S2: { bg: 'foodAlley', after: 180, cast: [{ a: 'scarCat', x: 70, y: 0, flip: true }, { a: 'worker', x: 170, flip: true }], next: 'S3', title: '골목의 주인',
+    S2: { bg: 'foodAlley', after: 180, cast: [{ a: 'cat:demolitionFence', x: 150 }, { a: 'cat:wallTom', x: 60, flip: true }], next: 'S3', title: '골목의 주인',
       text: '상처투성이 수컷이 담 위에서 날 내려다봐. 여기서 살려면 저 녀석을 넘어야 해. 저쪽 철거하는 빌라엔 아무도 없던데.',
       choices: [
         { t: '안 물러설래', fx: { hp: -20, food: 10 }, msg: '귀가 찢어졌지만 녀석이 먼저 등을 돌렸어. 이 골목은 이제 내 거야.',
@@ -152,7 +152,7 @@
         { t: '녀석 몫을 훔쳐 먹을래', fx: { food: 30 }, msg: '녀석이 자는 사이에 생선을 통째로 먹었어.',
           risk: { p: .25, ending: 'D3', msg: '녀석이 깼어. 눈이 마주쳤어.' } },
       ] },
-    S3: { bg: 'park', day: 1005, cast: [{ a: 'auntie', x: 120, flip: true }, { a: 'strayCat', x: 60 }], title: '공원의 겨울',
+    S3: { bg: 'park', day: 1005, cast: [{ a: 'cat:crowdedShelter', x: 40 }, { a: 'cat:benchCarrier', x: 130 }], title: '공원의 겨울',
       text: '1월이야. 근린공원에 겨울 나려는 애들이 모였어. 콜록대는 애도 있어. 벤치에서 누가 이동장을 열어 두고 기다려.',
       choices: [
         { t: '이동장에 들어가 볼래', to: 'C8', fx: { food: 20 }, msg: '공원 캣맘이 조용히 문을 닫았어. 이번엔 도망 안 쳤어.' },
@@ -169,20 +169,20 @@
     H1: { kind: 'happy', day: 5840, title: '열여섯 번째 봄', cause: '노환', line: '집사 무릎 위야. 창밖으로 빌라 주차장이 보여. 신장병을 일찍 알아챈 덕에 4년을 더 살았어. 이제 조금만 잘게.' },
     N1: { kind: 'normal', day: 4500, title: '조용한 신장병', cause: '만성 신장병', line: '너무 늦게 티를 냈나 봐. 그래도 따뜻한 집이었어.' },
     N2: { kind: 'normal', day: 1460, title: '골목의 왕', cause: '폐렴', line: '숨이 자꾸 가빠. 그래도 길에서 이만큼이면 두 배는 산 거래.' },
-    D1: { kind: 'dead', after: 1, title: '후진하는 바퀴', cause: '주차장 사고', actor: { a: 'car', x: 50 }, line: '운전석에선 내가 안 보였을 거야. 나는 너무 작았으니까.' },
-    D2: { kind: 'dead', after: 30, title: '치즈의 앞발', cause: '상처 감염', actor: { a: 'cheeseCat', x: 35 }, line: '얼굴 상처가 곪았어. 밥자리에도 순서가 있었나 봐.' },
+    D1: { kind: 'dead', after: 1, title: '후진하는 바퀴', cause: '주차장 사고', actor: { a: 'cat:reversingCar', x: 140 }, line: '운전석에선 내가 안 보였을 거야. 나는 너무 작았으니까.' },
+    D2: { kind: 'dead', after: 30, title: '치즈의 앞발', cause: '상처 감염', actor: { a: 'cat:cheeseSwipe', x: 40, flip: true }, line: '얼굴 상처가 곪았어. 밥자리에도 순서가 있었나 봐.' },
     D3: { kind: 'dead', after: 40, title: '골목의 싸움', cause: '영역 싸움', actor: { a: 'scarCat', x: 35 }, line: '목덜미 상처가 끝내 안 아물었어. 이 골목, 좀 더 갖고 싶었는데.' },
-    D4: { kind: 'dead', after: 1, title: '새벽 시동', cause: '엔진룸', actor: { a: 'car', x: 50 }, line: '겨울엔 다들 보닛을 한 번만 두드려 주면 좋겠어.' },
+    D4: { kind: 'dead', after: 1, title: '새벽 시동', cause: '엔진룸', actor: { a: 'cat:warmBonnet', x: 120, flip: true }, line: '겨울엔 다들 보닛을 한 번만 두드려 주면 좋겠어.' },
     D5: { kind: 'dead', after: 0, title: '왕복 4차로', cause: '로드킬', actor: { a: 'car', x: 40 }, line: '그 사람, 내일도 편의점 앞에서 기다리겠지.' },
     D6: { kind: 'dead', after: 0, title: '7층 베란다', cause: '고층 낙상', actor: { a: 'magpie', x: 40, y: 90 }, line: '방충망은 날 못 막았어. 까치는 그냥 날아갔어.' },
-    D7: { kind: 'dead', after: 3, title: '백합', cause: '급성 신부전', actor: { a: 'owner', x: 50 }, line: '꽃가루 조금이었는데. 집사가 자꾸 울어.' },
-    D8: { kind: 'dead', after: 20, title: '길 잃은 집고양이', cause: '실종', actor: { a: 'dog', x: 45 }, line: '집에 가는 길을 모르겠어. 집사 목소리가 듣고 싶어.' },
-    D9: { kind: 'dead', after: 2, title: '쥐약', cause: '중독', actor: { a: 'worker', x: 50 }, line: '쥐 잡으려고 놓은 고기였대. 그래도 배는 불렀는데.' },
+    D7: { kind: 'dead', after: 3, title: '백합', cause: '급성 신부전', actor: { a: 'cat:lilyTable', x: 55 }, line: '꽃가루 조금이었는데. 집사가 자꾸 울어.' },
+    D8: { kind: 'dead', after: 20, title: '길 잃은 집고양이', cause: '실종', actor: { a: 'cat:leashDog', x: 50, flip: true }, line: '집에 가는 길을 모르겠어. 집사 목소리가 듣고 싶어.' },
+    D9: { kind: 'dead', after: 2, title: '쥐약', cause: '중독', actor: { a: 'cat:poisonMeat', x: 35 }, line: '쥐 잡으려고 놓은 고기였대. 그래도 배는 불렀는데.' },
     D10: { kind: 'dead', after: 5, title: '한파', cause: '동사', actor: { a: 'strayCat', x: 35 }, line: '겨울집 자리를 뺏겼어. 너무 졸려. 자면 안 되는데.' },
     D11: { kind: 'dead', after: 2, title: '돌팔매', cause: '학대', actor: { a: 'kid', x: 50 }, line: '사람 손은 밥도 주고, 돌도 던지는구나.' },
     D12: { kind: 'dead', after: 0, title: '골목의 차', cause: '로드킬', actor: { a: 'car', x: 45 }, line: '치킨 냄새만 따라왔어. 차 소리는 못 들었어.' },
-    D13: { kind: 'dead', after: 20, title: '막힌 창문', cause: '재개발 현장 고립', actor: { a: 'worker', x: 50 }, line: '밖에서 포클레인 소리만 들려. 아무도 여기 내가 있는 줄 몰라.' },
-    D14: { kind: 'dead', after: 7, title: '붙어 자던 겨울', cause: '범백', actor: { a: 'strayCat', x: 35 }, line: '다 같이 붙어 자면 따뜻한 줄만 알았어.' },
+    D13: { kind: 'dead', after: 20, title: '막힌 창문', cause: '재개발 현장 고립', actor: { a: 'cat:boardedWindow', x: 55 }, line: '밖에서 포클레인 소리만 들려. 아무도 여기 내가 있는 줄 몰라.' },
+    D14: { kind: 'dead', after: 7, title: '붙어 자던 겨울', cause: '범백', actor: { a: 'cat:crowdedShelter', x: 50 }, line: '다 같이 붙어 자면 따뜻한 줄만 알았어.' },
     W0: { kind: 'dead', after: 0, title: '쇠약', cause: '상처와 병', line: '몸이 더는 말을 안 들어.' },
     W1: { kind: 'dead', after: 0, title: '굶주림', cause: '굶주림', line: '마지막으로 먹은 게 언제였더라.' },
   },

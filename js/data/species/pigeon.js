@@ -18,7 +18,7 @@
 
   scenes: {
     P1: { bg: 'villaAlley', day: 28, next: 'P2', title: '첫 비행',
-      cast: [{ a: 'pigeonFlock', x: 120, y: 260 }, { a: 'strayCat', x: 260, flip: true }],
+      cast: [{ a: 'pigeon:acNest', x: 110, y: 120 }, { a: 'strayCat', x: 260, flip: true }],
       text: '엄마아빠가 먹이를 덜 물어 와. 이제 나가라는 거겠지. 근데 아래가 너무 까마득한데… 담 밑에서 고양이가 날 올려다보고 있어.',
       choices: [
         { t: '하루만 더 연습할래', msg: '다음 날 아침, 바람을 타니까 몸이 떴어. 전깃줄까지 날았어!' },
@@ -30,7 +30,7 @@
       ] },
     P2: { bg: 'park', day: 60, next: 'P3', title: '모이 주는 할머니',
       prop: 'trashbag',
-      cast: [{ a: 'grandma', x: 230, flip: true }, { a: 'rice', x: 160 }, { a: 'pigeonFlock', x: 110 }, { a: 'hawk', x: 320, y: 600, flip: true }],
+      cast: [{ a: 'pigeon:riceRush', x: 100 }, { a: 'pigeon:riceGrandma', x: 240, flip: true }, { a: 'pigeon:hawkCircle', x: 300, y: 520, flip: true }],
       text: '할머니가 쌀을 한 줌씩 뿌려. 서른 마리가 우르르 몰려가. 근데 아까부터 하늘에 뭐가 빙빙 돌던데… 가운데가 제일 많이 떨어지는데.',
       choices: [
         { t: '가장자리에서 주울래', fx: { food: 15 }, msg: '느리지만 몇 알은 건졌어. 하늘도 계속 볼 수 있었고.' },
@@ -42,7 +42,7 @@
         { t: '벤치에서 볕 쬘래', fx: { hp: 10 }, msg: '깃털은 말렸는데 쌀은 금방 없어졌어.' },
       ] },
     P3: { bg: 'foodAlley', day: 180, next: 'P4', title: '엉킨 실', prop: 'foodBin',
-      cast: [{ a: 'pigeonFlock', x: 140 }, { a: 'scooter', x: 330, flip: true }],
+      cast: [{ a: 'pigeon:tangledBread', x: 100 }, { a: 'pigeon:toelessPigeon', x: 180, flip: true }, { a: 'scooter', x: 330, flip: true }],
       text: '식당가 바닥에 빵조각이 있어. 근데 낚싯줄이랑 머리카락이 칭칭 엉켜 있네. 발가락 없는 형들, 다 저런 거 밟아서 그렇게 됐다던데…',
       choices: [
         { t: '빵조각 통째로 물래', fx: { food: 35 }, msg: '큰 빵조각을 꿀꺽 삼켰어. 든든해.',
@@ -55,7 +55,7 @@
         { t: '전깃줄에서 기다릴래', fx: { hp: 5, food: -5 }, msg: '조용해질 때까지 기다렸는데, 내려가 보니 벌써 다 치웠더라.' },
       ] },
     P4: { bg: 'convenience', day: 245, night: true, next: 'P5', title: '편의점 앞 겨울',
-      cast: [{ a: 'scooter', x: 300, flip: true }, { a: 'glassWall', x: 200 }],
+      cast: [{ a: 'pigeon:cvsSign', x: 170, y: 150 }, { a: 'pigeon:crumbDoor', x: 110 }, { a: 'scooter', x: 300, flip: true }],
       text: '1월 밤이야. 발이 얼 것 같아. 편의점 문 앞에 부스러기가 있는데 배달 오토바이가 계속 들락거려. 간판 위는 따뜻해 보이고.',
       choices: [
         { t: '문 앞 부스러기 주울래', fx: { food: 35 }, msg: '삼각김밥 밥알이 잔뜩이었어!',
@@ -67,7 +67,7 @@
           hurt: { p: .3, fx: { hp: -10 }, msg: '새벽에 내려오다 유리문에 비친 하늘로 날았어. 쿵. 한참 어지러웠어.' } },
       ] },
     P5: { bg: 'aptGarden', day: 340, next: 'P6', title: '목덜미의 무지갯빛',
-      cast: [{ a: 'pigeonFlock', x: 150 }, { a: 'magpie', x: 320, flip: true }],
+      cast: [{ a: 'pigeon:seedPatch', x: 230 }, { a: 'pigeon:courtingMale', x: 120, flip: true }, { a: 'magpie', x: 320, flip: true }],
       text: '목덜미가 초록이랑 보라로 반짝이는 애가 구구거리면서 다가와. 나한테 오는 거 맞지? 근데 배도 고픈데…',
       choices: [
         { t: '목 부풀려 같이 울래', fx: { food: 10 }, msg: '짝이 생겼어. 우리는 한 번 맺으면 평생 같이 살아. 짝이 먹이 자리도 알려 줬어.' },
@@ -78,7 +78,7 @@
           hurt: { p: .3, fx: { hp: -15 }, msg: '까치가 날아와서 등을 쪼았어.' } },
       ] },
     S1: { bg: 'aptGarden', after: 300, title: '혼자 사는 비둘기',
-      cast: [{ a: 'pigeonFlock', x: 240 }, { a: 'glassWall', x: 340 }, { a: 'crow', x: 300, y: 0, flip: true }],
+      cast: [{ a: 'pigeon:grandpaBench', x: 90 }, { a: 'pigeon:fountain', x: 330, flip: true }, { a: 'pigeon:noiseBarrier', x: 220 }],
       text: '혼자 산 지 꽤 됐어. 큰길 건너 분수대에서 누가 구구거려. 도로 위로 곧장 가면 금방인데, 거기 투명한 방음벽이 있잖아. 하늘밖에 안 보이는데…',
       choices: [
         { t: '도로 위로 곧장 갈래', to: 'P6', fx: { food: 5 }, msg: '방음벽 끝 기둥을 겨우 보고 비켜 날았어. 분수대에 닿았어. 짝이 생겼어!',
@@ -90,7 +90,7 @@
           hurt: { p: .3, fx: { hp: -10 }, msg: '까마귀한테 먹이 뺏기다가 날개를 다쳤어.' } },
       ] },
     P6: { bg: 'villaParking', day: 370, next: 'P7', title: '둥지 자리',
-      cast: [{ a: 'magpie', x: 280, y: 180, flip: true }],
+      cast: [{ a: 'pigeon:pilotisPipes', x: 140, y: 180 }, { a: 'pigeon:swayTree', x: 300 }, { a: 'magpie', x: 290, y: 240, flip: true }],
       text: '둥지를 어디 틀지? 화단 나무는 넓고 좋아 보여. 근데 저 위에서 까치가 계속 보고 있어. 필로티 천장 배관 위는 좀 어둡고.',
       choices: [
         { t: '화단 나무 위가 좋아', fx: { food: 10 }, msg: '흔들리는 가지 위에서 무사히 알을 낳았어.',
@@ -102,7 +102,7 @@
           hurt: { p: .4, fx: { hp: -15 }, msg: '자리 두고 다른 비둘기랑 싸웠어.' } },
       ] },
     P7: { bg: 'villaParking', day: 400, next: 'P8', title: '사다리',
-      cast: [{ a: 'worker', x: 200, flip: true }],
+      cast: [{ a: 'pigeon:squabs', x: 90, y: 200 }, { a: 'pigeon:ladderBroom', x: 190, flip: true }],
       text: '사람이 사다리 놓고 우리 둥지를 올려다봐. 손에 빗자루랑 그물이 있어. 새끼들이 삑삑거려. 어떡하지?',
       choices: [
         { t: '날개 쳐서 막을래', fx: { kids: 2, food: 5 }, msg: '사람이 놀라서 내려갔어. 새끼 둘 다 무사히 컸어.',
@@ -113,7 +113,7 @@
           hurt: { p: .4, fx: { hp: -15 }, msg: '빗자루 끝에 날개를 맞았어.' } },
       ] },
     P8: { bg: 'park', day: 1100, next: 'P9', title: '먹이 주기 금지',
-      cast: [{ a: 'pigeonFlock', x: 150 }, { a: 'worker', x: 300, flip: true }, { a: 'car', x: 420, flip: true }],
+      cast: [{ a: 'car', x: 420, flip: true }, { a: 'worker', x: 330, flip: true }, { a: 'pigeon:emptyBench', x: 70 }, { a: 'pigeon:banBanner', x: 190 }],
       text: '공원에 "비둘기 먹이 주기 금지" 현수막이 걸렸어. 할머니가 안 보여. 길 건너 식당가는 냄새가 나는데, 차가 쌩쌩 다녀.',
       choices: [
         { t: '그래도 공원에 있을래', fx: { food: -10 }, msg: '할머니가 새벽에 몰래 왔어. 겨우 버텼어.',
@@ -126,7 +126,7 @@
           hurt: { p: .4, fx: { hp: -15 }, msg: '자리싸움하다 쪼였어.' } },
       ] },
     P9: { bg: 'foodAlley', day: 1500, next: 'P10', title: '낯선 낟알',
-      cast: [{ a: 'rice', x: 150 }, { a: 'pigeonFlock', x: 250 }],
+      cast: [{ a: 'pigeon:poisonGrain', x: 110 }, { a: 'pigeon:peckers', x: 230 }],
       text: '골목 바닥에 누가 낟알을 잔뜩 뿌려 놨어. 요즘 이런 거 처음인데. 냄새가 좀 이상해… 다들 벌써 먹고 있어.',
       choices: [
         { t: '이건 안 먹을래', fx: { food: 15 }, msg: '식당 뒷문에서 밥알을 찾았어. 다음 날, 골목에 친구들이 여럿 쓰러져 있었어.' },
@@ -137,7 +137,7 @@
         { t: '남들 먹는 거 볼래', fx: { hp: 5, food: -5 }, msg: '먹은 애들이 하나둘 비틀거려. 안 먹길 잘했어.' },
       ] },
     P10: { bg: 'villaAlley', day: 2190, next: 'H1', title: '무거운 날개',
-      cast: [{ a: 'pigeonFlock', x: 120, y: 260 }, { a: 'glassWall', x: 320 }, { a: 'strayCat', x: 260, flip: true }],
+      cast: [{ a: 'pigeon:oldCoupleAc', x: 100, y: 120 }, { a: 'strayCat', x: 210, flip: true }, { a: 'pigeon:glassTower', x: 330 }],
       text: '여섯 번째 봄이야. 날개가 무거워. 짝도 예전처럼 높이 못 날아. 공원 한 번 더 보고 싶은데, 새로 생긴 통유리 건물 사이로 가야 빨라.',
       choices: [
         { t: '마지막으로 공원 갈래', fx: { food: 10 }, msg: '유리 건물을 빙 돌아서 공원 하늘을 한 바퀴 돌았어. 실외기로 돌아왔어.',
@@ -153,15 +153,15 @@
     H1: { kind: 'happy', day: 2200, title: '실외기 위의 노부부', cause: '노환', line: '태어난 실외기 위야. 짝이 옆에 있어. 우리 새끼들도 이 골목 어딘가 있겠지.' },
     N1: { kind: 'normal', day: 1460, title: '할아버지의 비둘기', cause: '노환', line: '매일 같은 벤치, 같은 과자. 혼자였지만 배는 안 곯았어.' },
     D1: { kind: 'dead', after: 1, title: '첫 비행', cause: '길고양이', line: '하루만 더 연습할걸.', actor: { a: 'strayCat', x: 120 } },
-    D2: { kind: 'dead', after: 0, title: '하늘의 그림자', cause: '매 습격', line: '쌀알만 보느라 하늘을 안 봤어.', actor: { a: 'hawk', x: 60, y: 40 } },
-    D3: { kind: 'dead', after: 60, title: '발가락의 실', cause: '낚싯줄 괴사', line: '발가락이 까매졌어. 이젠 서 있을 수가 없어.', actor: { a: 'pigeonFlock', x: 200 } },
-    D4: { kind: 'dead', after: 0, title: '배달 오토바이', cause: '충돌', line: '밥알만 보였어.', actor: { a: 'scooter', x: 140 } },
-    D5: { kind: 'dead', after: 3, title: '까치', cause: '까치', line: '둥지만은 지키고 싶었는데.', actor: { a: 'magpie', x: 120, y: 180 } },
-    D6: { kind: 'dead', after: 0, title: '빗자루', cause: '타격', line: '서로 겁이 났던 거야.', actor: { a: 'worker', x: 140 } },
-    D7: { kind: 'dead', after: 90, title: '빈 공원', cause: '굶주림', line: '할머니, 오늘은 올까?', actor: { a: 'worker', x: 200 } },
-    D8: { kind: 'dead', after: 1, title: '낯선 낟알', cause: '중독', line: '우리를 미워하는 사람도 있구나.', actor: { a: 'rice', x: 100 } },
-    D9: { kind: 'dead', after: 0, title: '비친 하늘', cause: '유리창 충돌', line: '저건 진짜 하늘인 줄 알았어.', actor: { a: 'glassWall', x: 40 } },
-    D10: { kind: 'dead', after: 0, title: '투명 방음벽', cause: '방음벽 충돌', line: '아무것도 없었는데. 분명히 없었는데.', actor: { a: 'glassWall', x: 40 } },
+    D2: { kind: 'dead', after: 0, title: '하늘의 그림자', cause: '매 습격', line: '쌀알만 보느라 하늘을 안 봤어.', actor: { a: 'pigeon:hawkDive', x: 50, y: 200 } },
+    D3: { kind: 'dead', after: 60, title: '발가락의 실', cause: '낚싯줄 괴사', line: '발가락이 까매졌어. 이젠 서 있을 수가 없어.', actor: { a: 'pigeon:lineFoot', x: 60 } },
+    D4: { kind: 'dead', after: 0, title: '배달 오토바이', cause: '충돌', line: '밥알만 보였어.', actor: { a: 'pigeon:scooterGlare', x: 140, flip: true } },
+    D5: { kind: 'dead', after: 3, title: '까치', cause: '까치', line: '둥지만은 지키고 싶었는데.', actor: { a: 'pigeon:magpieRaid', x: 100, y: 180 } },
+    D6: { kind: 'dead', after: 0, title: '빗자루', cause: '타격', line: '서로 겁이 났던 거야.', actor: { a: 'pigeon:broomSwing', x: 70, y: 110 } },
+    D7: { kind: 'dead', after: 90, title: '빈 공원', cause: '굶주림', line: '할머니, 오늘은 올까?', actor: { a: 'pigeon:emptyBench', x: 120 } },
+    D8: { kind: 'dead', after: 1, title: '낯선 낟알', cause: '중독', line: '우리를 미워하는 사람도 있구나.', actor: { a: 'pigeon:poisonGrain', x: 100 } },
+    D9: { kind: 'dead', after: 0, title: '비친 하늘', cause: '유리창 충돌', line: '저건 진짜 하늘인 줄 알았어.', actor: { a: 'pigeon:glassTower', x: 60 } },
+    D10: { kind: 'dead', after: 0, title: '투명 방음벽', cause: '방음벽 충돌', line: '아무것도 없었는데. 분명히 없었는데.', actor: { a: 'pigeon:noiseBarrier', x: 60 } },
     D11: { kind: 'dead', after: 0, title: '찻길', cause: '차량 충돌', line: '조금만 더 높이 날걸.', actor: { a: 'car', x: 120 } },
     W0: { kind: 'dead', after: 0, title: '쇠약', cause: '쇠약', line: '날개가 이제 안 올라가.' },
     W1: { kind: 'dead', after: 0, title: '굶주림', cause: '굶주림', line: '도시엔 먹을 게 많다던데, 내 몫은 없었어.' },

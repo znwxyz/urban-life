@@ -16,7 +16,7 @@
   main: [1, 3, 0, 2, 3, 1, 2, 1, 0, 1],
 
   scenes: {
-    F1: { bg: 'recycling', day: 1, prop: 'foodBin', cast: [{ a: 'sparrow', x: 11, y: 0, flip: true }],
+    F1: { bg: 'recycling', day: 1, prop: 'foodBin', cast: [{ a: 'fly:pupaCase', x: -1.6 }, { a: 'fly:sourPuddle', x: 4 }, { a: 'sparrow', x: 9, y: 0, flip: true }],
       next: 'F2', title: '젖은 날개',
       text: '날개가 아직 쭈글쭈글하고 축축해. 근데 통 가장자리에서 시큼한 단내가 나… 바닥에선 참새가 두리번거리고 있고.',
       choices: [
@@ -28,7 +28,7 @@
         { t: '뚜껑 위에서 몸 데우자', fx: { hp: 10, food: -5 }, msg: '햇볕 받은 뚜껑이 따끈해. 다리에 힘이 들어온다.' },
       ] },
     F2: { bg: 'recycling', day: 2, night: true, prop: 'foodBin',
-      cast: [{ a: 'truck', x: 12 }, { a: 'worker', x: 9 }],
+      cast: [{ a: 'fly:liftedLid', x: 3, y: 5 }, { a: 'fly:reverseLight', x: 7 }],
       next: 'F3', title: '수거차',
       text: '새벽인데 삐, 삐, 후진 소리가 가까워져. 작업복 입은 사람이 통 손잡이를 잡았어. 통 안엔 아직 먹을 게 잔뜩인데…',
       choices: [
@@ -39,7 +39,7 @@
           hurt: { p: .35, fx: { hp: -20 }, msg: '바퀴가 튀긴 구정물을 정통으로 맞았어. 몸이 무거워.' } },
         { t: '옆 동 통으로 옮기자', fx: { food: 8 }, msg: '아직 안 비운 통이야. 껍질 몇 조각 핥았어.' },
       ] },
-    F3: { bg: 'foodAlley', day: 4, cast: [{ a: 'web', x: 6, y: 4 }, { a: 'spider', x: 6, y: 7 }],
+    F3: { bg: 'foodAlley', day: 4, cast: [{ a: 'fly:ventDrip', x: -4, y: 6 }, { a: 'fly:eavesWeb', x: 5, y: 1 }, { a: 'spider', x: 5, y: 7 }],
       next: 'F4', title: '식당가의 냄새',
       text: '식당가 뒷골목이야. 튀김기름, 생선, 음식물 봉투… 냄새가 너무 많아. 처마 밑으로 가면 생선 가게가 바로인데, 저기 뭔가 반짝이는 실이 보이는 것 같기도 하고.',
       choices: [
@@ -50,7 +50,7 @@
           hurt: { p: .4, fx: { hp: -25 }, msg: '참새가 봉투를 쪼다가 날개를 쳤어. 아파.' } },
         { t: '그늘에서 좀 쉬자', fx: { hp: 10, food: -5 }, msg: '거미줄에서 멀찍이 떨어져서 앞다리를 싹싹 비볐어.' },
       ] },
-    F4: { bg: 'restaurant', day: 6, cast: [{ a: 'worker', x: 10 }, { a: 'swatter', x: 7, y: 8, flip: true }],
+    F4: { bg: 'restaurant', day: 6, cast: [{ a: 'fly:windowFrame', x: 1 }, { a: 'fly:tteokbokki', x: 7 }, { a: 'swatter', x: 5, y: 9, flip: true }],
       next: 'F5', title: '열린 주방 창문',
       text: '주방 창문이 반쯤 열려 있어. 조리대엔 떡볶이 접시, 가스레인지엔 김 나는 찌개 냄비. 근데 사장님 손에 파리채가 있네…',
       choices: [
@@ -63,7 +63,7 @@
           risk: { p: .3, ending: 'D12', msg: '김에 날개가 눅눅해져서… 어, 국물로 떨어지고 있어.' } },
       ] },
     F5: { bg: 'restaurant', day: 8, night: true,
-      cast: [{ a: 'ribbon', x: 4, y: 3 }, { a: 'zapper', x: 11, y: 6 }],
+      cast: [{ a: 'fly:honeyRibbon', x: 2.5, y: 3 }, { a: 'fly:friedCrumbs', x: 6.5 }, { a: 'fly:zapperGlow', x: 6.5, y: 6 }],
       next: 'F6', title: '노란 리본',
       text: '천장에 노란 리본이 대롱대롱. 꿀 냄새가 진하게 나. 근데 거기 붙어서 꼼짝 못 하는 애들이 보여. 구석에선 파란 불빛이 웅웅거리고… 저 불빛, 이상하게 끌린다.',
       choices: [
@@ -75,7 +75,7 @@
         { t: '바닥 소스나 핥자', fx: { food: 15 }, msg: '테이블 다리 옆에 떨어진 양념을 찾았어.',
           hurt: { p: .4, fx: { hp: -20 }, msg: '마감 대걸레가 나를 훑고 지나갔어. 어지러워.' } },
       ] },
-    F6: { bg: 'foodAlley', day: 10, prop: 'trashbag', cast: [{ a: 'strayCat', x: 10, flip: true }],
+    F6: { bg: 'foodAlley', day: 10, prop: 'trashbag', cast: [{ a: 'fly:tornBag', x: 4 }, { a: 'fly:eggCluster', x: 4, y: 1.8 }, { a: 'fly:catNose', x: 8.5, y: 1.5 }],
       next: 'F7', title: '첫 산란',
       text: '골목 음식물 봉투가 찢어져 있어. 알 낳기 딱 좋은 데야. 근데 길고양이가 봉투를 킁킁대고 있네. 지금 낳을까, 다음에 낳을까.',
       choices: [
@@ -85,7 +85,7 @@
           hurt: { p: .35, fx: { hp: -20 }, msg: '고양이가 봉투를 헤집다가 앞발로 나를 쳤어.' } },
         { t: '볕 좀 쬐고 나중에', set: 'noEggs', fx: { hp: 10, food: -5 }, msg: '나중에 낳지 뭐. 볕이 너무 좋아서 그만 미뤘어.' },
       ] },
-    F7: { bg: 'park', day: 14, weather: 'rain', cast: [{ a: 'magpie', x: 12, flip: true }],
+    F7: { bg: 'park', day: 14, weather: 'rain', cast: [{ a: 'fly:benchUnderside', x: 1 }, { a: 'fly:raindrops', x: 3 }],
       next: 'F8', title: '소나기',
       text: '하늘이 갑자기 깜깜해져. 툭, 툭. 빗방울 하나가 내 몸보다 훨씬 무거워. 저 쓰레기통까지 금방인데… 까치가 나무 위에서 보고 있어.',
       choices: [
@@ -96,7 +96,7 @@
           hurt: { p: .4, fx: { hp: -15 }, msg: '틈으로 빗물이 쏟아졌어. 날개가 흠뻑 젖었어.' } },
         { t: '나뭇잎 뒤에 매달리자', fx: { hp: 5, food: -5 }, msg: '잎 뒷면은 보송해. 몸 웅크리고 쉬었어.' },
       ] },
-    F8: { bg: 'park', day: 18, cast: [{ a: 'owner', x: 9 }, { a: 'hand', x: 5, y: 6 }],
+    F8: { bg: 'park', day: 18, cast: [{ a: 'fly:riceGrains', x: 2.5 }, { a: 'fly:gimbapHand', x: 6, y: 4 }],
       next: 'F9', title: '휘두르는 손',
       text: '벤치에서 누가 김밥을 먹고 있어. 단무지 냄새… 근데 손이 자꾸 나를 쫓아. 벌써 두 번 피했는데.',
       choices: [
@@ -108,7 +108,7 @@
         { t: '가로등 위에서 쉬자', fx: { hp: 10, food: -5 }, msg: '손이 안 닿는 높이야. 다리나 비비자.' },
       ] },
     F9: { bg: 'kitchen', day: 22, prop: 'foodBin',
-      cast: [{ a: 'owner', x: 10, flip: true }, { a: 'eSwatter', x: 7, y: 8, flip: true }, { a: 'sprayCan', x: 13, y: 5 }],
+      cast: [{ a: 'fly:wasteCaddy', x: -6 }, { a: 'fly:sprayIdle', x: -2.5 }, { a: 'fly:watermelon', x: 4.5 }, { a: 'eSwatter', x: 2, y: 9, flip: true }],
       next: 'F10', title: '열린 부엌 창',
       text: '아파트 저층 부엌 창이 열려 있어. 식탁엔 수박, 싱크대 밑엔 음식물 통. 집주인은 전기 파리채를 들었고, 식탁 옆엔 스프레이 통도 있네. 수박 냄새 진짜 미치겠다.',
       choices: [
@@ -119,7 +119,7 @@
         { t: '식탁 밑 부스러기 줍자', fx: { food: 15 }, msg: '과자 부스러기 몇 개 주웠어. 바닥에 바짝 붙어서 다녔지.',
           risk: { p: .3, ending: 'D10', msg: '칙, 하얀 안개가 덮쳤어. 숨이, 다리가…' } },
       ] },
-    F10: { bg: 'kitchen', day: 28, cast: [{ a: 'zapper', x: 9, y: 7 }, { a: 'owner', x: 13, flip: true }],
+    F10: { bg: 'kitchen', day: 28, cast: [{ a: 'fly:sunnySill', x: 1 }, { a: 'fly:oldFriend', x: 3.5 }, { a: 'fly:windowGlass', x: 7 }, { a: 'fly:zapperGlow', x: -7, y: 7 }],
       next: [{ flag: 'noEggs', to: 'N1' }, { to: 'H1' }], title: '해진 날개',
       text: '날개 끝이 너덜너덜해. 한 달 가까이 살았네. 거실 쪽엔 파란 불빛, 그 안쪽엔 에어컨 바람이 시원하고. 창틀엔 햇볕이 들어.',
       choices: [
@@ -137,17 +137,17 @@
     H1: { kind: 'happy', day: 31, title: '창틀의 오후', cause: '노쇠', line: '햇볕 좋다. 골목 어딘가에서 내 새끼들이 날개를 말리고 있겠지.' },
     N1: { kind: 'normal', day: 31, title: '홀가분한 한 달', cause: '노쇠', line: '한 달 꽉 채워 살았어. 남긴 건 없지만, 뭐 가볍네.' },
     D1: { kind: 'dead', after: 0, title: '젖은 날개', cause: '참새', line: '참새가 먼저 봤네. 좀만 참을걸.', actor: { a: 'sparrow', x: 2, y: 0 } },
-    D2: { kind: 'dead', after: 0, title: '압착', cause: '쓰레기 수거차', line: '깜깜하고 꽉 끼어. 그래도 배는 불렀어.', actor: { a: 'truck', x: 6 } },
+    D2: { kind: 'dead', after: 0, title: '압착', cause: '쓰레기 수거차', line: '깜깜하고 꽉 끼어. 그래도 배는 불렀어.', actor: { a: 'fly:reverseLight', x: 3 } },
     D3: { kind: 'dead', after: 0, title: '처마 밑', cause: '거미', line: '지름길은 거미가 먼저 알고 있었어.', actor: { a: 'spider', x: 1, y: 4 } },
     D4: { kind: 'dead', after: 0, title: '파리채', cause: '파리채', line: '떡볶이는 맛있었어. 그거면 됐지 뭐.', actor: { a: 'swatter', x: 1, y: 3 } },
-    D5: { kind: 'dead', after: 0, title: '노란 리본', cause: '끈끈이 리본', line: '꿀 냄새 진짜 좋았는데. 다들 그래서 붙어 있었구나.', actor: { a: 'ribbon', x: 0, y: 1 } },
+    D5: { kind: 'dead', after: 0, title: '노란 리본', cause: '끈끈이 리본', line: '꿀 냄새 진짜 좋았는데. 다들 그래서 붙어 있었구나.', actor: { a: 'fly:honeyRibbon', x: .5, y: 1 } },
     D6: { kind: 'dead', after: 0, title: '빗방울', cause: '빗방울과 까치', line: '젖은 날개로 기는 동안 까치가 내려왔어. 기다리고 있었구나.', actor: { a: 'magpie', x: 4, y: 0 } },
-    D7: { kind: 'dead', after: 0, title: '손바닥', cause: '손바닥', line: '김밥 한 줄에 목숨 건 건 나뿐이었어.', actor: { a: 'hand', x: 1, y: 3 } },
+    D7: { kind: 'dead', after: 0, title: '손바닥', cause: '손바닥', line: '김밥 한 줄에 목숨 건 건 나뿐이었어.', actor: { a: 'fly:palmSlap', x: .5, y: 3 } },
     D8: { kind: 'dead', after: 0, title: '전기 파리채', cause: '전기 파리채', line: '타닥. 마지막이 수박 냄새라 다행이야.', actor: { a: 'eSwatter', x: 2, y: 3 } },
-    D9: { kind: 'dead', after: 0, title: '파란 불빛', cause: '전기 해충퇴치기', line: '알면서도 못 끊는 게 있더라.', actor: { a: 'zapper', x: 2, y: 5 } },
+    D9: { kind: 'dead', after: 0, title: '파란 불빛', cause: '전기 해충퇴치기', line: '알면서도 못 끊는 게 있더라.', actor: { a: 'fly:zapperGlow', x: 1.5, y: 4 } },
     D10: { kind: 'dead', after: 0, title: '하얀 안개', cause: '살충제 스프레이', line: '부스러기 몇 개였는데. 바닥이 이렇게 넓었나.', actor: { a: 'sprayCan', x: 2, y: 4 } },
-    D11: { kind: 'dead', after: 0, title: '닫힌 창문', cause: '창문에 갇혀 탈진', line: '바깥이 바로 저기 보이는데. 유리는 끝까지 안 비켜 줬어.', actor: { a: 'owner', x: 3 } },
-    D12: { kind: 'dead', after: 0, title: '찌개 냄비', cause: '국물에 빠짐', line: '국물 맛은 끝내줬어. 헤엄을 못 쳐서 그렇지.', actor: { a: 'worker', x: 3 } },
+    D11: { kind: 'dead', after: 0, title: '닫힌 창문', cause: '창문에 갇혀 탈진', line: '바깥이 바로 저기 보이는데. 유리는 끝까지 안 비켜 줬어.', actor: { a: 'fly:windowGlass', x: 1.2 } },
+    D12: { kind: 'dead', after: 0, title: '찌개 냄비', cause: '국물에 빠짐', line: '국물 맛은 끝내줬어. 헤엄을 못 쳐서 그렇지.', actor: { a: 'fly:stewPot', x: 1 } },
     W0: { kind: 'dead', after: 0, title: '쇠약', cause: '쇠약', line: '날개가 더는 안 떨려. 조금만 쉬자.' },
     W1: { kind: 'dead', after: 0, title: '빈 배', cause: '굶주림', line: '배가 너무 고파. 날아오를 힘이 없어.' },
   },

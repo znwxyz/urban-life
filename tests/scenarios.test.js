@@ -4,6 +4,15 @@ const E = require('../js/core/engine.js');
 const C = require('../js/core/color.js');
 const { SCENES } = require('../js/data/scenes.js');
 const { CAST } = require('../js/data/cast.js');
+const fs = require('node:fs');
+const path = require('node:path');
+
+/** 동물별 장면 전용 그림(js/render/art/<동물>.js)의 키 목록. 키는 '동물:이름' 형식 */
+function artKeys(key) {
+  const file = path.join(__dirname, '..', 'js', 'render', 'art', `${key}.js`);
+  return fs.existsSync(file) ? require(file) : [];
+}
+const castOk = (sp, a) => Boolean(CAST[a]) || (a.startsWith(`${sp.key}:`) && artKeys(sp.key).includes(a));
 
 /* SPECIES=cat npm test 처럼 한 종만 검사할 수 있다 */
 const KEYS = (process.env.SPECIES || 'cat,cockroach,pigeon,fly').split(',');
@@ -64,10 +73,10 @@ ALL.forEach((sp) => {
     SYSTEM_ENDINGS(sp).forEach((id) => assert.ok(isDead(sp, id), `시스템 엔딩 ${id}`));
   });
 
-  test(`${sp.name}: 등장인물은 모두 CAST에 있고, 이야기 속 데드엔딩에는 가해자(actor)가 있다`, () => {
-    Object.entries(sp.scenes).forEach(([id, sc]) => (sc.cast || []).forEach((c) => assert.ok(CAST[c.a], `${id} cast ${c.a}`)));
+  test(`${sp.name}: 등장인물은 CAST나 장면 전용 그림에 있고, 이야기 속 데드엔딩에는 가해자(actor)가 있다`, () => {
+    Object.entries(sp.scenes).forEach(([id, sc]) => (sc.cast || []).forEach((c) => assert.ok(castOk(sp, c.a), `${id} cast ${c.a}`)));
     Object.entries(sp.endings).forEach(([id, e]) => {
-      if (e.actor) assert.ok(CAST[e.actor.a], `${id} actor ${e.actor.a}`);
+      if (e.actor) assert.ok(castOk(sp, e.actor.a), `${id} actor ${e.actor.a}`);
       if (e.kind === 'dead' && !SYSTEM_ENDINGS(sp).includes(id)) assert.ok(e.actor, `${id}에 actor 없음`);
     });
   });
@@ -89,6 +98,16 @@ ALL.forEach((sp) => {
     });
     assert.equal(sp.endings[run.ending].kind, 'happy', `메인 루트 끝: ${run.ending}`);
     assert.ok(minFood <= TENSION_FOOD, `포만이 늘 넉넉함 (최저 ${minFood})`);
+  });
+});
+
+ALL.forEach((sp) => {
+  test(`${sp.name}: 장면마다 그 장면에만 나오는 전용 그림이 하나 이상 있다`, () => {
+    const used = Object.entries(sp.scenes).map(([id, sc]) => [id, (sc.cast || []).map((c) => c.a).filter((a) => a.startsWith(`${sp.key}:`))]);
+    used.forEach(([id, keys]) => assert.ok(keys.length > 0, `${id}에 전용 그림이 없다`));
+    const all = used.flatMap(([, keys]) => [...new Set(keys)]);
+    const repeated = all.filter((k, i) => all.indexOf(k) !== i);
+    assert.ok(repeated.length <= Math.floor(used.length / 3), `전용 그림 재사용이 너무 많다: ${[...new Set(repeated)]}`);
   });
 });
 

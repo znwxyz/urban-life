@@ -2,7 +2,11 @@
 const TONE_DAY = .14, TONE_NIGHT = .5;
 const GROUND_LAYERS = Object.freeze([[.34, .1, 13], [.68, .2, 17]]);
 const PORTRAIT_RATIO = .9;
-const HERO_SCREEN_X = .3, TRACKER = '#fffaf0', DEFAULT_VIEW_CM = 600, DEFAULT_EYE = 30;
+/* 넓은 화면에서는 카드가 오른쪽을 차지하므로 주인공을 더 왼쪽에 세워 앞쪽 공간을 넓힌다 */
+const WIDE_SCREEN = 900;
+const HERO_X_WIDE = .2, HERO_X_NARROW = .3;
+const heroScreenX = () => (W >= WIDE_SCREEN ? HERO_X_WIDE : HERO_X_NARROW);
+const TRACKER = '#fffaf0', DEFAULT_VIEW_CM = 600, DEFAULT_EYE = 30;
 const BANDS = Object.freeze([{ k: 'l', cell: 1500, dens: .6, salt: 3 }, { k: 'm', cell: 340, dens: .55, salt: 7 }, { k: 's', cell: 26, dens: .6, salt: 11 }]);
 const PARTICLES = Array.from({ length: 140 }, () => ({ x: Math.random(), y: Math.random(), v: .6 + Math.random() * .6 }));
 let vignette = null;
@@ -81,7 +85,7 @@ function drawProp(f) {
 
 const KILLER_POP_MS = 240;
 /* 넓은 화면에서는 오른쪽 아래를 카드가 차지하므로, 등장인물이 카드 밑으로 들어가지 않게 간격을 좁힌다 */
-const WIDE_SCREEN = 900, CAST_LIMIT_WIDE = .5, CAST_LIMIT_NARROW = .94;
+const CAST_LIMIT_WIDE = .6, CAST_LIMIT_NARROW = .94;
 
 /** 등장인물 하나. sx, sy는 발밑의 화면 좌표, pop은 튀어나오는 크기(0~1) */
 function drawActor(key, sx, sy, s, flip, time, t, pop = 1) {
@@ -106,7 +110,7 @@ function drawKiller(f) {
   if (!k) return;
   const u = Math.min(1, (performance.now() - k.t0) / KILLER_POP_MS);
   const pop = u < 1 ? Math.sin(u * Math.PI * .5) * 1.15 : 1;
-  drawActor(k.a, W * HERO_SCREEN_X + k.x * s, g - (k.y || 0) * s, s, k.flip, v.t, t, pop);
+  drawActor(k.a, W * heroScreenX() + k.x * s, g - (k.y || 0) * s, s, k.flip, v.t, t, pop);
 }
 
 function drawHero(f, sp) {
@@ -114,7 +118,7 @@ function drawHero(f, sp) {
   const draw = ANIMALS[sp.body];
   if (!draw) return;
   const moving = v.speed > sp.speedCm * .3;
-  paper(() => { ctx.translate(W * HERO_SCREEN_X, g); ctx.scale(s, s); draw(v.t, moving, sp.eye, f.t); }, .8);
+  paper(() => { ctx.translate(W * heroScreenX(), g); ctx.scale(s, s); draw(v.t, moving, sp.eye, f.t); }, .8);
 }
 
 const FG = {
@@ -187,7 +191,7 @@ function drawVignette() {
 
 function drawTracker(f, sp) {
   const { s, g } = f;
-  const [x0, y0, x1, y1] = sp.box, pad = 6, cx = W * HERO_SCREEN_X;
+  const [x0, y0, x1, y1] = sp.box, pad = 6, cx = W * heroScreenX();
   const L0 = cx + x0 * s - pad, T = g + y0 * s - pad, R0 = cx + x1 * s + pad, B = g + y1 * s + pad, k = Math.min(10, (R0 - L0) / 3);
   ctx.save();
   ctx.shadowColor = 'rgba(30,20,45,.55)'; ctx.shadowBlur = 4;
@@ -201,24 +205,59 @@ function drawTracker(f, sp) {
 /** 지금 화면에서 주인공이 차지하는 원 (피 연출 위치) */
 function heroRect(sp) {
   const { s, g } = lastFrame, [x0, y0, x1, y1] = sp.box;
-  return { cx: W * HERO_SCREEN_X + (x0 + x1) / 2 * s, cy: g + (y0 + y1) / 2 * s, r: Math.max(x1 - x0, y1 - y0) * s / 2 };
+  return { cx: W * heroScreenX() + (x0 + x1) / 2 * s, cy: g + (y0 + y1) / 2 * s, r: Math.max(x1 - x0, y1 - y0) * s / 2 };
 }
 
 /** 한 프레임을 그리고 이번 프레임의 배율(px/cm)을 돌려준다 */
-function drawScene(v, sp, dt) {
+/** 한 장소의 그리기 재료. v는 그 장소의 상태(장소·밤·날씨·소품·인물) */
+function frameFor(v, s, g) {
   const sc = SCENES[v.scene];
+  const p = paletteFor(v.scene, v.night, v.weather === 'snow');
+  return { sc, p, t: makeTone(p), s, g, v, scroll: v.camX * s };
+}
+
+const drawPlace = (f) => { drawSky(f); drawFar(f); drawWalls(f); drawCeiling(f); drawGround(f); drawItems(f); drawProp(f); drawCast(f); };
+
+/* 장소가 바뀌면 화면을 새로 시작하지 않고, 걸어가는 동안 오른쪽에서 다음 장소가
+   찢은 종이 이음선과 함께 이어 붙어 들어온다. v.trans = { prev: 이전 장소 상태, boundaryX: 이음선의 월드 위치(cm) } */
+const SEAM_STEP = 14, SEAM_AMP = 2.4, SEAM_SHADE = 16;
+
+function seamClip(bx, rightSide) {
+  ctx.beginPath();
+  ctx.moveTo(rightSide ? W + 10 : -10, -10);
+  for (let y = -10; y <= H + SEAM_STEP; y += SEAM_STEP) ctx.lineTo(bx + wobble(y * 1.3, 7) * SEAM_AMP, y);
+  ctx.lineTo(rightSide ? W + 10 : -10, H + 10);
+  ctx.closePath();
+  ctx.clip();
+}
+
+function drawSplit(v, s, g, bx, layer) {
+  const prev = frameFor({ ...v, ...v.trans.prev }, s, g), next = frameFor(v, s, g);
+  ctx.save(); seamClip(bx, false); layer(prev); ctx.restore();
+  ctx.save(); seamClip(bx, true); layer(next);
+  const shadeGr = ctx.createLinearGradient(bx, 0, bx + SEAM_SHADE, 0);
+  shadeGr.addColorStop(0, 'rgba(38,26,58,.28)'); shadeGr.addColorStop(1, 'rgba(38,26,58,0)');
+  ctx.fillStyle = shadeGr; ctx.fillRect(bx - 4, 0, SEAM_SHADE + 6, H);
+  ctx.restore();
+  return next;
+}
+
+function drawScene(v, sp, dt) {
   // 세로로 긴 휴대폰 화면에서도 동물이 너무 작아지지 않게, 화면 폭과 높이 중 큰 쪽을 기준으로 배율을 잡는다
   const s = Math.max(W, H * PORTRAIT_RATIO) / (sp ? sp.viewCm : DEFAULT_VIEW_CM);
   const eye = sp ? sp.eye : DEFAULT_EYE;
   const g = clamp(H * .5 + eye * s, H * .56, H * .78);
-  const p = paletteFor(v.scene, v.night, v.weather === 'snow');
-  const f = { sc, p, t: makeTone(p), s, g, v, scroll: v.camX * s };
   lastFrame = { s, g };
-  drawSky(f); drawFar(f); drawWalls(f); drawCeiling(f); drawGround(f);
-  drawItems(f); drawProp(f); drawCast(f);
+  const bx = v.trans ? (v.trans.boundaryX - v.camX) * s : -1;
+  if (v.trans && bx < -SEAM_SHADE) v.trans = null;
+  const splitting = v.trans && bx < W + SEAM_SHADE;
+  const f = splitting ? drawSplit(v, s, g, bx, drawPlace) : frameFor(v, s, g);
+  if (v.trans && !splitting) drawPlace(frameFor({ ...v, ...v.trans.prev }, s, g));
+  if (!v.trans) drawPlace(f);
   if (sp) drawHero(f, sp);
   drawKiller(f);
-  drawForeground(f); drawGlow(f); drawWeather(f, dt);
+  if (splitting) drawSplit(v, s, g, bx, drawForeground); else drawForeground(v.trans ? frameFor({ ...v, ...v.trans.prev }, s, g) : f);
+  drawGlow(f); drawWeather(f, dt);
   drawGrain(W, H); drawVignette();
   if (sp) drawTracker(f, sp);
   if (v.fade > 0) R(0, 0, W, H, `rgba(42,36,56,${v.fade})`);
