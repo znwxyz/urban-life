@@ -2,13 +2,18 @@
 const TONE_DAY = .14, TONE_NIGHT = .5;
 const GROUND_LAYERS = Object.freeze([[.34, .1, 13], [.68, .2, 17]]);
 const PORTRAIT_RATIO = .9;
+
+/** 화면 1cm가 몇 px인지. 세로로 긴 휴대폰 화면에서도 동물이 너무 작아지지 않게, 화면 폭과 높이 중 큰 쪽을 기준으로 잡는다 */
+const scaleFor = (sp) => Math.max(W, H * PORTRAIT_RATIO) / (sp ? sp.viewCm : DEFAULT_VIEW_CM);
+/** 지금 화면에 보이는 폭(cm). 세로 화면에서는 viewCm보다 좁다 */
+const visibleCm = (sp) => W / scaleFor(sp);
 /* 넓은 화면에서는 카드가 오른쪽을 차지하므로 주인공을 더 왼쪽에 세워 앞쪽 공간을 넓힌다 */
 const WIDE_SCREEN = 900;
 const HERO_X_WIDE = .2, HERO_X_NARROW = .3;
 const heroScreenX = () => (W >= WIDE_SCREEN ? HERO_X_WIDE : HERO_X_NARROW);
 const TRACKER = '#fffaf0', DEFAULT_VIEW_CM = 600, DEFAULT_EYE = 30;
 const BANDS = Object.freeze([{ k: 'l', cell: 1500, dens: .6, salt: 3 }, { k: 'm', cell: 340, dens: .55, salt: 7 }, { k: 's', cell: 26, dens: .6, salt: 11 }]);
-const PARTICLES = Array.from({ length: 140 }, () => ({ x: Math.random(), y: Math.random(), v: .6 + Math.random() * .6 }));
+const PARTICLES = Array.from({ length: 140 }, (_, i) => ({ x: hash(i, 201), y: hash(i, 202), v: .6 + hash(i, 203) * .6, n: i }));
 let vignette = null;
 let lastFrame = { s: 1, g: 0 };
 
@@ -30,6 +35,7 @@ function paletteFor(key, night, snow) {
   const out = {
     ...p,
     cloud: night ? mix(p.skyTop, '#ffffff', .12) : mix(p.skyBottom, '#ffffff', .55),
+    cloudShade: night ? mix(p.skyTop, '#ffffff', .04) : mix(mix(p.skyBottom, '#ffffff', .55), p.skyTop, .4),
     farA: mix(p.far1, p.skyBottom, .3), farB: p.far2,
     toneTo: night ? NIGHT_TINT : p.skyBottom, toneAmt: night ? TONE_NIGHT : TONE_DAY,
   };
@@ -37,23 +43,104 @@ function paletteFor(key, night, snow) {
   return out;
 }
 
-function edgeFill(color, y, amp, salt, scroll) {
-  ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(0, H);
+/** 윗변이 살짝 울퉁불퉁한 종이 한 장을 화면 아래까지 깐다. color가 null이면 지금 채우기(재질 패턴)를 그대로 쓴다 */
+function edgeFill(color, y, amp, salt, scroll, bottom = H) {
+  if (color) ctx.fillStyle = color;
+  ctx.beginPath(); ctx.moveTo(0, bottom);
   for (let x = 0; x <= W + 8; x += 8) ctx.lineTo(x, y + amp * wobble(x + scroll, salt));
-  ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+  ctx.lineTo(W, bottom); ctx.closePath(); ctx.fill();
 }
 
+/* 바닥은 비스듬히 내려다본 면이라 재질 결을 세로로 눌러 깐다. 앞쪽 띠일수록 결이 크고 빨리 지나간다 */
+const FLOOR_SQUASH = .5;
+
 function drawGround(f) {
-  const { sc, p, g } = f;
-  const amp = sc.indoor ? 0 : 1, top = clamp(1.5 * f.s, 3, 12);
+  const { sc, p, g, s } = f;
+  const amp = sc.indoor ? 0 : 1, top = clamp(1.5 * s, 3, 12), floor = sc.floor, depth = H - g;
+  // 재질 결은 띠마다 자기 띠 높이만큼만 칠해(겹쳐 칠하지 않게) 패턴 채우기 면적을 화면 한 장 이하로 줄인다
+  const bandTop = (k) => (k < GROUND_LAYERS.length ? g + depth * GROUND_LAYERS[k][0] + 4 : H);
   paper(() => edgeFill(p.groundTop, g - 2, amp, 5, f.scroll), .8);
+  if (floor) lay(floor, s, -f.scroll, g, FLOOR_SQUASH * .6, () => edgeFill(null, g - 2, amp, 5, f.scroll, g + top + 2));
   edgeFill(p.ground, g + top, amp, 9, f.scroll);
+  if (floor) lay(floor, s, -f.scroll, g + top, FLOOR_SQUASH, () => edgeFill(null, g + top, amp, 9, f.scroll, bandTop(0)));
+  R(0, g + top, W, Math.max(2, top * .5), 'rgba(38,26,58,.14)');   // 앞 턱 아래 그늘
+  if (FLOOR_DECO[sc.deco]) FLOOR_DECO[sc.deco](f, g + top);
   // 앞쪽 땅을 종이 두 장으로 더 겹쳐, 가까울수록 진하고 빨리 지나가게 한다
-  const depth = H - g;
-  GROUND_LAYERS.forEach(([at, dark, salt]) => {
-    paper(() => edgeFill(mix(p.ground, p.ink, dark), g + depth * at, amp * 2, salt, f.scroll * (1 + at)), .9);
+  GROUND_LAYERS.forEach(([at, dark, salt], n) => {
+    const y = g + depth * at, k = 1 + at;
+    paper(() => edgeFill(mix(p.ground, p.ink, dark), y, amp * 2, salt, f.scroll * k, bandTop(n + 1)), .9);
+    if (floor) lay(floor, s * k, -f.scroll * k, y, FLOOR_SQUASH * (1 + at * .6), () => edgeFill(null, y, amp * 2, salt, f.scroll * k, bandTop(n + 1)));
   });
+  if (sc.floor === 'grass' || sc.floor === 'asphalt') lipTufts(f);
 }
+
+/** 땅 끝선에 삐죽 솟은 풀포기 (가까이 보는 작은 동물에게는 숲처럼 보인다) */
+function lipTufts(f) {
+  const { s, g, v, p, sc } = f, cell = 7;
+  const i0 = Math.floor(v.camX / cell) - 1, i1 = Math.floor((v.camX + W / s) / cell) + 1;
+  if (i1 - i0 > 260 || s < .8) return;
+  const grass = sc.floor === 'grass', dens = grass ? .75 : .12;
+  ctx.fillStyle = grass ? mix(p.groundTop, p.ink, .12) : mix(p.groundTop, '#6f9f6c', .45);
+  ctx.beginPath();
+  for (let i = i0; i <= i1; i++) {
+    if (hash(i, 91) > dens) continue;
+    const x = (i * cell + hash(i, 92) * cell - v.camX) * s, hgt = (grass ? 2 + hash(i, 93) * 4 : 1 + hash(i, 93) * 2.5) * s;
+    for (let b = 0; b < 3; b++) {
+      const bx = x + (b - 1) * .9 * s, lean = (b - 1) * .8 * s + (hash(i + b, 94) - .5) * s;
+      ctx.moveTo(bx - .45 * s, g); ctx.quadraticCurveTo(bx, g - hgt * .6, bx + lean, g - hgt * (1 - b * .15)); ctx.quadraticCurveTo(bx + .15 * s, g - hgt * .5, bx + .45 * s, g);
+    }
+  }
+  ctx.fill();
+}
+
+/* 바닥 위에 그려진 것들: 주차선, 맨홀, 점자블록, 배수구, 러그. 월드 위치에 붙어 바닥과 같이 스크롤된다 */
+function decoCells(f, cell, salt, dens, draw) {
+  const { s, v } = f;
+  const i0 = Math.floor(v.camX / cell) - 1, i1 = Math.floor((v.camX + W / s) / cell) + 1;
+  if (i1 - i0 > 80) return;
+  for (let i = i0; i <= i1; i++) if (hash(i, salt) < dens) draw((i * cell - v.camX) * s, i);
+}
+
+const FLOOR_DECO = {
+  parkingLines(f, y) {
+    const { s, p } = f, hgt = (H - y) * .3;
+    ctx.fillStyle = rgba(mix(p.light, p.groundTop, .25), .75);
+    decoCells(f, 250, 95, 1, (x) => P([[x, y + 2], [x + 10 * s, y + 2], [x + 10 * s - hgt * .6, y + hgt], [x - hgt * .6, y + hgt]], ctx.fillStyle));
+  },
+  manhole(f, y) {
+    const { s, p } = f, ry = Math.min((H - y) * .12, 18 * s);
+    decoCells(f, 900, 96, .6, (x) => {
+      E(x + 32 * s, y + ry * 1.3, 33 * s, ry, mix(p.ground, p.ink, .35));
+      E(x + 32 * s, y + ry * 1.2, 29 * s, ry * .85, mix(p.ground, p.ink, .18));
+      ctx.strokeStyle = rgba(p.ink, .35); ctx.lineWidth = Math.max(1, .8 * s); ctx.beginPath();
+      for (let k = -2; k <= 2; k++) { ctx.moveTo(x + (32 + k * 9) * s, y + ry * .55); ctx.lineTo(x + (32 + k * 9) * s, y + ry * 1.85); }
+      ctx.stroke();
+    });
+  },
+  tactile(f, y) {
+    const { s, p } = f, hgt = Math.min((H - y) * .07, 30 * s * FLOOR_SQUASH), y0 = y + (H - y) * .14;
+    const tile = mix('#e8c24a', p.ground, .3), bump = mix(tile, p.ink, .15);
+    decoCells(f, 30, 97, 1, (x) => {
+      R(x, y0, 29 * s, hgt, tile);
+      if (s > 2) for (let k = 0; k < 4; k++) R(x + (3 + k * 7) * s, y0 + hgt * .2, 3.5 * s, hgt * .6, bump);
+    });
+  },
+  drain(f, y) {
+    const { s, p } = f, hgt = Math.min((H - y) * .1, 14 * s);
+    decoCells(f, 400, 98, .7, (x) => {
+      R(x, y + hgt * .4, 60 * s, hgt, mix(p.ground, p.ink, .45));
+      for (let k = 0; k < 12; k++) R(x + (2 + k * 5) * s, y + hgt * .5, 2.4 * s, hgt * .8, mix(p.ground, p.light, .25));
+    });
+  },
+  rug(f, y) {
+    const { s, p } = f, hgt = (H - y) * .5;
+    decoCells(f, 700, 99, .5, (x) => {
+      const c = mix(p.accent, p.light, .35), rw = 240 * s;
+      P([[x, y + 3], [x + rw, y + 3], [x + rw - hgt * .4, y + hgt], [x - hgt * .4, y + hgt]], c);
+      P([[x + 10 * s, y + 3 + hgt * .1], [x + rw - 10 * s, y + 3 + hgt * .1], [x + rw - 10 * s - hgt * .35, y + hgt * .9], [x + 10 * s - hgt * .35, y + hgt * .9]], mix(c, p.ink, .12));
+    });
+  },
+};
 
 function drawItems(f) {
   const { sc, s, g, v, t } = f;
@@ -122,42 +209,84 @@ function drawHero(f, sp) {
   paper(() => { ctx.translate(W * heroScreenX(), g); ctx.scale(s, s); draw(v.t, moving, sp.eye, f.t); }, .8);
 }
 
+/* 가장 앞 종이: 화면 아래를 스치는 연석·풀숲. 땅보다 빨리(PARALLAX.fg) 같은 방향으로 지나간다 */
+const FG_CURB_JOINT = 118, FG_BOLLARD_CELL = 520;
 const FG = {
-  curb(off, fh) {
-    edgeFill(ctx.fillStyle, H - fh * .5, 1, 3, off);
-    const cell = 260, i0 = Math.floor(off / cell) - 1, i1 = Math.floor((off + W) / cell) + 1;
+  curb(f, off, fh) {
+    const { p } = f, stone = mix(p.ink, p.groundTop, .38), top = mix(p.ink, p.groundTop, .62), y = H - fh * .62;
+    edgeFill(stone, y, 1, 3, off);
+    edgeFill(top, y - 1, 1, 3, off); edgeFill(stone, y + fh * .13, 1, 3, off);
+    const i0 = Math.floor(off / FG_CURB_JOINT) - 1, i1 = Math.floor((off + W) / FG_CURB_JOINT) + 1;
+    const weed = mix(p.ink, '#5f8f6c', .45);
     for (let i = i0; i <= i1; i++) {
-      if (hash(i, 61) > .35) continue;
-      const x = i * cell - off + 60;
-      ctx.fillRect(x, H - fh * 1.7, 12, fh * 1.7); ctx.beginPath(); ctx.arc(x + 6, H - fh * 1.7, 6, 0, TAU); ctx.fill();
+      const x = i * FG_CURB_JOINT - off;
+      R(x, y, 2.5, fh, mix(p.ink, stone, .4));                                                      // 연석 이음매
+      if (hash(i, 64) < .3) E(x + 40 + hash(i, 65) * 40, y + fh * .08, 7, 2.5, mix(top, p.ink, .25));   // 깨진 모서리
+      if (hash(i, 66) < .45) fgTuft(x, y + 2, fh * (.35 + hash(i, 67) * .4), weed, i);
+    }
+    const b0 = Math.floor(off / FG_BOLLARD_CELL) - 1, b1 = Math.floor((off + W) / FG_BOLLARD_CELL) + 1;
+    for (let i = b0; i <= b1; i++) {
+      if (hash(i, 61) > .45) continue;
+      const x = i * FG_BOLLARD_CELL - off + 160, bh = fh * 1.9;
+      RR(x, H - bh, 18, bh, 9, mix(p.ink, '#8d8a9c', .25));
+      R(x, H - bh + 12, 18, 6, mix(p.ink, '#fffaf0', .45)); R(x + 13, H - bh + 6, 5, bh - 6, mix(p.ink, '#2f2a3a', .3));
     }
   },
-  grass(off, fh) {
-    ctx.fillRect(0, H - fh * .3, W, fh * .3);
-    const cell = 12, i0 = Math.floor(off / cell) - 1, i1 = Math.floor((off + W) / cell) + 1;
-    ctx.beginPath();
-    for (let i = i0; i <= i1; i++) {
-      const x = i * cell - off, hgt = fh * (.4 + hash(i, 62) * .9);
-      ctx.moveTo(x, H - fh * .28); ctx.lineTo(x + 3 + hash(i, 63) * 6, H - fh * .28 - hgt); ctx.lineTo(x + 9, H - fh * .28);
+  grass(f, off, fh) {
+    const { p } = f, back = mix(p.ink, p.groundTop, .3), front = p.ink;
+    [[back, .55, 9, 1.15, 0], [front, .3, 12, .95, 31]].forEach(([c, base, cell, tall, salt]) => {
+      ctx.fillStyle = c; ctx.fillRect(0, H - fh * base, W, fh * base);
+      const i0 = Math.floor(off / cell) - 1, i1 = Math.floor((off + W) / cell) + 1;
+      ctx.beginPath();
+      for (let i = i0; i <= i1; i++) {
+        const x = i * cell - off, hgt = fh * tall * (.35 + hash(i, 62 + salt) * .8), lean = (hash(i, 63 + salt) - .4) * 10;
+        ctx.moveTo(x, H - fh * base + 1); ctx.quadraticCurveTo(x + 2 + lean * .3, H - fh * base - hgt * .6, x + 4 + lean, H - fh * base - hgt);
+        ctx.quadraticCurveTo(x + 5 + lean * .3, H - fh * base - hgt * .5, x + 9, H - fh * base + 1);
+      }
+      ctx.fill();
+    });
+    const i0 = Math.floor(off / 210) - 1, i1 = Math.floor((off + W) / 210) + 1;
+    for (let i = i0; i <= i1; i++) {                                                                // 클로버와 민들레 홀씨
+      const x = i * 210 - off + hash(i, 68) * 120, y = H - fh * (.45 + hash(i, 69) * .3);
+      if (hash(i, 70) < .4) [0, 1, 2].forEach((k) => E(x + Math.cos(k * 2.1) * 5, y + Math.sin(k * 2.1) * 4, 5, 4, mix(front, '#6a9c78', .25)));
+      else if (hash(i, 71) < .3) { L(x, H, x + 4, y - fh * .5, front, 2); ctx.globalAlpha = .7; E(x + 4, y - fh * .5, 9, 9, mix(p.light, p.ink, .25)); ctx.globalAlpha = 1; }
     }
-    ctx.fill();
   },
 };
 
+/** 연석 틈에 난 풀 한 포기 */
+function fgTuft(x, y, hgt, c, i) {
+  ctx.fillStyle = c; ctx.beginPath();
+  for (let b = 0; b < 4; b++) {
+    const lean = (b - 1.5) * 5 + (hash(i + b, 72) - .5) * 4, bx = x + b * 3 - 4;
+    ctx.moveTo(bx - 2, y + 2); ctx.quadraticCurveTo(bx, y - hgt * .6, bx + lean, y - hgt * (1 - b * .12)); ctx.quadraticCurveTo(bx + 1, y - hgt * .4, bx + 2, y + 2);
+  }
+  ctx.fill();
+}
+
 function drawForeground(f) {
-  const { sc, p } = f;
-  if (!sc.fg) return;
+  const { sc } = f;
+  if (!FG[sc.fg]) return;
   const fh = clamp(H * .08, 26, 70);
-  paper(() => { ctx.fillStyle = p.ink; FG[sc.fg](f.scroll * PARALLAX.fg, fh); }, 1.4);
+  paper(() => FG[sc.fg](f, f.scroll * PARALLAX.fg, fh), 1.4);
 }
 
 function drawGlow(f) {
-  const { v, g, s } = f;
+  const { v, g, s, sc } = f;
   if (!v.night || !v.glow) return;
   const gx = W * .72, gy = Math.max(60, g - Math.min(H * .3, 600 * s)), rad = Math.min(W, H) * .5;
   const rg = ctx.createRadialGradient(gx, gy, 0, gx, gy, rad);
   rg.addColorStop(0, rgba(v.glow, .32)); rg.addColorStop(1, rgba(v.glow, 0));
   ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+  if (sc.indoor) return;
+  // 가로등 불빛: 위에서 내려오는 빛 기둥과 바닥에 고인 빛 웅덩이를 얇은 종이처럼 겹친다
+  const spread = Math.min(rad * .55, (g - gy) * .6);
+  ctx.fillStyle = rgba(v.glow, .08);
+  P([[gx - 10, gy], [gx + 10, gy], [gx + spread, g], [gx - spread, g]], ctx.fillStyle);
+  ctx.fillStyle = rgba(v.glow, .07);
+  P([[gx - 6, gy], [gx + 6, gy], [gx + spread * .6, g], [gx - spread * .6, g]], ctx.fillStyle);
+  E(gx, g + 6, spread * 1.05, Math.max(6, (H - g) * .08), rgba(v.glow, .14));
+  E(gx, g + 6, spread * .6, Math.max(4, (H - g) * .05), rgba(v.glow, .12));
 }
 
 function drawWeather(f, dt) {
@@ -175,11 +304,24 @@ function drawWeather(f, dt) {
   ctx.beginPath();
   PARTICLES.forEach((pt) => {
     pt.y += dt * pt.v * (rain ? 1.6 : .12);
-    if (pt.y > 1) { pt.y -= 1; pt.x = Math.random(); }
+    if (pt.y > 1) { pt.y -= 1; pt.n += PARTICLES.length; pt.x = hash(pt.n, 204); }
     const x = pt.x * W + (rain ? 0 : Math.sin(v.t + pt.v * 9) * 8), y = pt.y * H;
     if (rain) { ctx.moveTo(x, y); ctx.lineTo(x - 2, y + 14); } else ctx.rect(x, y, 2.4, 2.4);
   });
   if (rain) ctx.stroke(); else ctx.fill();
+  if (rain) rainRipples(f);
+}
+
+/** 빗방울이 땅에 떨어져 퍼지는 동그란 물결 (제자리에서 퍼지고 땅과 함께 지나간다) */
+function rainRipples(f) {
+  const { v, g } = f;
+  ctx.strokeStyle = 'rgba(225,232,245,.4)'; ctx.lineWidth = 1; ctx.beginPath();
+  for (let k = 0; k < 14; k++) {
+    const ph = (v.t * .9 + hash(k, 211)) % 1, x = mod(hash(k, 212) * W * 1.3 - f.scroll, W + 40) - 20;
+    const y = g + 4 + hash(k, 213) * (H - g) * .5, r = 3 + ph * 16;
+    ctx.moveTo(x + r, y); ctx.ellipse(x, y, r, r * .28, 0, 0, TAU);
+  }
+  ctx.stroke();
 }
 
 function drawVignette() {
@@ -247,8 +389,7 @@ function drawSplit(v, s, g, bx, layer) {
 }
 
 function drawScene(v, sp, dt) {
-  // 세로로 긴 휴대폰 화면에서도 동물이 너무 작아지지 않게, 화면 폭과 높이 중 큰 쪽을 기준으로 배율을 잡는다
-  const s = Math.max(W, H * PORTRAIT_RATIO) / (sp ? sp.viewCm : DEFAULT_VIEW_CM);
+  const s = scaleFor(sp);
   const eye = sp ? sp.eye : DEFAULT_EYE;
   const g = clamp(H * .5 + eye * s, H * .56, H * .78);
   lastFrame = { s, g };

@@ -11,7 +11,7 @@ function previewScene(spKey, sceneId, opts = {}) {
   run = { ...newRun(sp), at: sceneId, day: sp.scenes[sceneId].day || 1 };
   enterScene(); clearTimeout(moveTimer);
   Object.assign(view, { trans: null, fade: 0, speed: 0, t: opts.t || 1.3 });
-  view.camX = view.propX - PROP_SCREEN_X * sp.viewCm;
+  view.camX = view.propX - PROP_SCREEN_X * visibleCm(sp);
   if (opts.card !== false) showChoice(); else { hideCard(); hideCaption(); }
   drawScene(view, sp, 0);
   return 'ok';

@@ -30,7 +30,7 @@ function setScene(bg, opts = {}) {
 }
 
 /** 주인공이 멈춰 설 자리: 소품 자리에서 화면 간격만큼 뒤 */
-const placeCast = (sp) => { view.heroStopX = view.propX - (PROP_SCREEN_X - heroScreenX()) * sp.viewCm; };
+const placeCast = (sp) => { view.heroStopX = view.propX - (PROP_SCREEN_X - heroScreenX()) * visibleCm(sp); };
 
 /** 이동 연출 동안 카메라가 갈 거리를 미리 계산해, 멈췄을 때 소품이 주인공 앞에 오게 한다 */
 function travelAhead(cruise, ms, v0 = view.speed, idle = currentSp().speedCm * IDLE_RATIO) {
@@ -49,8 +49,6 @@ function cruiseFor(sp, ms, needCm) {
 /* 처음 화면의 룰렛: 동물 이름이 점점 느려지며 바뀌다가 하나에 멈춘다 */
 const ROULETTE = Object.freeze({ ticks: 16, firstMs: 110, lastMs: 380, holdMs: 800 });
 let rouletteTimer = null;
-
-const speciesLine = (sp) => `${sp.size} · 해피엔딩 ${durLabel(happyDay(sp))}`;
 
 /** 룰렛에 보여 줄 이름 순서. 같은 동물이 연달아 나오지 않고, 마지막은 뽑힌 동물이다 */
 function rouletteOrder(finalKey, ticks, rand = Math.random) {
@@ -77,9 +75,9 @@ function showPicker() {
   updateHud(null, null); hideCaption(); hideCard();
   setScene('villaAlley');
   // 그림은 일부러 넣지 않는다. 직접 태어나 봐야 어떻게 생겼는지 알 수 있다
-  const name = h('b', null, '?'), line = h('small', null, `${SPECIES_KEYS.length}종 가운데 하나`);
-  const btn = h('button', { class: 'species roulette', 'aria-live': 'polite', onclick: () => spinRoulette(btn, name, line) },
-    name, line, h('span', { class: 'roulette-cta' }, '태어나기'));
+  const name = h('b', null, '?');
+  const btn = h('button', { class: 'species roulette', 'aria-live': 'polite', onclick: () => spinRoulette(btn, name) },
+    name, h('span', { class: 'roulette-cta' }, '태어나기'));
   btn.style.setProperty('--deckle', deckle());
   $('pickGrid').replaceChildren(h('div', { class: 'species-wrap' }, btn));
   setDirectOpen(false);
@@ -106,7 +104,7 @@ function setupDirectPick() {
   $('directToggle').addEventListener('click', () => setDirectOpen($('directList').hidden));
 }
 
-function spinRoulette(btn, name, line) {
+function spinRoulette(btn, name) {
   if (phase !== 'picker') return;
   phase = 'roulette';
   btn.classList.add('spinning');
@@ -114,7 +112,7 @@ function spinRoulette(btn, name, line) {
   const order = reducedMotion ? [key] : rouletteOrder(key, ROULETTE.ticks);
   const show = (i) => {
     const sp = SPECIES[order[i]];
-    name.textContent = sp.name; line.textContent = speciesLine(sp);
+    name.textContent = sp.name;
     if (i === order.length - 1) {
       btn.classList.replace('spinning', 'landed');
       rouletteTimer = setTimeout(() => revealBirth(key), ROULETTE.holdMs);
@@ -133,7 +131,7 @@ function revealBirth(key) {
   startIris(() => heroRect(sp));
   const first = sp.scenes[sp.start];
   setScene(first.bg, { prop: first.prop, cast: first.cast });
-  view.propX = view.camX + PROP_SCREEN_X * sp.viewCm;
+  view.propX = view.camX + PROP_SCREEN_X * visibleCm(sp);
   placeCast(sp);
   updateHud(sp, run); hideCaption();
   showCard({
@@ -154,7 +152,7 @@ function enterScene() {
   const ms = reducedMotion ? MOVE_MS_REDUCED : MOVE_MS;
   setScene(node.bg, { night: node.night, prop: node.prop, weather, cast: node.cast, continuous: !reducedMotion });
   view.cruise = view.trans ? cruiseFor(sp, ms, (view.trans.boundaryX - view.camX) * PASS_MARGIN) : sp.speedCm;
-  view.propX = view.camX + travelAhead(view.cruise, ms) + PROP_SCREEN_X * sp.viewCm;
+  view.propX = view.camX + travelAhead(view.cruise, ms) + PROP_SCREEN_X * visibleCm(sp);
   placeCast(sp);
   hideCard(); updateHud(sp, run);
   showCaption(`생후 ${durLabel(run.day)} · ${SEASON_KO[seasonOf(month)]}${node.night ? ' · 밤' : ''}`, `${sc.area} · ${sc.name}`);

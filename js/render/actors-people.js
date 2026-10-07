@@ -2,24 +2,120 @@
    d(시간, 색조함수). w·h는 화면에 보이는지 판단할 때 쓴다 */
 const SKIN = '#f3c9a5';
 
-/** 사람 한 명. o: { h 키, top 윗옷, bottom 바지, hair 머리색, arm 'down'|'out'|'up', extra(머리장식 등) } */
+const NAIL = '#f8ddd0', SHOE = '#3b3049', SOLE = '#e9e4ec';
+const ARM_POSE = Object.freeze({ down: [.03, .26], out: [.2, .1], up: [.13, -.12] });
+
+/**
+ * 사람 한 명. o: { h 키, top 윗옷, bottom 바지, hair 머리색, arm 'down'|'out'|'up', extra(머리장식 등) }
+ * 손 끝 위치(어깨 + ARM_POSE, sin(time*3)만큼 흔들림)와 머리 중심은 장면 그림들이 물건을 쥐여 주는 기준이라 바꾸지 않는다.
+ * 제자리에서 숨 쉬고 손만 살짝 흔든다 (걷는 동작이 없어야 화면이 흘러갈 때 뒷걸음질처럼 보이지 않는다)
+ */
 function person(time, t, o) {
   const H = o.h, legH = H * .44, bodyH = H * .32, headR = H * .1, top = -legH - bodyH;
-  const swing = Math.sin(time * 3) * H * .01;
-  RR(-H * .075, -legH, H * .065, legH, H * .03, t(o.bottom)); RR(H * .01, -legH, H * .065, legH, H * .03, t(shade(o.bottom)));
-  RR(-H * .09, -H * .03, H * .1, H * .03, H * .015, t(INK)); RR(H * .0, -H * .03, H * .1, H * .03, H * .015, t(INK));
-  RR(-H * .11, top, H * .22, bodyH + H * .03, H * .07, t(o.top));
+  const swing = Math.sin(time * 3) * H * .01, breathe = Math.sin(time * 1.6) * H * .003;
+  personLegs(H, legH, o, t);
+  personBackArm(H, top, o, t);
+  personTorso(H, top + breathe, legH, o, t);
   const sx = H * .02, sy = top + H * .05;
-  const arm = { down: [H * .03, H * .26], out: [H * .2, H * .1], up: [H * .13, -H * .12] }[o.arm || 'down'];
+  const arm = ARM_POSE[o.arm || 'down'];
+  personArm(sx, sy + breathe, sx + arm[0] * H, sy + arm[1] * H + swing, H, o, t);
+  personHead(H, top - headR * .8 + breathe * .5, headR, o, t);
+}
+
+/** 바지 두 짝(무릎이 살짝 굽은 통), 신발 */
+function personLegs(H, legH, o, t) {
+  const hip = -legH, w = H * .068;
+  [[-H * .04, t(shade(o.bottom))], [H * .035, t(o.bottom)]].forEach(([lx, c]) => {
+    curvy([[lx - w / 2, hip], [lx + w / 2 + H * .006, hip], [lx + w * .55, hip + legH * .5, lx + w * .32, -H * .03], [lx - w * .38, -H * .03], [lx - w * .62, hip + legH * .45, lx - w / 2, hip]], c);
+    R(lx - w * .38, -H * .052, w * .7, H * .006, t(mix(o.bottom, '#2f2a3a', .25)));                      // 바짓단
+    personShoe(lx - w * .32, H, t);
+  });
+  L(H * .045, hip + legH * .45, H * .055, hip + legH * .6, t(shade(o.bottom)), H * .004);                // 무릎 주름
+}
+
+function personShoe(x, H, t) {
+  const l = H * .105, h = H * .036;
+  curvy([[x - l * .1, 0], [x - l * .14, -h * 1.1, x + l * .2, -h * 1.15], [x + l * .55, -h], [x + l * .95, -h * .6, x + l, 0]], t(SHOE));
+  R(x - l * .12, -h * .22, l * 1.1, h * .22, t(SOLE));
+  E(x + l * .45, -h * .78, l * .12, h * .12, t(mix(SHOE, '#ffffff', .25)));
+}
+
+/** 몸통: 어깨가 둥근 윗옷, 옷자락, 목선, 주름 */
+function personTorso(H, top, legH, o, t) {
+  const c = t(o.top), d = t(shade(o.top)), hem = -legH + H * .035;
+  curvy([[-H * .1, hem], [-H * .118, top + H * .12, -H * .1, top + H * .03], [-H * .05, top - H * .006, 0, top], [H * .05, top - H * .006, H * .095, top + H * .03],
+    [H * .115, top + H * .14, H * .105, hem]], c);
+  curvy([[-H * .1, hem - H * .02], [H * .105, hem - H * .02], [H * .108, hem + H * .006], [-H * .103, hem + H * .006]], d);   // 밑단
+  curvy([[-H * .02, top + H * .002], [0, top + H * .03, H * .025, top + H * .002]], t(SKIN));            // 목선
+  R(-H * .014, top - H * .02, H * .03, H * .022, t(SKIN));
+  ctx.strokeStyle = d; ctx.lineWidth = H * .0035; ctx.lineCap = 'round'; ctx.beginPath();
+  ctx.moveTo(-H * .06, hem - H * .05); ctx.quadraticCurveTo(-H * .03, hem - H * .09, -H * .045, hem - H * .14);
+  ctx.moveTo(H * .07, hem - H * .04); ctx.quadraticCurveTo(H * .05, hem - H * .07, H * .065, hem - H * .1);
+  ctx.stroke();
+}
+
+/** 몸 뒤로 늘어진 반대쪽 팔 (그늘색) */
+function personBackArm(H, top, o, t) {
+  ctx.strokeStyle = t(shade(o.top)); ctx.lineWidth = H * .05; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-H * .06, top + H * .05); ctx.quadraticCurveTo(-H * .095, top + H * .17, -H * .08, top + H * .27); ctx.stroke();
+  E(-H * .078, top + H * .29, H * .024, H * .028, t(shade(SKIN)));
+}
+
+/** 앞쪽 팔: 팔꿈치에서 살짝 굽은 소매, 소맷부리, 손가락이 있는 손 */
+function personArm(sx, sy, hx, hy, H, o, t) {
+  const dx = hx - sx, dy = hy - sy, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len;
+  const ex = sx + dx * .5 - nx * H * .025, ey = sy + dy * .5 - ny * H * .025, ang = Math.atan2(hy - ey, hx - ex);
   ctx.strokeStyle = t(o.top); ctx.lineWidth = H * .055; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + arm[0], sy + arm[1] + swing); ctx.stroke();
-  E(sx + arm[0], sy + arm[1] + swing, H * .03, H * .03, t(SKIN));
-  const hy = top - headR * .8;
-  E(0, hy, headR, headR * 1.08, t(SKIN));
-  E(-headR * .15, hy - headR * .45, headR * 1.05, headR * .75, t(o.hair));
-  if (o.extra) o.extra(hy, headR);
-  E(headR * .45, hy + headR * .05, headR * .1, headR * .13, t(INK));
-  blush(headR * .55, hy + headR * .38, headR * .17, headR * .1);
+  ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(ex, ey, hx - Math.cos(ang) * H * .035, hy - Math.sin(ang) * H * .035); ctx.stroke();
+  ctx.strokeStyle = t(shade(o.top)); ctx.lineWidth = H * .058; ctx.lineCap = 'butt';                     // 소맷부리
+  ctx.beginPath(); ctx.moveTo(hx - Math.cos(ang) * H * .045, hy - Math.sin(ang) * H * .045); ctx.lineTo(hx - Math.cos(ang) * H * .028, hy - Math.sin(ang) * H * .028); ctx.stroke();
+  ctx.lineCap = 'round';
+  miniHand(hx, hy, ang, H * .03, t);
+}
+
+/** 작은 손: 손바닥, 모은 네 손가락, 엄지. ang 방향으로 뻗는다 */
+function miniHand(x, y, ang, r, t) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+  E(0, 0, r * 1.05, r * .95, t(SKIN));
+  for (let k = 0; k < 4; k++) RR(r * .5, -r * .78 + k * r * .43, r * (1.15 - Math.abs(k - 1.3) * .14), r * .42, r * .21, t(k % 2 ? shade(SKIN) : SKIN));
+  RR(-r * .1, -r * 1.25, r * .95, r * .45, r * .22, t(SKIN));                                            // 엄지
+  ctx.restore();
+}
+
+/** 머리: 얼굴, 귀, 코, 머리카락 덩어리, 눈썹, 눈, 볼터치 */
+function personHead(H, hy, headR, o, t) {
+  const r = headR;
+  E(0, hy, r, r * 1.08, t(SKIN));
+  curvy([[r * .72, hy - r * .5], [r * .55, hy - r * 1.25, -r * .3, hy - r * 1.22], [-r * 1.25, hy - r * .9, -r * 1.12, hy + r * .2], [-r * 1.05, hy + r * .62],
+    [-r * .55, hy + r * .55], [-r * .4, hy - r * .1, -r * .05, hy - r * .42], [r * .3, hy - r * .28, r * .72, hy - r * .5]], t(o.hair));
+  E(-r * .2, hy + r * .12, r * .17, r * .22, t(SKIN)); E(-r * .2, hy + r * .12, r * .08, r * .12, t(shade(SKIN)));   // 귀
+  if (o.extra) o.extra(hy, r);
+  L(r * .3, hy - r * .22, r * .6, hy - r * .25, t(mix(o.hair, INK, .4)), r * .07);                      // 눈썹
+  E(r * .45, hy + r * .05, r * .1, r * .13, t(INK));
+  L(r * .62, hy + r * .55, r * .78, hy + r * .52, t(mix(SKIN, INK, .45)), r * .05);                     // 입
+  blush(r * .55, hy + r * .38, r * .17, r * .1);
+}
+
+/** 휘두르는 손바닥: 손가락 마디와 손톱, 엄지, 손목의 소맷부리까지 */
+function slapHand(t) {
+  const skin = t(SKIN), dark = t(shade(SKIN)), crease = t(mix(SKIN, '#a0645a', .35));
+  RR(-6.2, -4.2, 12.4, 4.2, 1.6, t('#8fa9c4')); R(-6.2, -4.2, 12.4, 1, t(mix('#8fa9c4', '#ffffff', .3)));   // 소매
+  curvy([[-4.6, -4], [-5.4, -9, -5.6, -14], [-5, -16.4], [4.9, -16.4], [5.6, -12, 4.6, -4]], skin);          // 손바닥
+  [[-4.1, 8.6, -.1], [-1.4, 9.8, -.03], [1.4, 9.4, .04], [3.9, 7.6, .12]].forEach(([fx, len, a]) => {
+    ctx.save(); ctx.translate(fx, -15.6); ctx.rotate(a);
+    RR(-1.25, -len, 2.5, len + 1, 1.25, skin);
+    RR(-.85, -len + .25, 1.7, 1.9, .8, t(NAIL));                                                         // 손톱
+    L(-.8, -len * .62, .8, -len * .62, crease, .22); L(-.8, -len * .3, .8, -len * .3, crease, .22);         // 마디
+    ctx.restore();
+  });
+  E(3.4, -8.4, 2.6, 3.4, skin);                                                                          // 엄지 두덩
+  ctx.save(); ctx.translate(4.2, -7.6); ctx.rotate(-.75);                                                  // 엄지
+  RR(0, -1.4, 7.6, 2.8, 1.4, skin); RR(5.4, -1.1, 1.9, 2.2, .9, t(NAIL)); L(3.4, -1.2, 3.4, 1.2, crease, .22);
+  ctx.restore();
+  ctx.strokeStyle = crease; ctx.lineWidth = .3; ctx.beginPath();
+  ctx.moveTo(-3.5, -12); ctx.quadraticCurveTo(0, -10.5, 3.6, -12.6); ctx.moveTo(-3, -9); ctx.quadraticCurveTo(1, -9.4, 3.2, -7.4);   // 손금
+  ctx.moveTo(3.8, -5.2); ctx.quadraticCurveTo(1.2, -7.4, 1.8, -10.6); ctx.stroke();                       // 엄지 두덩
+  R(-4.6, -5.2, 9.2, .8, dark);                                                                           // 손목 주름
 }
 
 const ACTORS = {
@@ -35,17 +131,21 @@ const ACTORS = {
 
   slipper: { w: 26, h: 9, d: (time, t) => {
     ctx.rotate(-.3 + Math.sin(time * 9) * .15);
-    E(0, -4, 13, 4.5, t('#ff8fa3')); RR(-2, -9, 12, 5, 2.5, t('#ffd56b'));
+    const sole = '#ff8fa3';
+    curvy([[-13, -2], [-14, -6.5, -9, -7], [0, -5.6], [9, -7.4, 13.5, -5], [13.5, -1, 9, 0], [-9, 0, -13, -2]], t(sole));   // 밑창 (가운데가 잘록)
+    curvy([[-12.5, -2.2], [12.8, -2.4], [12.6, -.8, 9, 0], [-9, 0, -12.5, -2.2]], t(shade(sole)));
+    curvy([[-1, -5.5], [1, -11.5, 7, -11.5], [11, -5.8]], t('#ffd56b'));                                    // 발등 끈
+    curvy([[1, -5.6], [3, -9.4, 6.6, -9.4], [9.4, -5.8]], t(shade('#ffd56b')));
+    for (let k = 0; k < 3; k++) E(-9 + k * 4, -4.6, .6, .4, t(mix(sole, '#ffffff', .4)));
   } },
   hand: { w: 22, h: 22, d: (time, t) => {
     ctx.rotate(Math.sin(time * 6) * .25);
-    RR(-8, -14, 16, 14, 6, t(SKIN));
-    [-6.5, -2.5, 1.5, 5.5].forEach((x, i) => RR(x - 1.6, -24 + (i % 3), 3.6, 12, 1.8, t(SKIN)));
-    RR(6, -10, 9, 3.6, 1.8, t(shade(SKIN)));
+    slapHand(t);
   } },
   swatter: { w: 16, h: 45, d: (time, t) => {
     ctx.rotate(-.4 + Math.sin(time * 8) * .3);
     RR(-.6, -45, 1.2, 30, .6, t('#e6765f'));
+    RR(-1.1, -45, 2.2, 9, 1.1, t(shade('#e6765f'))); E(0, -45.5, 1.6, 1.2, t('#e6765f'));                    // 손잡이 고리
     RR(-7, -15, 14, 15, 2.5, t('#5fa39a'));
     ctx.strokeStyle = t('#3f8a82'); ctx.lineWidth = .4; ctx.beginPath();
     for (let k = -5; k <= 5; k += 2.5) { ctx.moveTo(k, -14); ctx.lineTo(k, -1); ctx.moveTo(-6, -7.5 + k); ctx.lineTo(6, -7.5 + k); }
