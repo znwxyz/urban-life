@@ -26,11 +26,10 @@ const ANIMALS = {
     P([[hx - 9, hy - 8], [hx - 8.5, hy - 15], [hx - 3, hy - 10]], pink); P([[hx + 4, hy - 10], [hx + 9, hy - 15], [hx + 10, hy - 7]], pink);
     E(hx, hy, 13, 11.5, fur);
     [-2, 1.5, 5].forEach((dx) => RR(hx + dx, hy - 11.5, 1.6, 4.5, .8, dark));
-    cuteEye(hx - 1, hy + 1, 2.2, 2.8, time, t); cuteEye(hx + 8, hy + 1, 2.2, 2.8, time, t);
-    blush(hx - 5, hy + 5.5, 2.6, 1.6); blush(hx + 12, hy + 5.5, 2.6, 1.6);
+    // 눈 사이를 넓게 벌려 살짝 멍한 얼굴로
+    cuteEye(hx - 1.8, hy + 1, 2.8, 2.2, time, t); cuteEye(hx + 8.8, hy + 1, 2.8, 2.2, time, t);
+    blush(hx - 6, hy + 5.5, 2.4, 1.5); blush(hx + 13, hy + 5.5, 2.4, 1.5);
     E(hx + 3.5, hy + 3.6, 1.2, .9, pink);
-    ctx.strokeStyle = t(INK); ctx.lineWidth = .6; ctx.beginPath();
-    ctx.moveTo(hx + 2, hy + 5); ctx.quadraticCurveTo(hx + 2.8, hy + 6.2, hx + 3.5, hy + 5); ctx.quadraticCurveTo(hx + 4.2, hy + 6.2, hx + 5, hy + 5); ctx.stroke();
   },
 
   cockroach(time, moving, eye, t) {
