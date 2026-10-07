@@ -1,6 +1,12 @@
 /* 장면 합성: 배경 → 지면 → 사물 → 소품 → 주인공 → 전경 → 빛·날씨 → 종이결 → 추적 표시 */
-const TONE_DAY = .14, TONE_NIGHT = .5;
-const GROUND_LAYERS = Object.freeze([[.34, .1, 13], [.68, .2, 17]]);
+const TONE_DAY = .06, TONE_NIGHT = .5;
+/* 바닥 명도 계단 [띠 시작 위치(바닥 높이 비율), 어둡기, 가장자리 salt]. 무늬 없이 앞으로 올수록 어두워진다 (Alto처럼 가까울수록 어둡고 단순하게) */
+const GROUND_LAYERS = Object.freeze([[.34, .45, 13], [.68, .78, 17]]);
+/* 띠 안에서도 아래로 갈수록 이만큼 더 어두워진다. 맨 뒤 바닥(주인공이 딛는 곳)은 아주 조금만 */
+const GROUND_FALL = .2, GROUND_BODY_FALL = .3;
+/* 바닥이 어두워지는 끝색: 장면 잉크색을 조금 더 깊게. 눈 덮인 땅은 밝은 면으로 남겨 덜 어둡게 */
+const DEEP_INK = '#171233', DEEP_MIX = .45, SNOW_DARK = .4;
+const VIGNETTE_ALPHA = .12;
 const PORTRAIT_RATIO = .9;
 
 /** 화면 1cm가 몇 px인지. 세로로 긴 휴대폰 화면에서도 동물이 너무 작아지지 않게, 화면 폭과 높이 중 큰 쪽을 기준으로 잡는다 */
@@ -52,7 +58,20 @@ function edgeFill(color, y, amp, salt, scroll, bottom = H) {
 }
 
 /* 바닥은 비스듬히 내려다본 면이라 재질 결을 세로로 눌러 깐다. 앞쪽 띠일수록 결이 크고 빨리 지나간다 */
-const FLOOR_SQUASH = .5;
+const FLOOR_SQUASH = .5, LIP_TEXTURE_ALPHA = .5;
+
+/** 바닥 어둡기 dark(0~1)의 색: 장면 바닥색에서 깊은 잉크색 쪽으로 */
+function groundTone(f, dark) {
+  const { p, v } = f;
+  return mix(p.ground, mix(p.ink, DEEP_INK, DEEP_MIX), Math.min(1, dark * (v.weather === 'snow' ? SNOW_DARK : 1)));
+}
+
+/** 위(y0)에서 아래(y1)로 dark에서 dark+fall까지 어두워지는 세로 그러데이션을 채우기로 고른다 */
+function groundFill(f, dark, fall, y0, y1) {
+  const gr = ctx.createLinearGradient(0, y0, 0, Math.max(y0 + 1, y1));
+  gr.addColorStop(0, groundTone(f, dark)); gr.addColorStop(1, groundTone(f, dark + fall));
+  ctx.fillStyle = gr;
+}
 
 const palKeyOf = (f) => `${f.v.scene}|${f.v.night}|${f.v.weather === 'snow'}`;
 /** 스크롤만 바꾼 그리기 재료 (띠 그림을 구울 때 쓴다) */
@@ -65,20 +84,23 @@ function groundBody(f) {
   const amp = sc.indoor ? 0 : 1, top = clamp(1.5 * s, 3, 12), floor = sc.floor;
   drawWalls(f);
   paper(() => edgeFill(p.groundTop, g - 2, amp, 5, f.scroll), .8);
-  if (floor) lay(floor, s, -f.scroll, g, FLOOR_SQUASH * .6, () => edgeFill(null, g - 2, amp, 5, f.scroll, g + top + 2));
-  edgeFill(p.ground, g + top, amp, 9, f.scroll);
-  if (floor) lay(floor, s, -f.scroll, g + top, FLOOR_SQUASH, () => edgeFill(null, g + top, amp, 9, f.scroll, bandTopOf(f, 0)));
+  if (floor) {   // 재질 결은 주인공이 딛는 땅 끝선에만 옅게 남긴다
+    ctx.save(); ctx.globalAlpha = LIP_TEXTURE_ALPHA;
+    lay(floor, s, -f.scroll, g, FLOOR_SQUASH * .6, () => edgeFill(null, g - 2, amp, 5, f.scroll, g + top + 2));
+    ctx.restore();
+  }
+  groundFill(f, 0, GROUND_BODY_FALL, g + top, bandTopOf(f, 0));
+  edgeFill(null, g + top, amp, 9, f.scroll);
   R(0, g + top, W, Math.max(2, top * .5), 'rgba(38,26,58,.14)');   // 앞 턱 아래 그늘
   if (FLOOR_DECO[sc.deco]) FLOOR_DECO[sc.deco](f, g + top);
   if (sc.floor === 'grass' || sc.floor === 'asphalt') lipTufts(f);
 }
 
-/** 앞쪽 바닥 띠 n: 가까울수록 진하고 빨리 지나간다 */
+/** 앞쪽 바닥 띠 n: 무늬 없는 매끈한 종이. 가까울수록 어둡고 빨리 지나간다 */
 function groundBand(f, n) {
-  const { sc, p, g, s } = f, [at, dark, salt] = GROUND_LAYERS[n];
-  const amp = sc.indoor ? 0 : 1, y = g + (H - g) * at, k = 1 + at;
-  paper(() => edgeFill(mix(p.ground, p.ink, dark), y, amp * 2, salt, f.scroll * k, bandTopOf(f, n + 1)), .9);
-  if (sc.floor) lay(sc.floor, s * k, -f.scroll * k, y, FLOOR_SQUASH * (1 + at * .6), () => edgeFill(null, y, amp * 2, salt, f.scroll * k, bandTopOf(f, n + 1)));
+  const { sc, g } = f, [at, dark, salt] = GROUND_LAYERS[n];
+  const amp = sc.indoor ? 0 : 1, y = g + (H - g) * at, k = 1 + at, bottom = bandTopOf(f, n + 1);
+  paper(() => { groundFill(f, dark, GROUND_FALL, y, Math.min(H, bottom)); edgeFill(null, y, amp * 2, salt, f.scroll * k, bottom); }, .9);
 }
 
 const BAND_PAD = 14, TUFT_PAD_CM = 6;
@@ -99,7 +121,7 @@ function lipTufts(f) {
   const { s, g, v, p, sc } = f, cell = 7;
   const i0 = Math.floor(v.camX / cell) - 1, i1 = Math.floor((v.camX + W / s) / cell) + 1;
   if (i1 - i0 > 260 || s < .8) return;
-  const grass = sc.floor === 'grass', dens = grass ? .75 : .12;
+  const grass = sc.floor === 'grass', dens = grass ? .5 : .12;
   ctx.fillStyle = grass ? mix(p.groundTop, p.ink, .12) : mix(p.groundTop, '#6f9f6c', .45);
   ctx.beginPath();
   for (let i = i0; i <= i1; i++) {
@@ -124,33 +146,24 @@ function decoCells(f, cell, salt, dens, draw) {
 const FLOOR_DECO = {
   parkingLines(f, y) {
     const { s, p } = f, hgt = (H - y) * .3;
-    ctx.fillStyle = rgba(mix(p.light, p.groundTop, .25), .75);
+    ctx.fillStyle = rgba(mix(p.light, p.groundTop, .25), .45);
     decoCells(f, 250, 95, 1, (x) => P([[x, y + 2], [x + 10 * s, y + 2], [x + 10 * s - hgt * .6, y + hgt], [x - hgt * .6, y + hgt]], ctx.fillStyle));
   },
   manhole(f, y) {
     const { s, p } = f, ry = Math.min((H - y) * .12, 18 * s);
     decoCells(f, 900, 96, .6, (x) => {
       E(x + 32 * s, y + ry * 1.3, 33 * s, ry, mix(p.ground, p.ink, .35));
-      E(x + 32 * s, y + ry * 1.2, 29 * s, ry * .85, mix(p.ground, p.ink, .18));
-      ctx.strokeStyle = rgba(p.ink, .35); ctx.lineWidth = Math.max(1, .8 * s); ctx.beginPath();
-      for (let k = -2; k <= 2; k++) { ctx.moveTo(x + (32 + k * 9) * s, y + ry * .55); ctx.lineTo(x + (32 + k * 9) * s, y + ry * 1.85); }
-      ctx.stroke();
+      E(x + 32 * s, y + ry * 1.2, 29 * s, ry * .85, mix(p.ground, p.ink, .25));
     });
   },
   tactile(f, y) {
     const { s, p } = f, hgt = Math.min((H - y) * .07, 30 * s * FLOOR_SQUASH), y0 = y + (H - y) * .14;
-    const tile = mix('#e8c24a', p.ground, .3), bump = mix(tile, p.ink, .15);
-    decoCells(f, 30, 97, 1, (x) => {
-      R(x, y0, 29 * s, hgt, tile);
-      if (s > 2) for (let k = 0; k < 4; k++) R(x + (3 + k * 7) * s, y0 + hgt * .2, 3.5 * s, hgt * .6, bump);
-    });
+    const tile = mix('#e8c24a', p.ground, .3);
+    decoCells(f, 30, 97, 1, (x) => R(x, y0, 29.5 * s, hgt, tile));
   },
   drain(f, y) {
     const { s, p } = f, hgt = Math.min((H - y) * .1, 14 * s);
-    decoCells(f, 400, 98, .7, (x) => {
-      R(x, y + hgt * .4, 60 * s, hgt, mix(p.ground, p.ink, .45));
-      for (let k = 0; k < 12; k++) R(x + (2 + k * 5) * s, y + hgt * .5, 2.4 * s, hgt * .8, mix(p.ground, p.light, .25));
-    });
+    decoCells(f, 400, 98, .7, (x) => R(x, y + hgt * .4, 60 * s, hgt, mix(p.ground, p.ink, .35)));
   },
   rug(f, y) {
     const { s, p } = f, hgt = (H - y) * .5;
@@ -236,48 +249,61 @@ function drawHero(f, sp) {
   paper(() => { ctx.translate(W * heroScreenX(), g); ctx.scale(s, s); draw(v.t, moving, sp.eye, f.t); }, .8);
 }
 
-/* 가장 앞 종이: 화면 아래를 스치는 연석·풀숲. 땅보다 빨리(PARALLAX.fg) 같은 방향으로 지나간다 */
-const FG_CURB_JOINT = 118, FG_BOLLARD_CELL = 520;
+/* 가장 앞 종이: 화면 아래를 스치는 연석·풀숲. 안쪽 무늬 없이 한 가지 어두운 색의 실루엣으로만 오린다 (Alto의 전경처럼).
+   땅보다 빨리(PARALLAX.fg) 같은 방향으로 지나간다 */
+const FG_DEEP = '#0e0b20', FG_MAX_LUMA = 38, FG_STEP = 14, FG_SHADOW = 1;
+const FG_CURB_JOINT = 118, FG_BOLLARD_CELL = 520, FG_FLOWER_CELL = 210, FG_GRASS_CELL = 46;
+
+const luma = (hex) => { const [r, g, b] = hexToRgb(hex); return .299 * r + .587 * g + .114 * b; };
+/** 전경 실루엣색: 장면 잉크색을 밝기 FG_MAX_LUMA 이하가 될 때까지 더 깊은 색 쪽으로 섞는다 */
+function fgInk(p) {
+  for (let t = .4; t < 1; t += .1) {
+    const c = mix(p.ink, FG_DEEP, Math.round(t * 10) / 10);
+    if (luma(c) <= FG_MAX_LUMA) return c;
+  }
+  return FG_DEEP;
+}
+
+/** 윗변이 완만하게 출렁이며 잘게 들쭉날쭉한 실루엣을 화면 아래까지 채운다. 꼭짓점이 월드에 붙어 있어 함께 지나간다 */
+function fgRidge(off, y, amp, salt) {
+  const i0 = Math.floor(off / FG_STEP) - 1, i1 = Math.ceil((off + W) / FG_STEP) + 1;
+  ctx.beginPath(); ctx.moveTo(i0 * FG_STEP - off, H);
+  for (let i = i0; i <= i1; i++) {
+    const X = i * FG_STEP;
+    ctx.lineTo(X - off, y + Math.sin(X * .004 + salt) * amp * 1.5 + wobble(X, salt) * amp * .4 + (hash(i, salt) - .5) * amp);
+  }
+  ctx.lineTo(i1 * FG_STEP - off, H); ctx.closePath(); ctx.fill();
+}
+
+/** off부터 화면 폭만큼 cell 간격으로 놓인 칸마다 draw(화면 x, 칸 번호) */
+function fgCells(off, cell, draw) {
+  const i0 = Math.floor(off / cell) - 1, i1 = Math.floor((off + W) / cell) + 1;
+  for (let i = i0; i <= i1; i++) draw(i * cell - off, i);
+}
+
 const FG = {
   curb(f, off, fh) {
-    const { p } = f, stone = mix(p.ink, p.groundTop, .38), top = mix(p.ink, p.groundTop, .62), y = H - fh * .62;
-    edgeFill(stone, y, 1, 3, off);
-    edgeFill(top, y - 1, 1, 3, off); edgeFill(stone, y + fh * .13, 1, 3, off);
-    const i0 = Math.floor(off / FG_CURB_JOINT) - 1, i1 = Math.floor((off + W) / FG_CURB_JOINT) + 1;
-    const weed = mix(p.ink, '#5f8f6c', .45);
-    for (let i = i0; i <= i1; i++) {
-      const x = i * FG_CURB_JOINT - off;
-      R(x, y, 2.5, fh, mix(p.ink, stone, .4));                                                      // 연석 이음매
-      if (hash(i, 64) < .3) E(x + 40 + hash(i, 65) * 40, y + fh * .08, 7, 2.5, mix(top, p.ink, .25));   // 깨진 모서리
-      if (hash(i, 66) < .45) fgTuft(x, y + 2, fh * (.35 + hash(i, 67) * .4), weed, i);
-    }
-    const b0 = Math.floor(off / FG_BOLLARD_CELL) - 1, b1 = Math.floor((off + W) / FG_BOLLARD_CELL) + 1;
-    for (let i = b0; i <= b1; i++) {
-      if (hash(i, 61) > .45) continue;
-      const x = i * FG_BOLLARD_CELL - off + 160, bh = fh * 1.9;
-      RR(x, H - bh, 18, bh, 9, mix(p.ink, '#8d8a9c', .25));
-      R(x, H - bh + 12, 18, 6, mix(p.ink, '#fffaf0', .45)); R(x + 13, H - bh + 6, 5, bh - 6, mix(p.ink, '#2f2a3a', .3));
-    }
+    const c = fgInk(f.p), y = H - fh * .8;
+    ctx.fillStyle = c; fgRidge(off, y, fh * .06, 3);
+    fgCells(off, FG_CURB_JOINT, (x, i) => { if (hash(i, 66) < .45) fgTuft(x, y + 2, fh * (.35 + hash(i, 67) * .4), c, i); });
+    fgCells(off, FG_BOLLARD_CELL, (x, i) => {
+      if (hash(i, 61) > .45) return;
+      const bh = fh * 1.9;
+      RR(x + 160, H - bh, 18, bh, 9, c);
+    });
   },
   grass(f, off, fh) {
-    const { p } = f, back = mix(p.ink, p.groundTop, .3), front = p.ink;
-    [[back, .55, 9, 1.15, 0], [front, .3, 12, .95, 31]].forEach(([c, base, cell, tall, salt]) => {
-      ctx.fillStyle = c; ctx.fillRect(0, H - fh * base, W, fh * base);
-      const i0 = Math.floor(off / cell) - 1, i1 = Math.floor((off + W) / cell) + 1;
-      ctx.beginPath();
-      for (let i = i0; i <= i1; i++) {
-        const x = i * cell - off, hgt = fh * tall * (.35 + hash(i, 62 + salt) * .8), lean = (hash(i, 63 + salt) - .4) * 10;
-        ctx.moveTo(x, H - fh * base + 1); ctx.quadraticCurveTo(x + 2 + lean * .3, H - fh * base - hgt * .6, x + 4 + lean, H - fh * base - hgt);
-        ctx.quadraticCurveTo(x + 5 + lean * .3, H - fh * base - hgt * .5, x + 9, H - fh * base + 1);
-      }
-      ctx.fill();
+    const c = fgInk(f.p), base = H - fh * .65;
+    ctx.fillStyle = c; fgRidge(off, base, fh * .12, 31);
+    fgCells(off, FG_GRASS_CELL, (x0, i) => {                                                       // 풀 덤불: 몇 포기씩 모여 난다
+      const n = 1 + Math.floor(hash(i, 60) * 3);
+      for (let k = 0; k < n; k++) fgTuft(x0 + hash(i + k, 62) * FG_GRASS_CELL * .8, base + 4, fh * (.45 + hash(i + k, 63) * .8), c, i * 3 + k);
     });
-    const i0 = Math.floor(off / 210) - 1, i1 = Math.floor((off + W) / 210) + 1;
-    for (let i = i0; i <= i1; i++) {                                                                // 클로버와 민들레 홀씨
-      const x = i * 210 - off + hash(i, 68) * 120, y = H - fh * (.45 + hash(i, 69) * .3);
-      if (hash(i, 70) < .4) [0, 1, 2].forEach((k) => E(x + Math.cos(k * 2.1) * 5, y + Math.sin(k * 2.1) * 4, 5, 4, mix(front, '#6a9c78', .25)));
-      else if (hash(i, 71) < .3) { L(x, H, x + 4, y - fh * .5, front, 2); ctx.globalAlpha = .7; E(x + 4, y - fh * .5, 9, 9, mix(p.light, p.ink, .25)); ctx.globalAlpha = 1; }
-    }
+    fgCells(off, FG_FLOWER_CELL, (x0, i) => {                                                      // 민들레 홀씨 꽃대
+      if (hash(i, 71) > .3) return;
+      const x = x0 + hash(i, 68) * 120, top = base - fh * (.6 + hash(i, 69) * .4);
+      L(x, H, x + 4, top, c, 2); E(x + 4, top, 8, 8, c);
+    });
   },
 };
 
@@ -295,7 +321,7 @@ function drawForeground(f) {
   const { sc } = f;
   if (!FG[sc.fg]) return;
   const fh = clamp(H * .08, 26, 70), y0 = H - fh * 2.4;
-  stripBlit(`fg|${f.v.scene}`, `${palKeyOf(f)}|${fh}`, f.scroll * PARALLAX.fg, y0, H - y0, (o0) => paper(() => FG[sc.fg](f, o0, fh), 1.4));
+  stripBlit(`fg|${f.v.scene}`, `${palKeyOf(f)}|${fh}`, f.scroll * PARALLAX.fg, y0, H - y0, (o0) => paper(() => FG[sc.fg](f, o0, fh), FG_SHADOW));
 }
 
 function drawGlow(f) {
@@ -358,7 +384,7 @@ function drawVignette() {
     vignette = makeLayer(W, H, d);
     bake(vignette, W, 0, d, () => {
       const gr = ctx.createRadialGradient(W / 2, H * .45, Math.min(W, H) * .35, W / 2, H * .45, Math.max(W, H) * .75);
-      gr.addColorStop(0, 'rgba(30,20,45,0)'); gr.addColorStop(1, 'rgba(30,20,45,.28)');
+      gr.addColorStop(0, 'rgba(30,20,45,0)'); gr.addColorStop(1, `rgba(30,20,45,${VIGNETTE_ALPHA})`);
       ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
     });
   }

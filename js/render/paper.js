@@ -6,7 +6,8 @@ const STAGE_CTX = canvas.getContext('2d');
 let ctx = STAGE_CTX;
 const PAPER_SHADOW = Object.freeze({ color: 'rgba(38,26,58,.3)', blur: 9, offY: 3 });
 const SHADE_TO = '#2a2240', SHADE_AMOUNT = .2;
-const GRAIN_SIZE = 160, GRAIN_ALPHA = .16, GRAIN_FIBERS = 40;
+/* 종이결은 화면을 탁하게 만들지 않을 만큼만 아주 옅게 (섬유 결은 잔무늬가 되어 뺐다) */
+const GRAIN_SIZE = 160, GRAIN_ALPHA = .05;
 
 const R = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
 const E = (cx, cy, rx, ry, c) => { ctx.fillStyle = c; ctx.beginPath(); ctx.ellipse(cx, cy, Math.abs(rx), Math.abs(ry), 0, 0, TAU); ctx.fill(); };
@@ -62,11 +63,6 @@ function buildGrain() {
     img.data[i + 3] = 255;
   }
   g.putImageData(img, 0, 0);
-  g.strokeStyle = 'rgba(255,255,255,.3)';
-  for (let k = 0; k < GRAIN_FIBERS; k++) {
-    const x = Math.random() * GRAIN_SIZE, y = Math.random() * GRAIN_SIZE, a = Math.random() * TAU, l = 4 + Math.random() * 10;
-    g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke();
-  }
   return ctx.createPattern(c, 'repeat');
 }
 
