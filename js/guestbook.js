@@ -161,7 +161,7 @@ function setupSupport() {
   if (!links.length) return;
   toggle.hidden = false;
   box.replaceChildren(
-    h('p', null, '이것저것 만드는 디자이너입니다. 아이스 라떼를 좋아합니다.'),
+    h('p', null, '이것저것 만드는 디자이너입니다. 아이스 라떼를 몹시 좋아합니다.'),
     h('div', { class: 'support-links' }, links.map(([key, label]) =>
       h('a', { class: `support-link ${key}`, href: SUPPORT[key], target: '_blank', rel: 'noopener noreferrer' }, label))),
     // PC에서는 송금 앱이 열리지 않으니 휴대폰으로 찍을 QR을 보여 준다 (CSS로 넓은 화면에서만 표시)
