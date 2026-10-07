@@ -1,4 +1,4 @@
-/* 집비둘기 장면 전용 그림. 키는 'pigeon:이름'. 원점은 발밑 가운데, cm 좌표, 오른쪽을 본다. d(시간, 색조함수) */
+/* 비둘기 장면 전용 그림. 키는 'pigeon:이름'. 원점은 발밑 가운데, cm 좌표, 오른쪽을 본다. d(시간, 색조함수) */
 (function register(art) {
   if (typeof module !== 'undefined' && module.exports) module.exports = Object.keys(art);
   else Object.assign(ACTORS, art);

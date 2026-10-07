@@ -51,8 +51,8 @@
 문구와 수치는 `js/data/species/*.js`가 기준이다. 동물별 문서는 `node scripts/scenario-docs.js`로 데이터에서 만든다.
 - [길고양이](cat.md)
 - [바퀴벌레](cockroach.md)
-- [집비둘기](pigeon.md)
-- [집파리](fly.md)
+- [비둘기](pigeon.md)
+- [똥파리](fly.md)
 - [참새](sparrow.md)
 - [매미](cicada.md)
 - [모기](mosquito.md)

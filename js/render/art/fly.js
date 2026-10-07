@@ -1,4 +1,4 @@
-/* 집파리 장면 전용 그림. 키는 'fly:이름'. 원점은 발밑 가운데, cm 좌표, 오른쪽을 본다. d(시간, 색조함수)
+/* 똥파리 장면 전용 그림. 키는 'fly:이름'. 원점은 발밑 가운데, cm 좌표, 오른쪽을 본다. d(시간, 색조함수)
    파리 눈높이(화면 폭 약 36cm)에 맞춰 실제 크기로 그린다: 번데기 껍질 0.6cm, 빗방울 0.4cm, 밥알 0.6cm, 알 1mm */
 (function register(art) {
   if (typeof module !== 'undefined' && module.exports) module.exports = Object.keys(art);
@@ -419,14 +419,17 @@
     } },
 
     /* F8 — 김밥 한 조각을 엄지와 검지로 집은 손. 훠이훠이 파리를 쫓느라 손목째 흔들리고, 밥알이 하나 떨어진다 */
-    'fly:gimbapHand': { w: 19, h: 8.5, d: (time, t) => {
-      const rot = Math.sin(time * 3.2) * .2, vel = Math.cos(time * 3.2), wx = 4.6, wy = -5.6, ph = (time * .6) % 1;
-      faded((1 - ph) * .9, () => E(-6 + ph * .6, -4 + ph * 4, .32, .16, t(RICE)));
-      shooLines(wx, wy, rot, vel, t);
-      ctx.save(); ctx.translate(wx, wy); ctx.rotate(rot); ctx.scale(-1, 1);
-      artHand(t, { pose: 'pinch', s: 11, sleeve: '#8fb3d9', held: (x, y) => {
-        ctx.save(); ctx.translate(x, y); ctx.scale(1 / 11, 1 / 11); ctx.rotate(.25); gimbapSlice(1.55, t); ctx.restore();
-      } });
+    'fly:gimbapHand': { w: 21, h: 17, d: (time, t) => {
+      // Twemoji ✍️ 손(js/render/hands-twemoji.js)이 젓가락으로 김밥 한 조각을 집고 훠이훠이 흔든다. 원본 1단위 = .4cm
+      const K = .4, rot = Math.sin(time * 3.2) * .14, vel = Math.cos(time * 3.2), ph = (time * .6) % 1;
+      faded((1 - ph) * .9, () => E(-5 + ph * .6, -1.6 + ph * 1.8, .32, .16, t(RICE)));
+      shooLines(4, -9, rot, vel, t);
+      const stick = (x1, y1, x2, y2) => { ctx.strokeStyle = t('#c98a4c'); ctx.lineWidth = .9; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); };
+      const sticks = () => { stick(31.2, .6, 1.4, 34.4); stick(33.6, 3, 2.4, 35); };
+      ctx.save(); ctx.translate(3, -8); ctx.scale(K, K); ctx.translate(-18, -22);
+      ctx.translate(35, 23); ctx.rotate(rot); ctx.translate(-35, -23);
+      drawWriteHand(t, sticks);
+      ctx.save(); ctx.translate(-.6, 37.4); ctx.scale(1 / K, 1 / K); gimbapSlice(1.9, t); ctx.restore();
       ctx.restore();
     } },
 

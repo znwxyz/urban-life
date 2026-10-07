@@ -1,4 +1,4 @@
-/* 집비둘기 시나리오. 설계 문서: docs/scenarios/pigeon.md (문구는 이 파일이 기준)
+/* 비둘기 시나리오. 설계 문서: docs/scenarios/pigeon.md (문구는 이 파일이 기준)
    선택지는 [←, →, ↑, ↓] 4개. risk = 확률로 즉사, hurt = 확률로 다침. to가 없으면 장면의 next로 간다.
    포만이 0이 되면 굶주림(starveEnding), 체력이 0이 되면 쇠약(weakEnding)으로 끝난다.
    문구는 1인칭 구어체(반말). text는 지금 이 순간의 속생각, t는 내가 할 행동, line은 마지막 생각.
@@ -7,7 +7,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = sp;
   else registerSpecies(sp);
 })({
-  key: 'pigeon', name: '집비둘기', latin: 'Columba livia', size: '32cm', body: 'pigeon',
+  key: 'pigeon', name: '비둘기', latin: 'Columba livia', size: '32cm', body: 'pigeon',
   viewCm: 900, eye: 200, speedCm: 160, bornMonth: 5, kidUnit: '새끼',
   box: [-26, -226, 26, -180],
   stats: { hp: 70, food: 45, decay: 15, hpDecay: 5 },

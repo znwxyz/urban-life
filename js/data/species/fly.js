@@ -1,4 +1,4 @@
-/* 집파리 시나리오. 설계 문서: docs/scenarios/fly.md (문구는 이 파일이 기준)
+/* 똥파리 시나리오. 설계 문서: docs/scenarios/fly.md (문구는 이 파일이 기준)
    선택지는 [←, →, ↑, ↓] 4개 (카드를 미는 방향). risk = 확률로 즉사, hurt = 확률로 다침. to가 없으면 장면의 next로 간다
    포만이 0이 되면 굶주림(W1), 체력이 0이 되면 쇠약(W0)으로 끝난다.
    문체: 파리의 1인칭 속마음(반말 구어체, 현재형). 끌리는 쪽(음식·빛·단내·지름길)에 실제 도시 위험을 둔다 */
@@ -6,12 +6,12 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = sp;
   else registerSpecies(sp);
 })({
-  key: 'fly', name: '집파리', latin: 'Musca domestica', size: '0.7cm', body: 'fly',
+  key: 'fly', name: '똥파리', latin: 'Musca domestica', size: '0.7cm', body: 'fly',
   viewCm: 36, eye: 2.5, speedCm: 8, bornMonth: 7, kidUnit: '알',
   box: [-.55, -3.4, .65, -1.8],
   stats: { hp: 100, food: 40, decay: 12, hpDecay: 7 },
   place: '분리수거장 음식물 수거통',
-  intro: '아파트 분리수거장, 음식물 수거통 가장자리에서 번데기 껍질을 찢고 나왔어. 나는 집파리야. 길어야 한 달 살아. 그러니까 하루하루가 아까워.',
+  intro: '아파트 분리수거장, 음식물 수거통 가장자리에서 번데기 껍질을 찢고 나왔어. 나는 똥파리야. 길어야 한 달 살아. 그러니까 하루하루가 아까워.',
   start: 'F1', weakEnding: 'W0', starveEnding: 'W1',
   main: [1, 3, 0, 2, 3, 1, 2, 1, 0, 1],
 

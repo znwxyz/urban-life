@@ -31,3 +31,7 @@ git commit -am "..." && git push   # GitHub Pages가 1~2분 뒤 반영
 npm test
 node scripts/balance.js   # 밸런스 측정 (메인 루트 스탯 흐름, 무작위 플레이 생존율)
 ```
+
+## 그림 출처
+
+- 손 그림 일부(김밥을 젓가락으로 집은 손)는 [Twemoji](https://github.com/jdecked/twemoji)의 ✍️ 이모지 경로를 색만 바꿔 썼다. © Twitter, Inc and other contributors, [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/). 경로는 `js/render/hands-twemoji.js`에 있다.

@@ -1,4 +1,4 @@
-# 집비둘기 (Columba livia)
+# 비둘기 (Columba livia)
 
 > 이 문서는 `node scripts/scenario-docs.js`로 만든다. 고칠 때는 `js/data/species/pigeon.js`를 고친다.
 
