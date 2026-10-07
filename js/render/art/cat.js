@@ -1,63 +1,37 @@
 /* 길고양이 장면 전용 그림. 키는 'cat:이름'. 원점은 발밑 가운데, cm 좌표, 오른쪽을 본다. d(시간, 색조함수) */
-/* ── 장면 그림들이 함께 쓰는 손. 그림 파일은 cat → cockroach → pigeon → fly 순서로 읽히므로 여기 둔다 ──
-   만화 손: 통통한 손바닥 한 덩어리와 둥근 막대 손가락. 손톱·마디선·손금·하이라이트는 넣지 않는다
-   (겹을 쌓을수록 징그러워진다. 실루엣 하나로 읽히게 한다). 색은 많아야 두 톤(뒤쪽 손가락만 한 톤 어둡게).
+/* ── 장면 그림들이 함께 쓰는 손. Twemoji 손 이모지 경로(js/render/hands-twemoji.js)를 살색 두 톤으로 칠한다 ──
+   도형을 조합하지 않고 곡선 외곽 하나로 그린 손이라야 손으로 읽힌다.
    손목 가운데가 원점, 손가락이 +x 쪽, 손 길이 1을 기준으로 그린 뒤 s(cm)배 한다.
-   o: { pose: 'flat'|'pinch'|'grip', s, skin, coat 장갑색, spread 손가락 벌림, sleeve 소매색, held(x, y) 쥔 물건 } */
+   o: { pose: 'flat'(🫳)|'offer'(🫴)|'grip'·'pinch'(🤜), s, skin, coat 장갑색, sleeve 소매색, held(x, y) 쥔 물건 } */
 const artHand = (() => {
-  function bar(pts, w, c) {
-    ctx.strokeStyle = c; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath();
-    pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
-  }
-  function blobFill(c, draw) { ctx.fillStyle = c; ctx.beginPath(); draw(); ctx.fill(); }
-  const palm = () => { ctx.moveTo(0, -.17); ctx.quadraticCurveTo(.3, -.22, .5, -.16); ctx.quadraticCurveTo(.58, 0, .5, .16); ctx.quadraticCurveTo(.3, .22, 0, .17); ctx.closePath(); };
-
-  /** 편 손: 손가락 넷을 부채처럼 벌리고 엄지는 위로 */
-  function flat(k, o) {
-    const sp = o.spread == null ? 1 : o.spread;
-    [-.15, -.05, .05, .15].forEach((y, i) => {
-      const a = (y * 1.6) * sp, len = [.3, .36, .34, .27][i];
-      bar([[.42, y * .9], [.42 + Math.cos(a) * len, y * .9 + Math.sin(a) * len]], .115, k.base);
-    });
-    bar([[.16, -.12], [.3, -.3 * sp - .02]], .13, k.base);
-    blobFill(k.base, palm);
-  }
-
-  /** 집은 손(옆모습): 검지와 엄지 끝이 (.95, .11)에서 만난다. 나머지 손가락은 안으로 말린 한 덩어리 */
-  function pinch(k, o) {
-    blobFill(k.dark, () => { ctx.ellipse(.52, .1, .16, .11, 0, 0, TAU); });
-    blobFill(k.base, palm);
-    bar([[.4, -.08], [.72, -.06], [.95, .08]], .12, k.base);
-    if (o.held) o.held(.95, .11);
-    bar([[.25, .1], [.62, .2], [.9, .16]], .13, k.base);
-  }
-
-  /** 쥔 주먹(엄지 쪽에서 본 모습). 막대는 손끝 앞 x≈.66에서 위아래로 지나간다 */
-  function grip(k, o) {
-    if (o.held) o.held(.66, 0);
-    blobFill(k.base, () => { ctx.moveTo(0, -.16); ctx.quadraticCurveTo(.4, -.22, .62, -.12); ctx.quadraticCurveTo(.76, .02, .62, .17); ctx.quadraticCurveTo(.3, .22, 0, .16); ctx.closePath(); });
-    bar([[.2, -.12], [.5, -.17], [.66, -.08]], .12, k.dark);
-    bar([[.2, -.13], [.48, -.18], [.64, -.1]], .1, k.base);
-  }
-
-  function cuff(sleeve) {
-    if (!sleeve) return;
-    RR(-.42, -.2, .46, .4, .08, sleeve);
-  }
-
-  const POSES = { flat, pinch, grip };
+  const UNIT = 34;
+  const GLYPH = { flat: 'palmDown', offer: 'palmUp', grip: 'fist', pinch: 'fist' };
   return (t, o) => {
-    const base = o.coat || o.skin || SKIN, k = { base: t(base), dark: t(shade(base)) };
+    const base = o.coat || o.skin || SKIN;
+    const tones = base === SKIN ? TW_HAND_TONES : { base, mid: base, shade: shade(base) };
+    const glyph = GLYPH[o.pose] || 'palmDown';
     ctx.save(); ctx.scale(o.s, o.s);
-    (POSES[o.pose] || flat)(k, o);
-    cuff(o.sleeve && t(o.sleeve));
+    if (o.held) o.held(.66, 0);
+    ctx.save(); ctx.scale(1 / UNIT, 1 / UNIT); ctx.translate(0, -TW_GLYPHS[glyph].wristY); drawTwGlyph(glyph, t, tones); ctx.restore();
+    if (o.sleeve) RR(-.4, -.19, .42, .38, .08, t(o.sleeve));
     ctx.restore();
   };
 })();
 
+/** 팔 끝(x, y)에 손목을 붙여 ang 방향으로 손을 그린다. 팔 굵기가 곧 소매라서 소맷부리는 따로 그리지 않는다.
+    손끝이 왼쪽을 향하면 위아래를 뒤집어 손등이 위를 보게 한다. 쥔 자리(물건을 들릴 곳)를 돌려준다 */
+function artHandOnArm(t, x, y, ang, s, o) {
+  const [hx, hy] = HAND_HOLD[o.pose] || HAND_HOLD.flat, fy = Math.cos(ang) < 0 ? -1 : 1;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.scale(1, fy);
+  artHand(t, { ...o, sleeve: null, s });
+  ctx.restore();
+  const c = Math.cos(ang), sn = Math.sin(ang), px = hx * s, py = hy * s * fy;
+  return [x + c * px - sn * py, y + sn * px + c * py];
+}
+
 /** 손이 쥔 자리(grip·pinch) 또는 손바닥 가운데(flat)를 (x, y)에 맞춰, ang 방향으로 손을 뻗는다.
     손끝이 왼쪽을 향하면 위아래를 뒤집어 손등이 늘 위(빛 쪽)를 보게 한다 */
-const HAND_HOLD = Object.freeze({ grip: [.66, 0], pinch: [.95, .11], flat: [.5, 0] });
+const HAND_HOLD = Object.freeze({ grip: [.66, 0], pinch: [.66, 0], flat: [.5, 0], offer: [.5, 0] });
 function artHandAt(t, x, y, ang, s, o) {
   const [hx, hy] = HAND_HOLD[o.pose] || HAND_HOLD.flat, fy = Math.cos(ang) < 0 ? -1 : 1;
   const c = Math.cos(ang), sn = Math.sin(ang), px = hx * s, py = hy * s * fy;
@@ -159,9 +133,12 @@ function artHandAt(t, x, y, ang, s, o) {
     E(hx + r * .45, hy + r * .05, r * .1, r * .13, t(INK));
     blush(hx + r * .55, hy + r * .38, r * .17, r * .1);
     L(4, -80 + bob, ax, ay + sway, t(o.top), 8);
-    if (o.hold) o.hold(ax, ay + sway);
     const ang = o.handAng == null ? Math.atan2(ay + sway - (-80 + bob), ax - 4) : o.handAng;
-    artHandAt(t, ax, ay + sway, ang, 11, { pose: o.handPose || 'grip', curl: .12, spread: .7, sleeve: o.top });
+    const pose = o.handPose || 'grip', S = 15;
+    // 쥔 물건은 손 뒤에, 주먹이 쥔 자리에 그린다
+    const [gx, gy] = [ax + Math.cos(ang) * HAND_HOLD[pose][0] * S, ay + sway + Math.sin(ang) * HAND_HOLD[pose][0] * S];
+    if (o.hold) o.hold(gx, gy);
+    artHandOnArm(t, ax, ay + sway, ang, S, { pose });
   }
 
   const auntieCurls = (t) => (hx, hy, r) => [-.6, 0, .5].forEach((k) => E(hx + r * k, hy - r * .85, r * .35, r * .3, t(AUNTIE.hair)));
@@ -513,7 +490,7 @@ function artHandAt(t, x, y, ang, s, o) {
     'cat:ownerHand': { w: 71, h: 121, d: (time, t) => crouchPerson(time, t, {
       ...OWNER, hand: [30, -34], handAng: .35,
       extra: (hx, hy, r) => L(hx + r * .2, hy - r * .35, hx + r * .65, hy - r * .25, t('#2f2a3a'), 1),
-      handPose: 'flat',
+      handPose: 'offer',
     }) },
     /* C11 자주 드나드는 화장실: 모래 결과 뭉친 덩어리, 구멍 뚫린 삽 */
     'cat:litterBox': { w: 62, h: 19, d: (time, t) => {

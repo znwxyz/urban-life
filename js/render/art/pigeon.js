@@ -130,7 +130,7 @@
     ctx.strokeStyle = t(o.top); ctx.lineWidth = 8; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(x + 2, -98 + sway); ctx.lineTo(o.hand[0], o.hand[1]); ctx.stroke();
     const ang = Math.atan2(o.hand[1] - (-98 + sway), o.hand[0] - (x + 2));
-    artHandAt(t, o.hand[0], o.hand[1], ang, 10, { pose: o.handPose || 'grip', curl: .3, sleeve: o.top });
+    artHandOnArm(t, o.hand[0], o.hand[1], ang, 14, { pose: o.handPose || 'grip' });
   }
 
   /** 시간에 따라 손에서 땅으로 포물선을 그리며 떨어지는 알갱이 */
