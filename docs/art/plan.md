@@ -1,6 +1,6 @@
 # 그림 개선 계획 (Alto's Odyssey · Monument Valley 기준)
 
-분석: [reference-analysis.md](reference-analysis.md) · 레퍼런스 시트 `refs-sheet.png` · 지금 화면 `ours-sheet.png`
+분석: [reference-analysis.md](reference-analysis.md) · 레퍼런스 시트는 저작권 이미지라 저장소에 두지 않음(로컬 보관) · 지금 화면 `ours-sheet.png`
 
 ## 핵심 진단
 
