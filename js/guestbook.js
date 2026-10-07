@@ -181,7 +181,7 @@ function setupSupport() {
     h('a', { class: `support-link ${key}`, href: SUPPORT[key], target: '_blank', rel: 'noopener noreferrer' }, label));
   const qr = kakaopayQr(anchors.find((a) => a.classList.contains('kakaopay')));
   box.replaceChildren(
-    h('p', null, '이것저것 만드는 디자이너입니다. 아이스 라떼를 몹시 좋아합니다.'),
+    h('p', null, '세상이 혼란스럽고 저는 내일을 모르겠습니다. 그래도 이것저것을 만드는 디자이너입니다. 아이스 라떼를 몹시 좋아합니다.'),
     h('div', { class: 'support-links' }, anchors),
     qr,
   );
