@@ -55,4 +55,6 @@
 - [집파리](fly.md)
 - [참새](sparrow.md)
 - [매미](cicada.md)
+- [모기](mosquito.md)
+- [생쥐](mouse.md)
 - 보류: 고라니 (세계관 밖, 공원 하천 등장 여부 미정)

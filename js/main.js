@@ -82,8 +82,28 @@ function showPicker() {
     name, line, h('span', { class: 'roulette-cta' }, '태어나기'));
   btn.style.setProperty('--deckle', deckle());
   $('pickGrid').replaceChildren(h('div', { class: 'species-wrap' }, btn));
+  setDirectOpen(false);
+  $('directList').replaceChildren(...SPECIES_KEYS.map((key) =>
+    h('li', null, h('button', { class: 'direct-item', onclick: () => pickDirect(key) }, SPECIES[key].name))));
   $('picker').hidden = false;
   btn.focus({ preventScroll: true });
+}
+
+/* 오른쪽 아래 구석 '캐릭터 직접 고르기': 누르면 위쪽으로 동물 이름이 펼쳐진다 */
+function setDirectOpen(open) {
+  $('directList').hidden = !open;
+  $('directToggle').setAttribute('aria-expanded', String(open));
+  $('directToggle').textContent = `캐릭터 직접 고르기 ${open ? '▾' : '▴'}`;
+}
+
+function pickDirect(key) {
+  if (phase !== 'picker') return;
+  setDirectOpen(false);
+  revealBirth(key);
+}
+
+function setupDirectPick() {
+  $('directToggle').addEventListener('click', () => setDirectOpen($('directList').hidden));
 }
 
 function spinRoulette(btn, name, line) {
@@ -226,7 +246,7 @@ function frame(now) {
 /* 시작. 뷰어가 페이지를 갱신해도 진행 중인 판을 이어 간다 */
 window.claude?.hot?.snapshot?.(() => ({ run, phase }));
 function boot(data) {
-  resizeStage(); resizeFx(); setupWall(); setupSupport();
+  resizeStage(); resizeFx(); setupWall(); setupSupport(); setupDirectPick();
   addEventListener('resize', () => { resizeStage(); resizeFx(); });
   requestAnimationFrame(frame);
   const saved = data && data.run;

@@ -161,6 +161,19 @@ button { font: inherit; color: inherit; }
 .wall-who { flex: none; order: -1; font-family: var(--f-small); font-size: 11px; color: var(--pink-deep); padding-top: 2px; }
 .species:hover b, .species:focus-visible b { color: var(--pink-deep); }
 .species:active { translate: 0 1px; }
+/* 오른쪽 아래 구석 '캐릭터 직접 고르기': 글자만, 위로 펼쳐지는 목록 */
+.direct-pick { position: fixed; z-index: 4; right: 16px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.direct-toggle, .direct-item {
+  border: 0; background: none; padding: 4px 2px; cursor: pointer;
+  font-family: var(--f-small); font-size: 12px; color: var(--paper); opacity: .72; text-shadow: 0 1px 0 rgba(42, 36, 56, .6);
+  transition: opacity .15s, translate .15s;
+}
+.direct-toggle:hover, .direct-toggle:focus-visible, .direct-item:hover, .direct-item:focus-visible { opacity: 1; outline: none; text-decoration: underline; text-underline-offset: 3px; }
+.direct-item:hover, .direct-item:focus-visible { translate: -3px 0; }
+.direct-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; align-items: flex-end; }
+.direct-list:not([hidden]) { animation: directOpen .2s ease-out; }
+@keyframes directOpen { from { opacity: 0; translate: 0 6px; } to { opacity: 1; translate: 0 0; } }
+
 /* 룰렛 카드: 누르면 동물 이름이 점점 느려지며 바뀌다 멈춘다 */
 .roulette { min-height: 190px; }
 .roulette b { font-size: 34px; min-height: 1.2em; }
