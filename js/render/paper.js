@@ -1,7 +1,9 @@
 /* 종이 공예 렌더링 도구: 기본 도형, 오린 종이 그림자, 종이결, 장면 색조 맞추기 */
 const TAU = Math.PI * 2;
 const canvas = document.getElementById('stage');
-const ctx = canvas.getContext('2d');
+const STAGE_CTX = canvas.getContext('2d');
+/* 지금 그리는 곳. 평소엔 화면이고, 미리 구워 두는 동안(bake)만 오프스크린 캔버스로 바뀐다 */
+let ctx = STAGE_CTX;
 const PAPER_SHADOW = Object.freeze({ color: 'rgba(38,26,58,.3)', blur: 9, offY: 3 });
 const SHADE_TO = '#2a2240', SHADE_AMOUNT = .2;
 const GRAIN_SIZE = 160, GRAIN_ALPHA = .16, GRAIN_FIBERS = 40;
@@ -312,4 +314,70 @@ function lay(name, s, ox, oy, sy, drawShape) {
   if (!MATERIALS[name]) return;
   usePattern(material(name, s), s, ox, oy, sy);
   drawShape();
+}
+
+/* ── 미리 구워 두기 ──
+   매 프레임 똑같이 다시 그리는 층(바닥 띠, 벽, 먼 풍경, 전경, 사물)은 오프스크린 캔버스에 한 번 그려 두고
+   스크롤 위치만큼 밀어서 찍는다. 그리는 함수들은 전역 ctx와 화면 크기 W·H를 쓰므로, 굽는 동안만 그 둘을 바꿔 끼운다 */
+const STRIP_SPAN = 1.5, BAKE_CACHE_MAX = 20, SPRITE_CACHE_MAX = 64, SPRITE_MAX_PX = 4e6;
+const dprNow = () => canvas.width / Math.max(1, canvas.clientWidth);
+
+function makeLayer(w, h, res) {
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.ceil(w * res)); c.height = Math.max(1, Math.ceil(h * res));
+  return c;
+}
+
+/** c 위에 draw()를 그린다. 그동안 원점은 (0, -y0)으로 밀리고 화면 폭 W는 w로 바뀐다 */
+function bake(c, w, y0, res, draw) {
+  const prevCtx = ctx, prevW = W;
+  ctx = c.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, c.width, c.height);
+  ctx.setTransform(res, 0, 0, res, 0, -y0 * res);
+  W = w;
+  try { draw(); } finally { ctx = prevCtx; W = prevW; }
+}
+
+/** 오래 안 쓴 것부터 버리는 작은 기억 상자 */
+function lruGet(map, key) { const v = map.get(key); if (v) { map.delete(key); map.set(key, v); } return v; }
+function lruSet(map, key, v, max) { map.set(key, v); if (map.size > max) map.delete(map.keys().next().value); }
+
+const strips = new Map();
+/**
+ * 옆으로 흐르는 층 하나를 띠 그림으로 구워 찍는다.
+ * slot: 층 이름(장면마다 따로), key: 그림을 바꾸는 모든 것(팔레트·배율·지면 높이), off: 지금 층의 스크롤 px,
+ * (y0, h): 화면에서 차지하는 세로 범위, render(o0): 스크롤이 o0일 때의 층을 그린다, res: 해상도 배율(기본 화면 dpr)
+ */
+function stripBlit(slot, key, off, y0, h, render, res = dprNow()) {
+  const step = W * (STRIP_SPAN - 1), o0 = Math.floor(off / step) * step;
+  const full = `${key}|${W}|${H}|${Math.round(y0)}|${Math.round(h)}|${res}`;
+  let st = lruGet(strips, slot);
+  if (!st || st.key !== full || st.o0 !== o0) {
+    const sw = Math.ceil(W * STRIP_SPAN);
+    const c = st && st.key === full ? st.c : makeLayer(sw, h, res);
+    bake(c, sw, y0, res, () => render(o0));
+    st = { key: full, o0, c, sw };
+    lruSet(strips, slot, st, BAKE_CACHE_MAX);
+  }
+  const d = dprNow(), x = Math.round((o0 - off) * d) / d;
+  ctx.drawImage(st.c, x, y0, st.sw, h);
+}
+
+const sprites = new Map();
+/**
+ * 움직이지 않는 그림 하나를 그림자까지 구워 두고 찍는다. draw(ox, oy)는 (ox, oy)를 기준점으로 그린다.
+ * box = [왼쪽 여백, 위 여백, 폭, 높이](px, 기준점에서). 너무 크면 굽지 않고 바로 그린다
+ */
+function spriteDraw(key, x, y, box, draw) {
+  const [l, t, w, h] = box, d = dprNow();
+  if (w * h * d * d > SPRITE_MAX_PX) { draw(x, y); return; }
+  let sp = lruGet(sprites, key);
+  if (!sp) {
+    const c = makeLayer(w, h, d);
+    bake(c, w, 0, d, () => draw(l, t));
+    sp = { c, l, t, w, h };
+    lruSet(sprites, key, sp, SPRITE_CACHE_MAX);
+  }
+  const px = Math.round((x - sp.l) * d) / d, py = Math.round((y - sp.t) * d) / d;
+  ctx.drawImage(sp.c, px, py, sp.w, sp.h);
 }

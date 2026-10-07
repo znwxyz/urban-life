@@ -54,24 +54,44 @@ function edgeFill(color, y, amp, salt, scroll, bottom = H) {
 /* 바닥은 비스듬히 내려다본 면이라 재질 결을 세로로 눌러 깐다. 앞쪽 띠일수록 결이 크고 빨리 지나간다 */
 const FLOOR_SQUASH = .5;
 
-function drawGround(f) {
+const palKeyOf = (f) => `${f.v.scene}|${f.v.night}|${f.v.weather === 'snow'}`;
+/** 스크롤만 바꾼 그리기 재료 (띠 그림을 구울 때 쓴다) */
+const scrollFrame = (f, scroll) => ({ ...f, scroll, v: { ...f.v, camX: scroll / f.s } });
+const bandTopOf = (f, k) => (k < GROUND_LAYERS.length ? f.g + (H - f.g) * GROUND_LAYERS[k][0] + 4 : H);
+
+/** 땅과 같은 속도로 흐르는 것들: 벽, 땅 끝선, 첫 바닥 띠, 바닥 표시, 풀포기. 하나의 띠 그림으로 굽는다 */
+function groundBody(f) {
   const { sc, p, g, s } = f;
-  const amp = sc.indoor ? 0 : 1, top = clamp(1.5 * s, 3, 12), floor = sc.floor, depth = H - g;
-  // 재질 결은 띠마다 자기 띠 높이만큼만 칠해(겹쳐 칠하지 않게) 패턴 채우기 면적을 화면 한 장 이하로 줄인다
-  const bandTop = (k) => (k < GROUND_LAYERS.length ? g + depth * GROUND_LAYERS[k][0] + 4 : H);
+  const amp = sc.indoor ? 0 : 1, top = clamp(1.5 * s, 3, 12), floor = sc.floor;
+  drawWalls(f);
   paper(() => edgeFill(p.groundTop, g - 2, amp, 5, f.scroll), .8);
   if (floor) lay(floor, s, -f.scroll, g, FLOOR_SQUASH * .6, () => edgeFill(null, g - 2, amp, 5, f.scroll, g + top + 2));
   edgeFill(p.ground, g + top, amp, 9, f.scroll);
-  if (floor) lay(floor, s, -f.scroll, g + top, FLOOR_SQUASH, () => edgeFill(null, g + top, amp, 9, f.scroll, bandTop(0)));
+  if (floor) lay(floor, s, -f.scroll, g + top, FLOOR_SQUASH, () => edgeFill(null, g + top, amp, 9, f.scroll, bandTopOf(f, 0)));
   R(0, g + top, W, Math.max(2, top * .5), 'rgba(38,26,58,.14)');   // 앞 턱 아래 그늘
   if (FLOOR_DECO[sc.deco]) FLOOR_DECO[sc.deco](f, g + top);
-  // 앞쪽 땅을 종이 두 장으로 더 겹쳐, 가까울수록 진하고 빨리 지나가게 한다
-  GROUND_LAYERS.forEach(([at, dark, salt], n) => {
-    const y = g + depth * at, k = 1 + at;
-    paper(() => edgeFill(mix(p.ground, p.ink, dark), y, amp * 2, salt, f.scroll * k, bandTop(n + 1)), .9);
-    if (floor) lay(floor, s * k, -f.scroll * k, y, FLOOR_SQUASH * (1 + at * .6), () => edgeFill(null, y, amp * 2, salt, f.scroll * k, bandTop(n + 1)));
-  });
   if (sc.floor === 'grass' || sc.floor === 'asphalt') lipTufts(f);
+}
+
+/** 앞쪽 바닥 띠 n: 가까울수록 진하고 빨리 지나간다 */
+function groundBand(f, n) {
+  const { sc, p, g, s } = f, [at, dark, salt] = GROUND_LAYERS[n];
+  const amp = sc.indoor ? 0 : 1, y = g + (H - g) * at, k = 1 + at;
+  paper(() => edgeFill(mix(p.ground, p.ink, dark), y, amp * 2, salt, f.scroll * k, bandTopOf(f, n + 1)), .9);
+  if (sc.floor) lay(sc.floor, s * k, -f.scroll * k, y, FLOOR_SQUASH * (1 + at * .6), () => edgeFill(null, y, amp * 2, salt, f.scroll * k, bandTopOf(f, n + 1)));
+}
+
+const BAND_PAD = 14, TUFT_PAD_CM = 6;
+/** 벽과 바닥: 구워 둔 띠 그림을 스크롤만큼 밀어 찍는다 */
+function drawGround(f) {
+  const { sc, g, s, v } = f, key = `${palKeyOf(f)}|${s}|${g}`;
+  const y0 = sc.indoor || sc.wall ? 0 : Math.max(0, g - TUFT_PAD_CM * s - BAND_PAD);
+  stripBlit(`body|${v.scene}`, key, f.scroll, y0, H - y0, (o0) => groundBody(scrollFrame(f, o0)));
+  liveWalls(f);
+  GROUND_LAYERS.forEach(([at], n) => {
+    const k = 1 + at, y = g + (H - g) * at - BAND_PAD;
+    stripBlit(`band${n}|${v.scene}`, key, f.scroll * k, y, H - y, (o0) => groundBand(scrollFrame(f, o0 / k), n));
+  });
 }
 
 /** 땅 끝선에 삐죽 솟은 풀포기 (가까이 보는 작은 동물에게는 숲처럼 보인다) */
@@ -156,7 +176,7 @@ function drawItems(f) {
       if (!it || Math.max(it.w, it.h) * s < 1.5) continue;
       const x = (i * b.cell + hash(i, salt + 2) * b.cell * .7 - v.camX) * s;
       if (x > W || x + it.w * s < 0) continue;
-      paper(() => it.d(x, g, s, hash(i, salt + 3), t), b.k === 's' ? .35 : 1);
+      itemSprite(f, list[Math.floor(hash(i, salt + 1) * list.length)], it, x, hash(i, salt + 3), b.k === 's' ? .35 : 1);
     }
   });
 }
@@ -167,7 +187,14 @@ function drawProp(f) {
   if (!it) return;
   const x = (v.propX - v.camX) * s;
   if (x > W || x + it.w * s < 0) return;
-  paper(() => it.d(x, g, s, .5, t), 1.1);
+  itemSprite(f, v.prop, it, x, .5, 1.1);
+}
+
+/** 사물 하나를 그림자째 구워 두고 찍는다 (사물은 시간에 따라 변하지 않는다) */
+function itemSprite(f, name, it, x, r, strength) {
+  const { s, g, t } = f, padX = 24 + it.w * s * .3, padT = 24 + it.h * s * .3;
+  const box = [padX, padT, it.w * s + padX * 2, it.h * s + padT + 24];
+  spriteDraw(`${name}|${r}|${s}|${palKeyOf(f)}|${strength}`, x, g, box, (ox, oy) => paper(() => it.d(ox, oy, s, r, t), strength));
 }
 
 const KILLER_POP_MS = 240;
@@ -267,8 +294,8 @@ function fgTuft(x, y, hgt, c, i) {
 function drawForeground(f) {
   const { sc } = f;
   if (!FG[sc.fg]) return;
-  const fh = clamp(H * .08, 26, 70);
-  paper(() => FG[sc.fg](f, f.scroll * PARALLAX.fg, fh), 1.4);
+  const fh = clamp(H * .08, 26, 70), y0 = H - fh * 2.4;
+  stripBlit(`fg|${f.v.scene}`, `${palKeyOf(f)}|${fh}`, f.scroll * PARALLAX.fg, y0, H - y0, (o0) => paper(() => FG[sc.fg](f, o0, fh), 1.4));
 }
 
 function drawGlow(f) {
@@ -324,12 +351,18 @@ function rainRipples(f) {
   ctx.stroke();
 }
 
+/** 가장자리를 어둡게: 한 번 그려 둔 그림을 찍는다 */
 function drawVignette() {
-  if (!vignette) {
-    vignette = ctx.createRadialGradient(W / 2, H * .45, Math.min(W, H) * .35, W / 2, H * .45, Math.max(W, H) * .75);
-    vignette.addColorStop(0, 'rgba(30,20,45,0)'); vignette.addColorStop(1, 'rgba(30,20,45,.28)');
+  const d = dprNow();
+  if (!vignette || vignette.width !== Math.ceil(W * d) || vignette.height !== Math.ceil(H * d)) {
+    vignette = makeLayer(W, H, d);
+    bake(vignette, W, 0, d, () => {
+      const gr = ctx.createRadialGradient(W / 2, H * .45, Math.min(W, H) * .35, W / 2, H * .45, Math.max(W, H) * .75);
+      gr.addColorStop(0, 'rgba(30,20,45,0)'); gr.addColorStop(1, 'rgba(30,20,45,.28)');
+      ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
+    });
   }
-  ctx.fillStyle = vignette; ctx.fillRect(0, 0, W, H);
+  ctx.drawImage(vignette, 0, 0, W, H);
 }
 
 function drawTracker(f, sp) {
@@ -362,7 +395,7 @@ function frameFor(v0, s, g) {
   return { sc, p, t: makeTone(p), s, g, v, scroll: v.camX * s };
 }
 
-const drawPlace = (f) => { drawSky(f); drawFar(f); drawWalls(f); drawCeiling(f); drawGround(f); drawItems(f); drawProp(f); drawCast(f); };
+const drawPlace = (f) => { drawSky(f); drawFar(f); drawGround(f); drawCeiling(f); drawItems(f); drawProp(f); drawCast(f); };
 
 /* 장소가 바뀌면 화면을 새로 시작하지 않고, 걸어가는 동안 오른쪽에서 다음 장소가
    찢은 종이 이음선과 함께 이어 붙어 들어온다. v.trans = { prev: 이전 장소 상태, boundaryX: 이음선의 월드 위치(cm) } */

@@ -61,110 +61,91 @@
   }
 
   /* ───── 개 ───── */
-  /** 다리 하나: 엉덩이/어깨(hx, hy)에서 땅까지. 굵고 짧은 강아지 다리. back이면 오금이 뒤로 꺾인다 */
-  function dogLeg(hx, hy, ang, c, paw, back, t) {
-    at(hx, hy, () => {
-      ctx.rotate(ang);
-      const len = -hy;
-      blob(back ? [[-4.4, -2], [3.6, -2], [1.6, len * .5], [2.4, len - 2.6], [-2.2, len - 2.6], [-3.6, len * .55]]
-        : [[-3, -2], [3.2, -2], [2.8, len * .6], [2.6, len - 2.6], [-2.2, len - 2.6], [-2.8, len * .6]], c);
-      blob([[-2.8, len - 3.6], [2.4, len - 3.8], [4.8, len - 1.4], [4.2, len], [-3, len]], paw);
-      faded(.45, () => [.6, 2.2].forEach((x) => L(x, len - .3, x + .3, len - 1.8, t(INK), .32)));
-    });
+  /* 복슬이 그림체: 오래 떠돌며 길게 자라 뭉친 털을 동글동글한 털뭉치로 그린다. 길고양이 주인공과 같은 비율(큰 머리, 짧은 다리) */
+  /** 타원 둘레에 털뭉치(작은 원)를 n개 붙인다 */
+  /* 털뭉치는 한 경로로 모아 한 번에 칠한다. 원마다 따로 칠하면 종이 그림자가 겹쳐 비쳐 보인다 */
+  function puffPath(cx, cy, rx, ry, n, r) {
+    for (let i = 0; i < n; i++) { const a = (i / n) * TAU, x = cx + Math.cos(a) * rx, y = cy + Math.sin(a) * ry; ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, TAU); }
   }
+  function puffs(cx, cy, rx, ry, n, r, c) { ctx.fillStyle = c; ctx.beginPath(); puffPath(cx, cy, rx, ry, n, r); ctx.fill(); }
+  /** 털뭉치로 둘러싼 몸통 한 덩어리 */
+  function fluff(cx, cy, rx, ry, n, r, c) {
+    ctx.fillStyle = c; ctx.beginPath(); puffPath(cx, cy, rx, ry, n, r);
+    ctx.moveTo(cx + rx, cy); ctx.ellipse(cx, cy, rx, ry + r * .2, 0, 0, TAU); ctx.fill();
+  }
+  /** 그림자 없이 겹쳐 칠하는 무늬(그늘·하이라이트) */
+  const flat = (draw) => { ctx.save(); ctx.shadowColor = 'transparent'; draw(); ctx.restore(); };
 
-  /** 들개 한 마리(몸길이 약 55cm). o: { moving, fold 접힌 귀(false면 선 귀), collar 낡은 목줄, mouth 'open'|'growl', look 고개 숙임, scar, sleepy } */
+  /** 들개 한 마리(몸길이 약 55cm). o: { moving, fold 늘어진 귀(false면 조금 선 귀), collar 낡은 목줄, mouth 'open'|'growl', look 고개 숙임, scar, sleepy } */
   function drawDog(time, t, coat, o = {}) {
-    const fur = t(coat.fur), dark = t(coat.dark), cream = t(coat.cream), w = o.moving ? time * 11 : 0;
-    const bob = o.moving ? Math.abs(Math.sin(w)) * 1.3 : Math.sin(time * 2) * .35;
-    const swing = (ph) => (o.moving ? Math.sin(w + ph) * .45 : 0);
-    const up = (pts) => pts.map(([x, y]) => [x, y - bob]);
-    // 꼬리: 등 위로 동그랗게 말려 올라간다. 가만히 있어도 살랑
-    at(-20, -32 - bob, () => {
-      ctx.rotate(Math.sin(time * (o.moving ? 14 : 6)) * .25);
-      curve([[0, 0], [-6, -4], [-8.6, -11], [-5.6, -17], [-.6, -16]], dark, 7.6);
-      curve([[0, 0], [-5.6, -4.4], [-8, -11], [-5.2, -16.4]], fur, 6.2);
-      E(-1.6, -16.6, 3.2, 2.8, cream);
+    const fur = t(coat.fur), dark = t(coat.dark), w = o.moving ? time * 10 : 0;
+    const bob = o.moving ? Math.abs(Math.sin(w)) * 1.4 : Math.sin(time * 2) * .45;
+    const wag = Math.sin(time * (o.moving ? 12 : 5)) * 2.4;
+    // 꼬리: 엉덩이 위 동그란 털뭉치. 살랑살랑
+    E(-25 + wag, -36 - bob, 7, 7, fur); faded(.45, () => E(-26.5 + wag, -38.5 - bob, 3.4, 2.6, t(lite(coat.fur, .35))));
+    [[-15, 0], [-6, Math.PI], [9, Math.PI], [16, 0]].forEach(([lx, ph], i) => {
+      const x = lx + Math.sin(w + ph) * 3 - 4.2;
+      RR(x, -12.5, 8.5, 12.5, 4.2, i % 2 ? fur : dark);
+      E(x + 4.6, -1.3, 4.4, 1.7, t(i % 2 ? lite(coat.fur, .2) : coat.fur));
     });
-    dogLeg(-13, -23 - bob, swing(Math.PI), dark, dark, true, t);
-    dogLeg(16, -23 - bob, swing(0), dark, t(shade(coat.dark)), false, t);
-    const body = up([[-24, -31], [-14, -37.5], [2, -37], [14, -36], [21, -30], [18, -20.5], [6, -18], [-8, -18.5], [-20, -20.5], [-26, -25.5]]);
-    blob(body, fur);
-    inside(body, () => {
-      E(-4, -41 - bob, 22, 6.4, dark);
-      E(2, -14.5 - bob, 18, 5, cream);
-    });
-    const haunch = up([[-24, -30], [-16, -34], [-9, -29], [-10, -21], [-20, -20.5]]);
-    blob(haunch, fur);
-    inside(haunch, () => E(-12, -21 - bob, 9, 5, dark));
-    blob(up([[13, -35], [21, -30.5], [20.4, -21.5], [15.6, -18.6], [11.6, -26]]), cream);
-    [[13.6, -19.4], [16.4, -18.4], [19.2, -19.6]].forEach(([x, y]) => P([[x - 1.3, y - bob - 1], [x, y - bob + 1.3], [x + 1.3, y - bob - 1]], cream));
-    dogLeg(-17, -22 - bob, swing(0), fur, fur, true, t);
-    dogLeg(12, -22 - bob, swing(Math.PI), fur, cream, false, t);
-    drawDogHead(time, t, coat, o, 26, -46 - bob);
+    fluff(0, -24 - bob, 21, 11, 12, 6.2, fur);
+    flat(() => faded(.3, () => E(2, -16.5 - bob, 15, 3.6, t(shade(coat.fur)))));
+    flat(() => faded(.5, () => E(-5, -31.5 - bob, 11, 3, t(lite(coat.fur, .3)))));
+    if (o.collar) collar(time, t, 20, -42 - bob);
+    drawDogHead(time, t, coat, o, 20, -42 - bob);
   }
 
+  /** 머리(지름 약 28cm). (hx0, hy0)는 머리 가운데 */
   function drawDogHead(time, t, coat, o, hx0, hy0) {
     const fur = t(coat.fur), dark = t(coat.dark), cream = t(coat.cream);
-    if (o.neck !== false) blob([[hx0 - 14, hy0 + 12], [hx0 - 10, hy0], [hx0 - 2, hy0 - 2], [hx0 + 4, hy0 + 8], [hx0 - 4, hy0 + 17]], fur);
-    if (o.collar) collar(time, t, hx0, hy0);
+    const twitch = Math.sin(time * 1.7) > .93 ? .16 : 0, perk = o.fold === false ? -.25 : 0;
     at(hx0, hy0 + (o.look || 0), () => {
-      ctx.rotate(Math.sin(time * 1.3) * .04 + (o.look ? .22 : 0));
-      const twitch = Math.sin(time * 1.7) > .93 ? -.22 : 0;
-      at(-5, -6.5, () => { ctx.rotate(-.18); blob([[-4, 1], [-3, -10], [0, -12.6], [3, -2]], dark); blob([[-2.2, 0], [-1.6, -7.2], [.2, -9.2], [1.6, -1.6]], t(coat.ear)); });
-      E(0, 0, 12, 10.8, fur);
-      inside([[-12, -1], [-8, -9], [0, -11], [9, -8], [12, 0], [8, 9], [-6, 10]], () => blob([[-11, -2], [-7, -8.6], [0, -10.6], [-2, -7], [-8, -2]], t(lite(coat.fur, .18))));
-      [[-11.4, 2], [-12, 5.4], [-10.4, 8]].forEach(([x, y]) => P([[x + 1.6, y - 1.6], [x - 1.4, y], [x + 1.8, y + 1.4]], fur));
-      blob([[0, 5], [5, 2.6], [10, 4.4], [8, 9.6], [2, 9.4]], cream);
-      blob([[4, -1.4], [11.6, -2.2], [15.2, .8], [14.8, 5.4], [8.4, 7.4], [4.2, 5.6]], cream);
-      faded(.35, () => E(10, 6.4, 4, 1.2, t(shade(coat.cream))));
-      blob([[12.6, -1.8], [15.8, -1.2], [16.3, 1.6], [14, 2.8], [12.4, 1]], t(INK));
-      E(14, -1.1, .85, .45, WHITE);
-      if (o.mouth === 'growl') growl(t);
-      else if (o.mouth === 'open') { blob([[9, 5.2], [14, 4.6], [12.8, 8.8], [9.8, 9.2]], t('#7a3b48')); E(11.2, 8.6, 1.7, 1.9, t('#ff8fa3')); L(11.2, 7.4, 11.2, 9.4, t('#e66f86'), .3); }
-      else { ctx.strokeStyle = t(INK); ctx.lineWidth = .45; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(14, 2.8); ctx.lineTo(13.8, 4.2); ctx.quadraticCurveTo(12.2, 5.6, 10.4, 4.8); ctx.stroke(); }
-      if (o.sleepy) shutEye(5, -1.6, 2, t); else cuteEye(5.2, -2, 2.2, 2.5, time, t);
-      E(4.6, -6.4, 1.5, .85, cream);
-      blush(6.6, 3.6, 2.2, 1.2);
-      if (o.scar) { L(7, -9, 11, -2.6, t('#f2d6c4'), .9); L(8, -6.6, 10, -7, t('#f2d6c4'), .6); }
-      at(1.6, -8, () => {
-        ctx.rotate(twitch);
-        if (o.fold === false) { blob([[-3, 1], [-.4, -10.6], [3, -12], [4.8, 0]], fur); blob([[-1.2, 0], [.6, -7.6], [2.6, -8.2], [3, -.6]], t(coat.ear)); faded(.5, () => L(-1.6, -1, .2, -9.6, t(lite(coat.fur, .4)), .5)); return; }
-        blob([[-3, 1.2], [-1.4, -6.6], [2.4, -10], [5.4, -6.4], [3.6, -.4]], fur);
-        blob([[.8, -9.2], [4.4, -11], [9.6, -8.4], [9.4, -5.2], [6, -5.8]], dark);
-        faded(.7, () => curve([[1.2, -8.8], [4.2, -10.2], [8, -8.6]], t(lite(coat.fur, .45)), .5));
-      });
+      ctx.rotate(Math.sin(time * 1.3) * .04 + (o.look ? .18 : 0));
+      at(5, -7.5, () => { ctx.rotate(-.35 + perk); E(0, 7.5, 4.5, 9.4, dark); });
+      fluff(0, 0, 13, 12, 10, 5, fur);
+      flat(() => faded(.4, () => E(-4, -6, 6, 3, t(lite(coat.fur, .35)))));
+      E(7.5, 6.2, 8, 5.6, cream);
+      flat(() => faded(.35, () => E(8, 10, 5.5, 1.4, t(shade(coat.cream)))));
+      if (o.sleepy) { shutEye(-1.9, .4, 2.2, t); shutEye(8.8, -.2, 2.2, t); }
+      else { cuteEye(-1.9, 0, 2.7, 2.4, time, t); cuteEye(8.8, -.6, 2.7, 2.4, time, t); }
+      // 앞머리: 눈썹 위를 덮은 털뭉치
+      puffs(1.2, -8.8, 7.5, 1.9, 6, 4.2, fur);
+      if (o.mouth === 'growl') [[-4.5, -4.6], [6, -5.2]].forEach(([x, y], i) => L(x, y + (i ? 0 : -1), x + 3.6, y + (i ? -1 : 0), t(INK), .7));
+      at(-10, -5, () => { ctx.rotate(.3 + twitch - perk); E(0, 8.7, 5.6, 11.2, dark); faded(.4, () => E(-1.4, 6, 1.8, 6, t(lite(coat.dark, .25)))); });
+      blush(-5.6, 6.4, 2.7, 1.7);
+      E(13.1, 3.7, 2.5, 1.9, t(INK)); E(12.4, 3, .8, .5, WHITE);
+      if (o.mouth === 'growl') {
+        E(9.6, 9.6, 3.8, 2.2, t('#5a2a36'));
+        [[7.4, 8.2], [9.6, 8], [11.8, 8.2]].forEach(([x, y]) => P([[x - .8, y], [x + .8, y], [x, y + 1.7]], WHITE));
+      } else if (o.mouth === 'open') { E(9.6, 9.2, 2.6, 1.6, t('#7a3b48')); E(9.8, 10.6, 1.8, 2.3, t('#ff8fa3')); }
+      else { ctx.strokeStyle = t(INK); ctx.lineWidth = .5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(13, 5.4); ctx.quadraticCurveTo(11.8, 7.4, 9.8, 6.8); ctx.stroke(); }
+      if (o.scar) { L(4.6, -6, 8.6, -1, t('#f2d6c4'), .9); L(5.6, -3.8, 7.8, -4.4, t('#f2d6c4'), .6); }
     });
   }
 
-  function growl(t) {
-    blob([[7.6, 4.2], [14, 3.6], [13, 8], [8.6, 8.4]], t('#5a2a36'));
-    [[8.6, 4.4], [10.4, 4.3], [12.2, 4.1]].forEach(([x, y]) => P([[x - .7, y], [x + .7, y], [x, y + 1.6]], WHITE));
-    [[9.4, 8.2], [11.6, 8]].forEach(([x, y]) => P([[x - .6, y], [x + .6, y], [x, y - 1.3]], WHITE));
-    [[3, -3.6], [5.6, -4.4]].forEach(([x, y]) => L(x, y, x + 2.2, y + 1, t(INK), .5));
-  }
-
-  /** 엄마 목의 낡은 빨간 목줄: 버클은 녹슬고, 끊어진 끝이 달랑거린다 */
+  /** 엄마 목의 낡은 빨간 목줄: 털 속에 반쯤 묻히고, 버클은 녹슬고, 끊어진 끝이 달랑거린다 */
   function collar(time, t, hx0, hy0) {
-    const x = hx0 - 7, y = hy0 + 8;
+    const x = hx0 - 9, y = hy0 + 12;
     curve([[x - 5.6, y - 2.4], [x, y + 1.2], [x + 6, y - 1.4]], t('#a8424a'), 3);
     curve([[x - 5.2, y - 3], [x, y + .4], [x + 5.6, y - 2]], t('#d9585f'), 1.1);
     RR(x - 1.4, y - 1.4, 2.8, 3.2, .6, t('#b8a27a')); L(x - 1.4, y + .2, x + 1.4, y + .2, t('#8a5a32'), .4);
     at(x, y + 1.8, () => { ctx.rotate(Math.sin(time * 2.2) * .2); curve([[0, 0], [.6, 3], [-.4, 5.6]], t('#c24b52'), 1.5); [-.4, .4].forEach((dx) => L(dx - .4, 5.4, dx - .9, 7, t('#c24b52'), .4)); });
   }
 
-  /** 둥글게 말고 자는 강아지/개 (길이 약 34cm × k). 숨쉬며 오르내린다 */
+  /** 둥글게 말고 자는 강아지/개 (길이 약 34cm × k). 털뭉치 빵처럼, 숨쉬며 오르내린다 */
   function curledDog(time, t, coat, k, seed) {
     const br = 1 + Math.sin(time * 1.6 + seed * 2) * .035, fur = t(coat.fur), cream = t(coat.cream);
     ctx.save(); ctx.scale(k, k * br);
-    blob([[-16, -1], [-15, -10], [-6, -16], [6, -15], [14, -9], [15, -1]], fur);
-    inside([[-16, -1], [-15, -10], [-6, -16], [6, -15], [14, -9], [15, -1]], () => { E(-4, -17, 16, 5, t(coat.dark)); E(0, 1, 16, 3, t(shade(coat.fur))); });
-    curve([[-14, -2], [-9, -4], [-2, -3]], t(coat.dark), 5); E(-2, -3.2, 2.6, 2.2, cream);
-    E(8, -8, 7.4, 6.4, fur);
-    blob([[11, -8], [16.4, -6.8], [16, -3], [10.6, -2.6]], cream); E(16.2, -6, 1.1, .9, t(INK));
-    blob([[3, -11], [6, -14.6], [9, -12.6], [6.6, -9.4]], t(coat.dark));
-    shutEye(9.6, -8.6, 1.3, t);
-    blush(11, -5.6, 1.5, .9);
+    E(-16, -6, 5, 5, fur);
+    fluff(-1, -8, 14, 6.5, 10, 4.4, fur);
+    flat(() => faded(.3, () => E(0, -2, 13, 2.6, t(shade(coat.fur)))));
+    fluff(9, -9, 7, 6.2, 8, 3.2, fur);
+    E(13, -6.4, 4.4, 3.2, cream);
+    at(4, -10, () => { ctx.rotate(.5); E(0, 4, 3, 5.6, t(coat.dark)); });
+    shutEye(9.6, -9.6, 1.5, t);
+    puffs(8.6, -14.4, 4, 1.2, 5, 2.4, fur);
+    E(16.4, -7.4, 1.3, 1, t(INK));
+    blush(10.6, -5.6, 1.6, 1);
     ctx.restore();
   }
 
@@ -562,13 +543,12 @@
   /* ───── 큰 그림 (길어서 따로 둔다) ───── */
   function lyingDog(time, t, coat, seed) {
     const br = Math.sin(time * 1.5 + seed) * .4, fur = t(coat.fur), cream = t(coat.cream);
-    curve([[-24, -4], [-32, -6], [-36, -2 + Math.sin(time * 3 + seed) * 1.5]], fur, 5);
-    const body = [[-28, 0], [-28, -12], [-16, -20 - br], [6, -20 - br], [18, -14], [20, 0]];
-    blob(body, fur);
-    inside(body, () => { E(-6, -24 - br, 24, 6, t(coat.dark)); E(0, 2, 22, 4, t(shade(coat.fur))); });
-    E(-18, -8, 9, 7, fur); curve([[-14, -2], [-4, -1], [2, -1]], t(shade(coat.fur)), 4.6);
-    [[14, -1.6], [22, -1.4]].forEach(([x, y]) => { curve([[x - 8, y], [x + 4, y]], fur, 4.4); E(x + 5, y + .4, 3, 2, cream); });
-    at(-4, 4 - br * .5, () => drawDogHead(time + seed, t, coat, { sleepy: seed > 1, fold: seed < 1 }, 24, -24));
+    E(-30, -7 + Math.sin(time * 3 + seed) * 1.2, 6, 6, fur);
+    [[12, -2], [22, -2]].forEach(([x, y]) => { RR(x - 8, y - 3, 13, 6, 3, fur); E(x + 5, y + .6, 3.2, 2, cream); });
+    fluff(-6, -11 - br * .5, 22, 9, 12, 5.4, fur);
+    flat(() => faded(.3, () => E(-4, -3, 20, 3, t(shade(coat.fur)))));
+    flat(() => faded(.45, () => E(-12, -18 - br, 10, 2.6, t(lite(coat.fur, .3)))));
+    at(0, 2 - br * .5, () => drawDogHead(time + seed, t, coat, { sleepy: seed > 1, fold: seed < 1 }, 22, -22));
   }
 
   function silhouetteHowl(t) {

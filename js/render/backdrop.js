@@ -7,6 +7,8 @@ const CLOUD_DRIFT = 3;   // px/초, 왼쪽으로
 const LIT = '#ffd88a', STORE_LIT = '#fff1cf', LAMP = '#fff0c4';
 const SIGNS = Object.freeze(['#e6765f', '#5fa39a', '#f0c27a', '#5f8fb0', '#f4f1ea', '#c97b9c']);
 const STARS = Array.from({ length: 70 }, (_, i) => ({ x: hash(i, 1), y: hash(i, 2) * .7, r: .6 + hash(i, 3) * 1.1, p: hash(i, 4) * TAU }));
+/* 먼 풍경 띠 그림의 최대 해상도 배율: 먼 층은 원래 흐릿해서 레티나에서도 1.5배면 충분하고 메모리를 아낀다 */
+const FAR_RES_MAX = 1.5;
 const MACRO_FROM = 6, MACRO_RANGE = 30, MACRO_HAZE = .45;
 let W = 0, H = 0;
 const mod = (a, m) => ((a % m) + m) % m;
@@ -14,25 +16,40 @@ const mod = (a, m) => ((a % m) + m) % m;
 /* ── 하늘 ── */
 function drawSky(f) {
   const { sc, p, g, v } = f;
-  const gr = ctx.createLinearGradient(0, 0, 0, sc.indoor ? H : g);
-  gr.addColorStop(0, p.skyTop); gr.addColorStop(1, p.skyBottom);
-  ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
+  skyGradient(f);
   if (sc.indoor) return;
   if (v.night) {
     STARS.forEach((st) => { ctx.globalAlpha = .45 + .4 * Math.sin(v.t * 1.3 + st.p); E(st.x * W, st.y * g, st.r, st.r, '#fff6dc'); });
     ctx.globalAlpha = 1;
   }
-  drawSun(f);
+  const r = Math.min(W, H) * .05, pad = r * 2 + 12;
+  spriteDraw(`sun|${p.sun}|${p.skyBottom}|${v.night}|${r}`, W * .8, g * .28, [pad, pad, pad * 2, pad * 2], (x, y) => drawSun(f, x, y, r));
   for (let i = 0; i < 4; i++) {
-    const k = 1 - i * .16, cy = g * (.12 + .085 * i);
-    const cx = mod(i * W * .37 + 90 - f.scroll * PARALLAX.cloud * (1 + i * .4) - v.t * CLOUD_DRIFT * k, W + 360) - 180;
-    paper(() => cloud(cx, cy, k * (i % 2 ? .8 : 1), p.cloud, p.cloudShade), .45);
+    const k = (1 - i * .16) * (i % 2 ? .8 : 1), cy = g * (.12 + .085 * i);
+    const cx = mod(i * W * .37 + 90 - f.scroll * PARALLAX.cloud * (1 + i * .4) - v.t * CLOUD_DRIFT * (1 - i * .16), W + 360) - 180;
+    spriteDraw(`cloud|${k}|${p.cloud}|${p.cloudShade}`, cx, cy, [90 * k + 16, 60 * k + 16, 180 * k + 32, 76 * k + 32], (x, y) => paper(() => cloud(x, y, k, p.cloud, p.cloudShade), .45));
   }
 }
 
+let skyLayer = null;
+/** 하늘 그러데이션: 장면·밤낮·화면 크기가 같으면 한 번 그린 것을 그대로 찍는다 */
+function skyGradient(f) {
+  const { sc, p, g } = f, d = dprNow(), key = `${p.skyTop}|${p.skyBottom}|${sc.indoor}|${g}|${W}|${H}|${d}`;
+  if (!skyLayer || skyLayer.key !== key) {
+    const c = makeLayer(W, H, d);
+    bake(c, W, 0, d, () => {
+      const gr = ctx.createLinearGradient(0, 0, 0, sc.indoor ? H : g);
+      gr.addColorStop(0, p.skyTop); gr.addColorStop(1, p.skyBottom);
+      ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
+    });
+    skyLayer = { key, c };
+  }
+  ctx.drawImage(skyLayer.c, 0, 0, W, H);
+}
+
 /** 해(밤에는 달): 종이 원 세 겹 */
-function drawSun(f) {
-  const { p, g, v } = f, r = Math.min(W, H) * .05, x = W * .8, y = g * .28;
+function drawSun(f, x, y, r) {
+  const { p, v } = f;
   ctx.globalAlpha = .22; E(x, y, r * 1.75, r * 1.75, p.sun);
   ctx.globalAlpha = .35; E(x, y, r * 1.35, r * 1.35, p.sun);
   ctx.globalAlpha = 1;
@@ -62,29 +79,33 @@ function drawFar(f) {
   const { sc, p, g, s } = f;
   const cfg = FAR[sc.far];
   if (!cfg) return;
-  const hz = hazeOf(s);
+  const hz = hazeOf(s), key = `${f.v.scene}|${f.v.night}|${p.far1}|${hz}|${g}`;
   const fade = (c, extra) => mix(c, p.skyBottom, Math.min(.85, hz + extra));
-  ridge(f, f.scroll * PARALLAX.ridge, g * .34, fade(p.far1, .42), fade(p.far1, .3));
-  farLayer(f, cfg.a, f.scroll * PARALLAX.far1, g * cfg.a.h, fade(p.farA, 0), 0);
-  farLayer(f, cfg.b, f.scroll * PARALLAX.far2, g * cfg.b.h, fade(p.farB, 0), 1);
-  if (cfg.near) cfg.near(f, f.scroll * PARALLAX.near, fade(mix(p.farB, p.ink, .3), hz * .3));
+  const res = Math.min(dprNow(), FAR_RES_MAX);
+  const strip = (name, off, y0, draw) => { const top = Math.max(0, y0); stripBlit(`${name}|${f.v.scene}`, key, off, top, g + 6 - top, draw, res); };
+  const maxR = g * .34;
+  [[fade(p.far1, .42), 1, 0], [fade(p.far1, .3), .7, 1.7]].forEach(([c, k, ph]) => {
+    strip(`ridge${ph}`, f.scroll * PARALLAX.ridge * (1 + ph * .2), g - maxR * k * 1.05 - 8, (o) => ridgeLayer(f, o, maxR, c, k, ph));
+  });
+  [[cfg.a, PARALLAX.far1, fade(p.farA, 0), 0], [cfg.b, PARALLAX.far2, fade(p.farB, 0), 1]].forEach(([L, k, c, li]) => {
+    strip(`far${li}`, f.scroll * k, g - g * L.h - 50, (o) => farLayer(f, L, o, g * L.h, c, li));
+  });
+  if (cfg.near) strip('near', f.scroll * PARALLAX.near, g * .2 - 30, (o) => cfg.near(f, o, fade(mix(p.farB, p.ink, .3), hz * .3)));
 }
 
-/** 도시를 둘러싼 먼 산 두 겹 (찢은 종이 능선) */
-function ridge(f, off, maxH, back, front) {
+/** 도시를 둘러싼 먼 산 한 겹 (찢은 종이 능선). off는 이 능선의 스크롤 px */
+function ridgeLayer(f, off, maxH, c, k, ph) {
   const { g } = f;
-  [[back, 1, 0], [front, .7, 1.7]].forEach(([c, k, ph]) => {
-    ctx.fillStyle = c;
-    paper(() => {
-      ctx.beginPath(); ctx.moveTo(-10, g);
-      for (let x = -10; x <= W + 12; x += 12) {
-        const X = (x + off * (1 + ph * .2)) / (1 + ph * .3);
-        const y = g - maxH * k * (.55 + .28 * Math.sin(X / 310 + ph) + .14 * Math.sin(X / 97 + 1 + ph) + .04 * Math.sin(X / 23));
-        ctx.lineTo(x, y + (hash(Math.floor(X / 12), 5 + ph) - .5) * 2.4);
-      }
-      ctx.lineTo(W + 12, g); ctx.closePath(); ctx.fill();
-    }, .35);
-  });
+  ctx.fillStyle = c;
+  paper(() => {
+    ctx.beginPath(); ctx.moveTo(-10, g);
+    for (let x = -10; x <= W + 12; x += 12) {
+      const X = (x + off) / (1 + ph * .3);
+      const y = g - maxH * k * (.55 + .28 * Math.sin(X / 310 + ph) + .14 * Math.sin(X / 97 + 1 + ph) + .04 * Math.sin(X / 23));
+      ctx.lineTo(x, y + (hash(Math.floor(X / 12), 5 + ph) - .5) * 2.4);
+    }
+    ctx.lineTo(W + 12, g); ctx.closePath(); ctx.fill();
+  }, .35);
 }
 
 function farLayer(f, cfg, off, maxH, color, li) {
@@ -403,15 +424,21 @@ function gasPipe(f, x, top) {
 
 /** 식당 환풍기: 기름때 낀 사각 틀과 천천히 도는 날개 */
 function exhaustFan(f, cx, cy) {
-  const { p, s, v } = f;
+  const { p, s } = f;
   paper(() => RR(cx - 38 * s, cy - 38 * s, 76 * s, 76 * s, 6 * s, shade(p.wall)), .7);
+  fanBlades(f, cx, cy);
+  ctx.fillStyle = rgba(p.ink, .2);
+  curvy([[cx - 30 * s, cy + 38 * s], [cx + 30 * s, cy + 38 * s], [cx + 22 * s, cy + 70 * s], [cx + 10 * s, cy + 52 * s], [cx, cy + 95 * s], [cx - 12 * s, cy + 55 * s], [cx - 26 * s, cy + 64 * s]], ctx.fillStyle);   // 흘러내린 기름때
+}
+
+/** 환풍기 안쪽: 어두운 구멍, 천천히 도는 날개, 축 */
+function fanBlades(f, cx, cy) {
+  const { p, s, v } = f;
   E(cx, cy, 30 * s, 30 * s, p.ink);
   ctx.save(); ctx.translate(cx, cy); ctx.rotate(v.t * 2.2);
   for (let k = 0; k < 4; k++) { ctx.rotate(TAU / 4); E(14 * s, 0, 13 * s, 5 * s, mix(p.wallShade, p.ink, .3)); }
   ctx.restore();
   E(cx, cy, 5 * s, 5 * s, p.wallShade);
-  ctx.fillStyle = rgba(p.ink, .2);
-  curvy([[cx - 30 * s, cy + 38 * s], [cx + 30 * s, cy + 38 * s], [cx + 22 * s, cy + 70 * s], [cx + 10 * s, cy + 52 * s], [cx, cy + 95 * s], [cx - 12 * s, cy + 55 * s], [cx - 26 * s, cy + 64 * s]], ctx.fillStyle);   // 흘러내린 기름때
 }
 
 function windowGrid(f, x, w, hh, i, o) {
@@ -515,6 +542,19 @@ function curtainPanel(x, y, w, h, c) {
   R(x, y, w, h, c);
   for (let k = 0; k < 4; k++) R(x + (k + .5) * w / 4, y, w / 9, h, shade(c));
   R(x, y + h * .52, w, h * .04, mix(c, '#ffffff', .3));
+}
+
+/** 굽지 않고 매 프레임 그리는 벽의 움직이는 것: 식당 환풍기 날개 */
+function liveWalls(f) {
+  const { sc, s, g, v } = f;
+  if (sc.indoor || !sc.wall || sc.wall.style !== 'concrete') return;
+  const seg = 1100, i0 = Math.floor(v.camX / seg) - 1, i1 = Math.floor((v.camX + W / s) / seg) + 1;
+  if (i1 - i0 > 120) return;
+  for (let i = i0; i <= i1; i++) {
+    const cx = (i * seg - v.camX) * s + 420 * s;
+    if (cx + 40 * s < 0 || cx - 40 * s > W) continue;
+    fanBlades(f, cx, g - 260 * s);
+  }
 }
 
 function drawWalls(f) {
