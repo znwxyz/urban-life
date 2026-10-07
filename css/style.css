@@ -120,6 +120,23 @@ button { font: inherit; color: inherit; }
 .species b { font-size: 28px; font-weight: 400; }
 .species small { font-family: var(--f-small); font-size: 11px; color: var(--dim); }
 .species:hover, .species:focus-visible { translate: 0 -4px; outline: none; }
+/* 홈 화면 버튼들과 제작자 응원 쪽지 */
+.home-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.support-toggle {
+  border: 0; cursor: pointer; padding: 8px 16px 7px; background: var(--pink); color: var(--paper); rotate: 1.2deg;
+  transition: background .12s, translate .12s;
+}
+.support-toggle:hover, .support-toggle:focus-visible { background: var(--pink-deep); translate: 0 -2px; outline: none; }
+.support {
+  width: min(420px, calc(100vw - 32px)); background: var(--paper); clip-path: var(--deckle); padding: 16px 18px 14px; rotate: .8deg;
+  display: flex; flex-direction: column; gap: 10px; filter: drop-shadow(0 4px 0 rgba(59, 48, 73, .28));
+}
+.support p { margin: 0; line-height: 1.6; }
+.support-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.support-link { flex: 1 1 140px; text-align: center; text-decoration: none; padding: 10px 12px 9px; color: var(--ink); transition: translate .12s; }
+.support-link:hover, .support-link:focus-visible { translate: 0 -2px; outline: 2px solid var(--ink); }
+.support-link.toss { background: #d6e6ff; }
+.support-link.kakaopay { background: #ffe680; }
 /* 홈 화면 방명록 모아보기 */
 .picker { overflow-y: auto; }
 .wall-toggle {

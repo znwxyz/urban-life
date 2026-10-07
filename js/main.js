@@ -186,7 +186,7 @@ function frame(now) {
 /* 시작. 뷰어가 페이지를 갱신해도 진행 중인 판을 이어 간다 */
 window.claude?.hot?.snapshot?.(() => ({ run, phase }));
 function boot(data) {
-  resizeStage(); resizeFx(); setupWall();
+  resizeStage(); resizeFx(); setupWall(); setupSupport();
   addEventListener('resize', () => { resizeStage(); resizeFx(); });
   requestAnimationFrame(frame);
   const saved = data && data.run;

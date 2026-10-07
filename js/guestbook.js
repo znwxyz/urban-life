@@ -146,3 +146,29 @@ function closeWall() {
 function setupWall() {
   $('wallToggle').addEventListener('click', () => ($('wall').hidden ? openWall('') : closeWall()));
 }
+
+/* 제작자 응원: 토스·카카오페이 송금 링크를 새 탭으로 연다. 링크가 하나도 없으면 버튼을 숨긴다 */
+const SUPPORT_LINKS = Object.freeze([
+  ['toss', '토스로 응원하기', /^https:\/\/toss\.me\/[\w.-]+\/?$/],
+  ['kakaopay', '카카오페이로 응원하기', /^https:\/\/qr\.kakaopay\.com\/[\w-]+\/?$/],
+]);
+
+/** 설정된 링크 중 모양이 올바른 것만 쓴다 */
+const supportLinks = () => SUPPORT_LINKS.filter(([key, , re]) => re.test(SUPPORT[key] || ''));
+
+function setupSupport() {
+  const links = supportLinks(), toggle = $('supportToggle'), box = $('support');
+  if (!links.length) return;
+  toggle.hidden = false;
+  box.replaceChildren(
+    h('p', null, '도시의 작은 동물들, 재밌게 살아 보셨나요? 커피 한 잔 값이면 다음 동물이 더 빨리 태어나요.'),
+    h('div', { class: 'support-links' }, links.map(([key, label]) =>
+      h('a', { class: `support-link ${key}`, href: SUPPORT[key], target: '_blank', rel: 'noopener noreferrer' }, label))),
+  );
+  toggle.addEventListener('click', () => {
+    const open = box.hidden;
+    box.hidden = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+    if (open) box.style.setProperty('--deckle', deckle());
+  });
+}
