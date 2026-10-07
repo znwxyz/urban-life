@@ -93,7 +93,15 @@ button { font: inherit; color: inherit; }
 
 /* 처음 화면: 2×2 동물 카드 */
 .picker { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 22px; padding: 24px 16px; }
-.picker h1 { margin: 0; font-size: 28px; font-weight: 400; rotate: -1.5deg; }
+.picker h1 { margin: 0; font-size: 28px; font-weight: 400; }
+/* 제목: '누구로 살아볼래?' 이름표 왼쪽 위에 '도시의 바닥,' 네모를 삐딱하게 겹쳐 붙인다 */
+.picker-title { position: relative; display: inline-block; padding-top: 22px; }
+.picker-title .main { display: inline-block; rotate: -1.5deg; padding: 12px 18px 10px; }
+.picker-title .kicker {
+  position: absolute; z-index: 3; top: 0; left: -14px; rotate: -7deg;
+  font-size: 18px; padding: 6px 11px 5px; background: var(--ink); color: var(--paper);
+  filter: drop-shadow(0 2px 0 rgba(59, 48, 73, .3));
+}
 .pick-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; width: min(520px, calc(100vw - 32px)); }
 .species {
   position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
@@ -240,6 +248,7 @@ button { font: inherit; color: inherit; }
 }
 @media (max-width: 480px) {
   .picker h1 { font-size: 22px; }
+  .picker-title .kicker { font-size: 15px; left: -8px; }
   .species b { font-size: 22px; }
   .species { min-height: 120px; }
   .who b { font-size: 22px; }
