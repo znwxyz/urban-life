@@ -1,13 +1,13 @@
 /* 게임 흐름: 탄생 → 장면으로 이동 → 좌우 선택 → 결과 → 다음 장면 … → 엔딩. 프레임 루프 */
 const MOVE_MS = 2600, MOVE_MS_REDUCED = 700, FADE_S = .45, ACCEL = 3, IDLE_RATIO = .05, DEFAULT_SPEED = 60;
-const SEAM_GAP_CM_K = .02, PASS_MARGIN = 1.12, DEAL_MS = 380, DEATH_HOLD_MS = 1250, KILLER_LEAD_MS = 320, PROP_SCREEN_X = .58, SETTLE_S = 1.5, SIM_DT = 1 / 60;
+const PAGE_SHIFT_RANGE = 200000, SEAM_GAP_CM_K = .02, PASS_MARGIN = 1.12, DEAL_MS = 380, DEATH_HOLD_MS = 1250, KILLER_LEAD_MS = 320, PROP_SCREEN_X = .58, SETTLE_S = 1.5, SIM_DT = 1 / 60;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const SPECIES_KEYS = Object.keys(SPECIES);
 
 let run = null;
 let phase = 'idle';
 const view = { scene: 'villaAlley', night: false, glow: null, weather: null, prop: null, propX: 0, camX: 5000, speed: 0, fade: 0, t: 0,
-  cast: [], heroStopX: 0, killer: null, trans: null, cruise: 0 };
+  cast: [], heroStopX: 0, killer: null, trans: null, cruise: 0, pageShift: 0 };
 let moveTimer = null;
 
 const currentSp = () => (run ? SPECIES[run.spKey] : null);
@@ -16,9 +16,12 @@ const currentSp = () => (run ? SPECIES[run.spKey] : null);
 function setScene(bg, opts = {}) {
   if (!SCENES[bg]) throw new Error(`없는 배경: ${bg}`);
   const changed = bg !== view.scene;
-  if (changed && opts.continuous) {
+  if (opts.continuous) {
+    // 장소가 같아도 장면이 바뀌면 새 종이 한 장을 이어 붙인다
     view.trans = { prev: { scene: view.scene, night: view.night, glow: view.glow, weather: view.weather, prop: view.prop,
-      propX: view.propX, cast: view.cast, heroStopX: view.heroStopX }, boundaryX: view.camX + W / lastFrame.s + SEAM_GAP_CM_K * W / lastFrame.s };
+      propX: view.propX, cast: view.cast, heroStopX: view.heroStopX, pageShift: view.pageShift },
+      boundaryX: view.camX + W / lastFrame.s + SEAM_GAP_CM_K * W / lastFrame.s };
+    view.pageShift = Math.floor(Math.random() * PAGE_SHIFT_RANGE);
   } else if (changed) {
     view.fade = 1; view.camX = 2000 + Math.random() * 90000; view.trans = null;
   }

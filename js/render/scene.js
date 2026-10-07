@@ -209,8 +209,11 @@ function heroRect(sp) {
 }
 
 /** 한 프레임을 그리고 이번 프레임의 배율(px/cm)을 돌려준다 */
-/** 한 장소의 그리기 재료. v는 그 장소의 상태(장소·밤·날씨·소품·인물) */
-function frameFor(v, s, g) {
+/** 한 장소의 그리기 재료. v는 그 장소의 상태(장소·밤·날씨·소품·인물).
+    pageShift만큼 세상을 옆으로 밀어, 같은 장소라도 장면마다 다른 건물·사물 배치(새 종이)가 나오게 한다 */
+function frameFor(v0, s, g) {
+  const k = v0.pageShift || 0;
+  const v = k ? { ...v0, camX: v0.camX + k, propX: v0.propX + k, heroStopX: v0.heroStopX + k } : v0;
   const sc = SCENES[v.scene];
   const p = paletteFor(v.scene, v.night, v.weather === 'snow');
   return { sc, p, t: makeTone(p), s, g, v, scroll: v.camX * s };
