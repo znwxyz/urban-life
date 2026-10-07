@@ -17,7 +17,7 @@ const castOk = (sp, a) => Boolean(CAST[a]) || (a.startsWith(`${sp.key}:`) && art
 /* SPECIES=cat npm test 처럼 한 종만 검사할 수 있다 */
 const KEYS = (process.env.SPECIES || 'cat,cockroach,pigeon,fly').split(',');
 const ALL = KEYS.map((k) => require(`../js/data/species/${k}.js`));
-const CHOICES = 4, MAX_FATAL_P = .4, TENSION_FOOD = 30, MIN_SAFE_CHOICES = 2;
+const CHOICES = 4, MAX_FATAL_P = .4, TENSION_FOOD = 30, TENSION_HP = 40, MIN_SAFE_CHOICES = 2;
 const LUCK = [[0, 0], [0, .999], [.999, 0], [.999, .999]];
 const seq = (vals) => { let i = 0; return () => vals[Math.min(i++, vals.length - 1)]; };
 const isDead = (sp, id) => sp.endings[id] && sp.endings[id].kind === 'dead';
@@ -87,7 +87,22 @@ ALL.forEach((sp) => {
     Object.keys(sp.endings).forEach((id) => assert.ok(endings.has(id), `닿지 않는 엔딩 ${id}`));
   });
 
-  test(`${sp.name}: 메인 루트는 즉사 위험이 없고, 불운이 겹쳐도 해피엔딩까지 살지만 포만이 ${TENSION_FOOD} 이하로 떨어지는 순간이 있다`, () => {
+  test(`${sp.name}: 체력은 장면마다 저절로 줄어든다`, () => {
+    assert.ok(sp.stats.hpDecay > 0, 'stats.hpDecay가 없다');
+  });
+
+  test(`${sp.name}: 운이 좋아도 메인 루트에서 체력은 ${TENSION_HP} 이하, 포만은 ${TENSION_FOOD} 이하로 떨어지는 순간이 있다`, () => {
+    let run = E.newRun(sp), minHp = run.hp, minFood = run.food;
+    sp.main.forEach((i) => {
+      if (run.ending) return;
+      run = E.applyChoice(sp, run, i, () => .999);
+      if (!run.ending) { minHp = Math.min(minHp, run.hp); minFood = Math.min(minFood, run.food); }
+    });
+    assert.ok(minHp <= TENSION_HP, `체력이 늘 넉넉함 (최저 ${minHp})`);
+    assert.ok(minFood <= TENSION_FOOD, `포만이 늘 넉넉함 (최저 ${minFood})`);
+  });
+
+  test(`${sp.name}: 메인 루트는 즉사 위험이 없고, 불운이 겹쳐도 해피엔딩까지 살아남는다`, () => {
     let run = E.newRun(sp), minFood = run.food;
     sp.main.forEach((i) => {
       assert.equal(run.ending, null, `메인 루트가 ${run.at}에서 먼저 끝남 (${run.ending})`);
@@ -97,7 +112,6 @@ ALL.forEach((sp) => {
       if (!run.ending) minFood = Math.min(minFood, run.food);
     });
     assert.equal(sp.endings[run.ending].kind, 'happy', `메인 루트 끝: ${run.ending}`);
-    assert.ok(minFood <= TENSION_FOOD, `포만이 늘 넉넉함 (최저 ${minFood})`);
   });
 });
 

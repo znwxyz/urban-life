@@ -68,7 +68,7 @@ function doc(sp) {
     '',
     '> 이 문서는 `node scripts/scenario-docs.js`로 만든다. 고칠 때는 `js/data/species/' + sp.key + '.js`를 고친다.',
     '',
-    `- 몸길이 ${sp.size} · 눈높이 ${sp.eye}cm · 시작 스탯 체력 ${sp.stats.hp} / 포만 ${sp.stats.food} (장면마다 포만 -${sp.stats.decay})`,
+    `- 몸길이 ${sp.size} · 눈높이 ${sp.eye}cm · 시작 스탯 체력 ${sp.stats.hp} / 포만 ${sp.stats.food} (장면마다 체력 -${sp.stats.hpDecay} · 포만 -${sp.stats.decay})`,
     '- 체력이나 포만 중 하나라도 0이 되면 스토리와 상관없이 죽는다 (쇠약 / 굶주림)',
     `- 해피엔딩: **${happy.title}** (생후 ${durLabel(happy.day)})`,
     `- ${sp.intro}`,

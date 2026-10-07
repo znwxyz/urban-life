@@ -1,5 +1,5 @@
 /* 게임 규칙: 분기형 장면 진행, 스탯, 시간·계절. 순수 함수만 둔다 (Node 테스트 가능) */
-const RULES = Object.freeze({ REGEN: 5, FULL_AT: 60, MAX: 100 });
+const RULES = Object.freeze({ MAX: 100 });
 /** 선택지 순서 = 카드를 미는 방향 */
 const DIRECTIONS = Object.freeze(['left', 'right', 'up', 'down']);
 const DAYS_PER_MONTH = 30.4;
@@ -85,8 +85,8 @@ function applyChoice(sp, run, idx, rand = Math.random) {
   const flags = choice.set && !run.flags.includes(choice.set) ? [...run.flags, choice.set] : run.flags;
   const food = clamp(run.food + fx.food - sp.stats.decay, 0, RULES.MAX);
   const starving = food === 0;
-  const regen = food >= RULES.FULL_AT && !hurt ? RULES.REGEN : 0;
-  const hp = clamp(run.hp + fx.hp + regen, 0, RULES.MAX);
+  // 체력은 가만히 있어도 장면마다 조금씩 줄고, 저절로 회복되지 않는다 (쉬는 선택만 회복)
+  const hp = clamp(run.hp + fx.hp - (sp.stats.hpDecay || 0), 0, RULES.MAX);
 
   let target = resolveTarget(scene, choice, flags);
   if (fatal) target = choice.risk.ending;

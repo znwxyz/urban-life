@@ -29,4 +29,5 @@ git commit -am "..." && git push   # GitHub Pages가 1~2분 뒤 반영
 ## 테스트
 ```
 npm test
+node scripts/balance.js   # 밸런스 측정 (메인 루트 스탯 흐름, 무작위 플레이 생존율)
 ```

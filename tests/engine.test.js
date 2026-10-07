@@ -5,7 +5,7 @@ const E = require('../js/core/engine.js');
 /* 테스트용 작은 동물. rand가 0이면 위험이 터지고, 1에 가까우면 피한다 */
 const HIT = () => 0, MISS = () => .999;
 const SP = {
-  key: 'test', bornMonth: 11, stats: { hp: 100, food: 50, decay: 10 },
+  key: 'test', bornMonth: 11, stats: { hp: 100, food: 50, decay: 10, hpDecay: 4 },
   start: 'A', weakEnding: 'W0', starveEnding: 'W1',
   scenes: {
     A: { bg: 'x', day: 10, next: 'B', title: 'A', text: '', choices: [
@@ -136,4 +136,10 @@ test('isValidRun은 저장된 진행 상태를 검사한다', () => {
   assert.equal(E.isValidRun(SP, { ...E.newRun(SP), at: 'ZZ' }), false);
   assert.equal(E.isValidRun(SP, { ...E.newRun(SP), hp: 'a' }), false);
   assert.equal(E.isValidRun(SP, null), false);
+});
+
+test('체력은 가만히 있어도 장면마다 hpDecay만큼 줄고, 저절로 회복되지 않는다', () => {
+  const run = E.applyChoice(SP, E.newRun(SP), 0, MISS);   // 포만이 넉넉해도
+  assert.equal(run.hp, 96);
+  assert.equal(run.outcome.dHp, -4);
 });
