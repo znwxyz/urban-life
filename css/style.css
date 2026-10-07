@@ -137,6 +137,10 @@ button { font: inherit; color: inherit; }
 .support-link:hover, .support-link:focus-visible { translate: 0 -2px; outline: 2px solid var(--ink); }
 .support-link.toss { background: #d6e6ff; }
 .support-link.kakaopay { background: #ffe680; }
+.support-qr { display: none; margin: 0; flex-direction: column; align-items: center; gap: 6px; }
+.support-qr img { display: block; width: 240px; height: auto; max-width: 100%; }
+.support-qr figcaption { font-family: var(--f-small); font-size: 11px; color: var(--dim); }
+@media (min-width: 900px) and (hover: hover) { .support-qr { display: flex; } }
 /* 홈 화면 방명록 모아보기 */
 .picker { overflow-y: auto; }
 .wall-toggle {

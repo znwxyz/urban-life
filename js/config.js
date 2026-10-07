@@ -7,6 +7,8 @@
 const SUPPORT = Object.freeze({
   toss: '',
   kakaopay: 'https://qr.kakaopay.com/281006011000009316457016',
+  /* PC에서 휴대폰으로 찍을 QR 이미지 (이름 부분은 잘라 냄) */
+  kakaopayQr: 'assets/kakaopay-qr.png',
 });
 
 const GUESTBOOK = Object.freeze({

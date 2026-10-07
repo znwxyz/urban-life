@@ -164,6 +164,12 @@ function setupSupport() {
     h('p', null, '도시의 작은 동물들, 재밌게 살아 보셨나요? 커피 한 잔 값이면 다음 동물이 더 빨리 태어나요.'),
     h('div', { class: 'support-links' }, links.map(([key, label]) =>
       h('a', { class: `support-link ${key}`, href: SUPPORT[key], target: '_blank', rel: 'noopener noreferrer' }, label))),
+    // PC에서는 송금 앱이 열리지 않으니 휴대폰으로 찍을 QR을 보여 준다 (CSS로 넓은 화면에서만 표시)
+    SUPPORT.kakaopayQr && links.some(([key]) => key === 'kakaopay')
+      ? h('figure', { class: 'support-qr' },
+        h('img', { src: SUPPORT.kakaopayQr, width: '240', height: '224', alt: '카카오페이 송금 QR 코드', loading: 'lazy' }),
+        h('figcaption', null, '휴대폰 카메라로 찍으면 카카오페이가 열려요'))
+      : null,
   );
   toggle.addEventListener('click', () => {
     const open = box.hidden;
