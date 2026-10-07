@@ -1,16 +1,15 @@
 /* 게임 흐름: 탄생 → 장면으로 이동 → 좌우 선택 → 결과 → 다음 장면 … → 엔딩. 프레임 루프 */
 const MOVE_MS = 2600, MOVE_MS_REDUCED = 700, FADE_S = .45, ACCEL = 3, IDLE_RATIO = .05, DEFAULT_SPEED = 60;
-const ROULETTE_TICKS = 14, ROULETTE_MS = 80, PROP_SCREEN_X = .58, SETTLE_S = 1.5, SIM_DT = 1 / 60;
+const PROP_SCREEN_X = .58, SETTLE_S = 1.5, SIM_DT = 1 / 60;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const SPECIES_KEYS = Object.keys(SPECIES);
 
 let run = null;
 let phase = 'idle';
 const view = { scene: 'villaAlley', night: false, glow: null, weather: null, prop: null, propX: 0, camX: 5000, speed: 0, fade: 0, t: 0 };
-let moveTimer = null, rouletteTimer = null;
+let moveTimer = null;
 
 const currentSp = () => (run ? SPECIES[run.spKey] : null);
-const randomKey = () => SPECIES_KEYS[Math.floor(Math.random() * SPECIES_KEYS.length)];
 
 function setScene(bg, opts = {}) {
   if (!SCENES[bg]) throw new Error(`없는 배경: ${bg}`);
@@ -26,26 +25,27 @@ function travelAhead(cruise, ms) {
   return d;
 }
 
-function startRoulette(forcedKey) {
-  clearTimeout(moveTimer); clearInterval(rouletteTimer);
-  run = null; phase = 'idle';
+/** 처음 화면: 동물 4종을 2×2 카드로 보여 주고 고르게 한다 */
+function showPicker() {
+  clearTimeout(moveTimer);
+  run = null; phase = 'picker';
   updateHud(null, null); hideCaption(); hideCard();
-  setScene(['villaAlley', 'park', 'aptGarden'][Math.floor(Math.random() * 3)]);
-  const key = forcedKey || randomKey();
-  if (reducedMotion) { revealBirth(key); return; }
-  const name = $('roulette');
-  name.hidden = false;
-  let n = 0;
-  rouletteTimer = setInterval(() => {
-    name.textContent = SPECIES[SPECIES_KEYS[n % SPECIES_KEYS.length]].name;
-    n += 1;
-    if (n > ROULETTE_TICKS) { clearInterval(rouletteTimer); name.hidden = true; revealBirth(key); }
-  }, ROULETTE_MS);
+  setScene('villaAlley');
+  $('pickGrid').replaceChildren(...SPECIES_KEYS.map((key) => {
+    const sp = SPECIES[key];
+    // 그림은 일부러 넣지 않는다. 직접 태어나 봐야 어떻게 생겼는지 알 수 있다
+    const btn = h('button', { class: 'species', onclick: () => revealBirth(key) },
+      h('b', null, sp.name), h('small', null, `${sp.size} · 해피엔딩 ${durLabel(happyDay(sp))}`));
+    btn.style.setProperty('--deckle', deckle());
+    return h('div', { class: 'species-wrap' }, btn);
+  }));
+  $('picker').hidden = false;
+  $('pickGrid').querySelector('button').focus({ preventScroll: true });
 }
 
 function revealBirth(key) {
   const sp = SPECIES[key];
-  clearTimeout(moveTimer); clearInterval(rouletteTimer); $('roulette').hidden = true;
+  clearTimeout(moveTimer); $('picker').hidden = true;
   run = newRun(sp); phase = 'birth';
   const first = sp.scenes[sp.start];
   setScene(first.bg, { prop: first.prop });
@@ -94,7 +94,7 @@ function chooseOption(i) {
   } catch (err) {
     console.error('선택을 처리하지 못했다', err);
     showCard({ body: [h('h2', null, '이 장면에서 문제가 생겼다'), h('p', null, '시나리오 데이터를 확인해 주세요.')],
-      next: { label: '다시 태어나기', act: () => startRoulette() } });
+      next: { label: '처음으로', act: showPicker } });
     return;
   }
   updateHud(sp, run);
@@ -130,7 +130,7 @@ function showEnding() {
       h('p', { class: 'meta' }, `생후 ${durLabel(run.day)} · ${end.cause}${run.kids ? ` · 남긴 ${sp.kidUnit} ${run.kids}` : ''}`),
     ],
     left: { label: `${sp.name}로 다시`, act: () => revealBirth(sp.key) },
-    right: { label: '다시 태어나기', act: () => startRoulette() },
+    right: { label: '다른 동물 고르기', act: showPicker },
   });
 }
 
@@ -156,7 +156,7 @@ function boot(data) {
   requestAnimationFrame(frame);
   const saved = data && data.run;
   const sp = saved && SPECIES[saved.spKey];
-  if (!sp || !isValidRun(sp, saved)) { startRoulette(); return; }
+  if (!sp || !isValidRun(sp, saved)) { showPicker(); return; }
   run = saved;
   const lastAt = run.path.length ? run.path[run.path.length - 1].at : sp.start;
   if (run.ending) { setScene(sp.scenes[lastAt].bg); showEnding(); return; }

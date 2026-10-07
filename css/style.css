@@ -57,10 +57,29 @@ button { font: inherit; color: inherit; }
 .scale { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; font-family: var(--f-small); font-size: 11px; color: var(--paper); text-shadow: 0 1px 0 rgba(42, 36, 56, .6); }
 .scale i { display: block; height: 5px; border: 2px solid var(--paper); border-top: 0; transition: width .4s; }
 
-.roulette {
-  position: absolute; left: 50%; top: 42%; translate: -50% -50%; padding: 16px 28px 14px; font-size: 28px;
-  background: var(--paper); color: var(--pink-deep); filter: drop-shadow(0 3px 0 rgba(59, 48, 73, .3)); rotate: -2deg;
+/* 처음 화면: 2×2 동물 카드 */
+.picker { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 22px; padding: 24px 16px; }
+.picker h1 { margin: 0; font-size: 28px; font-weight: 400; rotate: -1.5deg; }
+.pick-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; width: min(520px, calc(100vw - 32px)); }
+.species {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; min-height: 150px; padding: 26px 10px 22px; cursor: pointer;
+  border: 0; background: var(--paper); clip-path: var(--deckle); text-align: center;
+  transition: translate .15s, rotate .15s;
 }
+.species-wrap { filter: drop-shadow(0 4px 0 rgba(59, 48, 73, .28)); rotate: -1deg; }
+.species-wrap:nth-child(2n) { rotate: 1.2deg; }
+.species-wrap::before {
+  content: ""; position: absolute; z-index: 2; top: -7px; left: 50%; width: 52px; height: 15px; translate: -50% 0; rotate: -3deg;
+  background: var(--tape-pink); clip-path: polygon(0 10%, 6% 0, 12% 12%, 88% 0, 94% 14%, 100% 0, 100% 90%, 94% 100%, 88% 88%, 12% 100%, 6% 86%, 0 100%);
+}
+.species-wrap:nth-child(2n)::before { background: var(--tape-blue); rotate: 4deg; }
+.species-wrap { position: relative; }
+.species b { font-size: 28px; font-weight: 400; }
+.species small { font-family: var(--f-small); font-size: 11px; color: var(--dim); }
+.species:hover, .species:focus-visible { translate: 0 -4px; outline: none; }
+.species:hover b, .species:focus-visible b { color: var(--pink-deep); }
+.species:active { translate: 0 1px; }
 
 /* 이동 중 자막: 종이 띠 두 장 */
 .caption { position: absolute; left: 16px; bottom: 24px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
@@ -128,6 +147,9 @@ button { font: inherit; color: inherit; }
   .deck { left: auto; right: 24px; bottom: 24px; width: 460px; padding: 0; }
 }
 @media (max-width: 480px) {
+  .picker h1 { font-size: 22px; }
+  .species b { font-size: 22px; }
+  .species { min-height: 120px; }
   .who b { font-size: 22px; }
   .seg i { width: 5px; }
   .caption .tx { font-size: 22px; }
