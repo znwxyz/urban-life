@@ -20,6 +20,12 @@ docs/scenarios/   시나리오 설계 문서 (scripts/scenario-docs.js로 생성
 tests/        node --test 로 규칙·시나리오 구조 검사
 ```
 
+## 배포
+```
+./scripts/bump-version.sh   # js·css 주소의 ?v= 값을 바꿔 브라우저 캐시가 섞이지 않게 한다
+git commit -am "..." && git push   # GitHub Pages가 1~2분 뒤 반영
+```
+
 ## 테스트
 ```
 npm test
