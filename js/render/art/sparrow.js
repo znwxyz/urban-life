@@ -30,6 +30,47 @@
     faded(1 - ph, () => label(text, x, y - ph * 8, `700 ${size}px sans-serif`, INK));
   }
 
+  /* ── 형체감 도구: 사물은 실루엣 하나에 왼쪽 위 빛으로 윗면(lit)·앞면(mid)·오른쪽 옆면(dark)만 나눈다.
+     planes()는 forms.js, 점 형식은 curvy와 같다 (이 파일 좌표 그대로, 위가 -y) ── */
+  function outline(pts) {
+    ctx.beginPath();
+    pts.forEach((p, i) => {
+      if (!i) ctx.moveTo(p[0], p[1]);
+      else if (p.length === 2) ctx.lineTo(p[0], p[1]);
+      else if (p.length === 4) ctx.quadraticCurveTo(p[0], p[1], p[2], p[3]);
+      else ctx.bezierCurveTo(p[0], p[1], p[2], p[3], p[4], p[5]);
+    });
+    ctx.closePath();
+  }
+  /** 타원 여러 개를 한 장으로 오린다 (겹친 자리에 종이 그림자 금이 생기지 않게). list: [[cx, cy, rx, ry]] */
+  function clump(list, c) {
+    ctx.beginPath(); list.forEach(([x, y, rx, ry]) => { ctx.moveTo(x + rx, y); ctx.ellipse(x, y, rx, ry, 0, 0, TAU); });
+    ctx.fillStyle = c; ctx.fill();
+  }
+  /** 실루엣 안쪽에만 칠한다 (면 나누기가 밖으로 삐지지 않게) */
+  function inside(pts, draw) { ctx.save(); outline(pts); ctx.clip(); draw(); ctx.restore(); }
+  /** 앞면 (x, y, w, h)에 뒤로 물러나는 윗면(빛)과 오른쪽 옆면(그늘)을 붙인 상자. d는 깊이 */
+  function box3(t, c, x, y, w, h, d) {
+    const p = planes(t, c), dy = d * .6;
+    curvy([[x, y], [x + d, y - dy], [x + w + d, y - dy], [x + w, y]], p.lit);
+    curvy([[x + w, y], [x + w + d, y - dy], [x + w + d, y + h - dy], [x + w, y + h]], p.dark);
+    curvy([[x, y], [x + w, y], [x + w + .5, y + h * .5, x + w, y + h], [x, y + h], [x - .5, y + h * .5, x, y]], p.mid);
+    return p;
+  }
+  /** 가로로 누운 원기둥(배관): 윗띠는 빛, 아랫띠는 그늘 */
+  function pipeRun(t, c, x, y, w, h) {
+    const p = planes(t, c);
+    RR(x, y, w, h, h / 2, p.mid);
+    ctx.save(); ctx.beginPath(); ctx.roundRect(x, y, w, h, h / 2); ctx.clip();
+    R(x, y, w, h * .3, p.lit); R(x, y + h * .7, w, h * .3, p.dark); ctx.restore();
+    return p;
+  }
+  /** 천장 슬래브 앞모서리: 위 모서리에 볕, 아랫면은 그늘 */
+  function ceiling(t, x, y, w, h) {
+    const p = planes(t, '#cfcad8');
+    R(x, y, w, h, p.mid); R(x, y, w, h * .22, p.lit); R(x, y + h * .7, w, h * .3, p.dark);
+  }
+
   /* ── 참새 한 마리 (실제 크기 14cm). o: { x, y, s, flip, pose: stand|peck|puff|dust|fly, c 깃털색, seed, worm, sleepy } ── */
   const BODY = 'M3.2 -6.2 C5.3 -4.6 4.3 -1.3 1 -1.1 C-1.7 -.9 -3.7 -2.4 -4.3 -4.4 C-3 -6.7 0 -7.4 3.2 -6.2 Z';
   const BELLY = 'M3.7 -5 C4.4 -3 3 -1.3 .8 -1.2 C-1.4 -1.1 -2.9 -2 -3.3 -3.2 C-1 -3.4 2 -4 3.7 -5 Z';
@@ -102,25 +143,50 @@
 
   /** 지푸라기·비닐 끈으로 엮은 둥지 덩어리 */
   function strawNest(t, cx, y, w, h, seed) {
-    E(cx, y - h * .45, w * .5, h * .5, t('#a8824e'));
-    for (let i = 0; i < 26; i++) {
-      const x = cx - w / 2 + hash(i, seed) * w, yy = y - hash(i, seed + 1) * h, a = (hash(i, seed + 2) - .5) * 2.4, l = 3 + hash(i, seed + 3) * 6;
-      const col = i === 7 ? '#5fa8d8' : i === 15 ? '#e6765f' : STRAW[i % STRAW.length];
-      ctx.strokeStyle = t(col); ctx.lineWidth = .45; ctx.lineCap = 'round'; ctx.beginPath();
-      ctx.moveTo(x - Math.cos(a) * l / 2, yy - Math.sin(a) * l / 2);
-      ctx.quadraticCurveTo(x, yy - 1.2, x + Math.cos(a) * l / 2, yy + Math.sin(a) * l / 2); ctx.stroke();
-    }
+    const p = planes(t, STRAW[0]), x0 = cx - w / 2, x1 = cx + w / 2, top = y - h, n = 18;
+    const tips = Array.from({ length: n - 1 }, (_, k) => {                                // 들쭉날쭉 삐져나온 지푸라기 끝
+      const x = x1 - (k + 1) * w / n;
+      return k % 2 ? [x, top + h * .1] : [x + (hash(k, seed) - .5) * 1.2, top - .2 - hash(k, seed + 1) * .9];
+    });
+    const shape = [[x0, top + h * .2], [x0 - 2, y - h * .2, x0 + w * .2, y, cx, y], [x1 - w * .2, y, x1 + 2, y - h * .2, x1, top + h * .2], ...tips];
+    curvy(shape, p.mid);
+    inside(shape, () => {
+      E(cx + w * .26, y + h * .1, w * .46, h * .62, p.dark);                               // 오른쪽 아래로 도는 그늘
+      curvy([[x0 - 3, top - 4], [x1 + 3, top - 4], [x1 + 3, top + h * .34], [cx, top + h * .58, x0 - 3, top + h * .34]], p.lit);   // 볕 받는 테두리
+    });
+    [[0, '#5fa8d8'], [1, '#e6765f'], [2, STRAW[3]], [3, STRAW[1]]].forEach(([i, col]) => {   // 엮인 비닐 끈 두 가닥과 지푸라기 두 올
+      const x = x0 + w * (.18 + i * .2), yy = y - h * (.3 + hash(i, seed) * .3), a = (hash(i, seed + 2) - .5) * 1.4, l = 4 + hash(i, seed + 3) * 4;
+      ctx.strokeStyle = t(col); ctx.lineWidth = .5; ctx.lineCap = 'round'; ctx.beginPath();
+      ctx.moveTo(x - Math.cos(a) * l / 2, yy - Math.sin(a) * l / 2); ctx.quadraticCurveTo(x, yy - 1, x + Math.cos(a) * l / 2, yy + Math.sin(a) * l / 2); ctx.stroke();
+    });
   }
 
-  /** 겹겹이 오린 덤불 잎 무더기 */
+  /** 덤불: 잎 덩어리를 한 실루엣(그늘)으로 붙이고, 앞면을 왼쪽 위로 조금 얹고, 위쪽 덩어리만 볕을 받는다 */
   function bush(time, t, cx, w, h, seed) {
+    const leaf = planes(t, LEAF[1]), blobs = [];
     for (let layer = 0; layer < 3; layer++) {
       for (let i = 0; i < 9; i++) {
         const x = cx - w / 2 + (i + .5) / 9 * w + (hash(i, seed + layer) - .5) * 8, yy = -h * (.35 + layer * .2) * (.7 + hash(i, seed + 9) * .5);
         const r = h * (.32 - layer * .06) * (.8 + hash(i, seed + 4) * .4), sway = Math.sin(time * 1.4 + i + layer) * .6;
-        E(x + sway, yy, r, r * .8, t(LEAF[layer]));
+        blobs.push([x + sway, yy, r, layer]);
       }
     }
+    clump(blobs.map(([x, y, r]) => [x + 1.4, y + 1.6, r, r * .8]), leaf.dark);
+    clump(blobs.filter((b) => b[3]).map(([x, y, r]) => [x - .6, y - .8, r * .94, r * .74]), leaf.mid);
+    clump(blobs.filter(([x, , , layer]) => layer === 2 && x < cx).map(([x, y, r]) => [x - r * .2, y - r * .24, r * .6, r * .42]), leaf.lit);
+  }
+
+  /** 새우과자 봉지 (가운데 x, 바닥 y): 톱니로 눌러 붙인 윗단, 볕 받는 왼쪽 · 그늘진 오른쪽, 과자 그림 한 점 */
+  function snackBag(t, cx, y, w, h) {
+    const p = planes(t, '#e6453a'), x0 = cx - w / 2, x1 = cx + w / 2, top = y - h, k = w / 6;
+    const bag = [[x0 + .4, y], [x1 - .4, y], [x1 + .8, y - h * .5, x1, top + 1.6],
+      ...[5, 4, 3, 2, 1, 0].flatMap((i) => [[x0 + (i + 1) * k - k * .5, top], [x0 + i * k, top + 1.4]]), [x0 - .8, y - h * .5, x0 + .4, y]];
+    curvy(bag, p.mid);
+    inside(bag, () => {
+      R(x0 - 1, top, w * .26, h + 1, p.lit); R(x1 - w * .28, top, w * .3, h + 1, p.dark);
+      R(x0 - 1, top + 1.4, w + 2, h * .16, t('#f6eedc'));                                                         // 윗단 흰 띠
+    });
+    E(cx, y - h * .4, w * .28, h * .13, t('#ffb08a'));
   }
 
   /** 하얗게 피어오르는 연기·김 덩어리 */
@@ -236,9 +302,10 @@
       faded(.35, () => R(-62, -56, 124, 7, '#2a2240'));
       strawNest(t, -26, -48, 40, 12, 3);
       [[-38, 0], [-29, 1], [-20, 2]].forEach(([x, s]) => chick(time, t, x, -50, s));
-      [-48, 48].forEach((x) => { RR(x - 2, -54, 4, 8, 1, t('#7d7a8c')); E(x, -52, 1, 1, t('#cfcad8')); });
-      block(-62, -48, 124, 46, '#f6eedc', t);
-      RR(-62, -48, 104, 6, 2, t('#e6765f')); RR(-62, -8, 104, 6, 2, t('#5f8fb0'));
+      const iron = planes(t, '#7d7a8c');
+      [-48, 44].forEach((x) => { R(x - 2, -55, 4, 9, iron.mid); R(x - 2, -55, 1.4, 9, iron.lit); });             // 벽에 박은 받침쇠
+      box3(t, '#f6eedc', -62, -46, 112, 44, 8);
+      R(-62, -46, 112, 6, t('#e6765f')); R(-62, -8, 112, 6, t('#5f8fb0'));
       label('행복 세탁', -6, -19, '800 17px sans-serif', t('#3b3049'), 'center');
       at(-46, -28, 0, null, () => { RR(-5, -8, 10, 12, 2, t('#5f8fb0')); fp('M-6 -8 L0 -12 L6 -8 Z', t('#5f8fb0')); E(0, -3, 2.4, 2.4, t('#f6eedc')); });
       sparrow(time, t, { x: 8, y: -48, flip: true, worm: true, seed: 2 });
@@ -259,18 +326,25 @@
 
     /* B1 신발 상자: 수건 깐 상자, 병뚜껑 물그릇, 불린 사료 */
     'sparrow:shoeBox': { w: 72, h: 22, d: (time, t) => {
-      at(-2, -13, -.1, null, () => block(-20, -7, 40, 7, '#e8e3d8', t));
-      block(-20, -14, 40, 14, '#f4f1ea', t);
-      RR(-20, -14, 34, 3, 1, t('#e6765f'));
-      label('SIZE 230', -16, -4, '700 3px sans-serif', t('#3b3049'));
-      fp('M-17 -14 C-12 -18 -2 -19 6 -16 C10 -18 14 -17 16 -14 Z', t('#8fc1d9'));
+      at(0, -13, -.1, null, () => box3(t, '#e8e3d8', -20, -7, 36, 6, 4));                                       // 뒤에 기대 세운 뚜껑
+      const box = planes(t, '#f4f1ea');
+      curvy([[-20, -14], [-16, -16.4], [20, -16.4], [16, -14]], box.deep);                                        // 열린 안쪽
+      fp('M-17 -14 C-12 -18 -2 -19 6 -16 C10 -18 14 -17 18 -15 L16 -14 Z', t('#8fc1d9'));                          // 깔아 둔 수건
       sp('M-14 -15 Q-4 -17.5 6 -15.5', t('#f4f8ff'), .8);
+      curvy([[16, -14], [20, -16.4], [20, -2.4], [16, 0]], box.dark);
+      curvy([[-20, -14], [16, -14], [16, 0], [-20, 0]], box.mid);
+      R(-20, -14, 36, 3, t('#e6765f')); R(-20, -14, 36, .8, box.lit);
+      label('SIZE 230', -16, -4, '700 3px sans-serif', t('#3b3049'));
       RR(22, -2, 6, 2, 1, t('#5fa39a')); faded(.7, () => E(25, -2.1, 2.6, .4, '#bfe3f5'));
       E(32, -.8, 3, 1, t('#d39d4c')); E(31, -1.2, 1, .5, t('#e8c088'));
     } },
     /* B1 방충망 귀퉁이가 찢어진 창문 (D10 가해자이기도 하다) */
     'sparrow:screenGap': { w: 110, h: 120, d: (time, t) => {
-      RR(-55, -120, 110, 120, 3, t('#c9ccd4')); RR(-50, -115, 50, 110, 2, t('#9fc6d8'));
+      const fr = planes(t, '#c9ccd4');
+      RR(-55, -120, 110, 120, 3, fr.mid);
+      P([[-51, -116], [51, -116], [49, -114], [-49, -114], [-49, -6], [-51, -4]], fr.dark);                       // 안으로 들어간 창틀: 위·왼쪽 안쪽 모는 그늘
+      P([[51, -116], [51, -4], [-51, -4], [-49, -6], [49, -6], [49, -114]], fr.lit);                              // 아래·오른쪽 안쪽 모는 볕
+      RR(-50, -115, 50, 110, 2, t('#9fc6d8'));
       faded(.5, () => { fp('M-46 -115 L-36 -115 L-10 -5 L-20 -5 Z', WHITE); E(-30, -86, 10, 3, WHITE); });
       RR(2, -115, 48, 110, 2, t('#6f7a88'));
       faded(.35, () => {
@@ -281,12 +355,15 @@
       });
       fp('M36 -6 L49 -6 L49 -24 Z', t('#2a2240'));
       at(49, -24, Math.sin(time * 2) * .08, null, () => fp('M0 0 L-4 10 L-11 14 L-9 6 Z', t('#8a93a3')));
-      RR(-56, -4, 112, 6, 2, t('#b5b9c3'));
+      const sill = planes(t, '#b5b9c3');                                                                          // 창턱: 볕 받는 윗면과 앞면
+      curvy([[-56, -2], [-52, -6], [58, -6], [56, -2]], sill.lit); RR(-56, -2, 112, 4, 1, sill.mid); curvy([[56, -2], [58, -6], [58, -1], [56, 2]], sill.dark);
     } },
 
     /* S3 모래 목욕: 놀이터 모래밭에 몸을 비비는 무리와 튀는 모래 */
     'sparrow:sandBath': { w: 130, h: 22, d: (time, t) => {
-      E(0, 0, 64, 6, t('#cbb38a')); E(0, -1, 60, 4.4, t('#e8d3a8'));
+      const sand = planes(t, '#dcc49a'), pit = [[-64, 0], [-56, -4.6, -30, -5.6], [0, -5.8], [30, -5.6, 56, -4.6, 64, 0], [30, 1.6, -30, 1.6, -64, 0]];
+      curvy(pit, sand.mid);
+      inside(pit, () => { curvy([[-66, -1.4], [-30, -3.6, 20, -3.6, 50, -2], [50, -8], [-66, -8]], sand.lit); E(62, 2, 26, 4, sand.dark); });
       [[-40, 0, 'dust'], [-14, 1, 'dust'], [10, 2, 'peck'], [34, 3, 'dust'], [54, 4, 'stand']].forEach(([x, seed, pose]) => {
         if (pose === 'dust') {
           E(x, -.4, 7, 1.6, t('#b89a6e'));
@@ -311,9 +388,11 @@
 
     /* S4 파라솔 아저씨: 플라스틱 의자에 앉아 새우과자를 부숴 던진다 */
     'sparrow:snackMan': { w: 80, h: 135, d: (time, t) => {
-      const chair = t('#3f9f7f');
-      RR(-30, -46, 6, 46, 2, chair); RR(16, -46, 6, 46, 2, chair); RR(-34, -50, 60, 6, 3, chair);
-      fp('M-34 -50 L-38 -96 L-32 -96 L-28 -50 Z', chair);
+      const ch = planes(t, '#3f9f7f');                                                                            // 통짜 플라스틱 의자
+      fp('M-36 -46 L-30 -46 L-27 0 L-33 0 Z', ch.mid); fp('M-35 -46 L-33 -46 L-31 0 L-32.4 0 Z', ch.lit);         // 벌어진 다리
+      fp('M16 -46 L22 -46 L26 0 L20 0 Z', ch.dark);
+      fp('M-34 -50 L-38 -98 Q-35 -100 -31 -98 L-28 -50 Z', ch.mid); fp('M-34 -50 L-38 -98 Q-37 -99 -36 -99 L-32 -50 Z', ch.lit);
+      curvy([[-36, -48], [-31, -52], [27, -52], [24, -48]], ch.lit); RR(-36, -48, 61, 4, 2, ch.mid);
       fp('M-28 -58 C-22 -64 6 -64 10 -54 L12 -46 L-28 -46 Z', t('#5f6f86'));
       fp('M6 -60 C14 -60 18 -54 18 -46 L18 -6 L10 -6 L10 -48 Z', t(shade('#5f6f86')));
       RR(8, -6, 16, 6, 3, t(INK));
@@ -322,7 +401,7 @@
       E(-4, -118, 11, 12, t(SKIN));
       fp('M-16 -122 C-16 -134 8 -136 10 -122 C4 -126 -8 -126 -16 -122 Z', t('#e6765f')); RR(4, -124, 13, 3, 1.5, t('#e6765f'));
       cuteEye(4, -117, 1.2, 1.5, time, t); blush(5, -111, 2.4, 1.3); sp('M-4 -109 Q2 -106 6 -109', t('#8a6a52'), 1.6);
-      at(-10, -70, -.4, null, () => { RR(-6, -10, 14, 20, 2, t('#e6453a')); RR(-6, -10, 14, 4, 1, t('#f6eedc')); E(1, 2, 4, 2.6, t('#ffb08a')); });
+      at(-10, -70, -.4, null, () => snackBag(t, 1, 10, 14, 20));
       const toss = Math.sin(time * 3);
       ctx.strokeStyle = t('#e9e4ec'); ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(6, -94); ctx.quadraticCurveTo(24, -88, 28, -76 + toss * 3); ctx.stroke();
       artHandOnArm(t, 28, -76 + toss * 3, .5 + toss * .3, 14, { pose: 'flat' });
@@ -333,7 +412,11 @@
     } },
     /* S4 바닥의 새우과자 조각과 찢긴 봉지 */
     'sparrow:snackBits': { w: 60, h: 8, d: (time, t) => {
-      at(-20, 0, 0, null, () => { fp('M-8 0 L-6 -7 Q0 -9 6 -6 L8 0 Z', t('#e6453a')); fp('M-6 -7 L-4 -9 L-2 -7 L0 -9 L2 -7 Z', t('#e6453a')); E(0, -3, 3, 2, t('#ffb08a')); });
+      at(-20, 0, 0, null, () => {                                                                                  // 찢겨 납작해진 봉지
+        const p = planes(t, '#e6453a'), torn = [[-8, 0], [8, 0], [6, -6], [3, -5], [1, -8.6], [-1.6, -6.4], [-4, -9], [-6, -7]];
+        curvy(torn, p.mid); inside(torn, () => { P([[-9, 1], [-5, 1], [-3, -10], [-7, -10]], p.lit); P([[3, 1], [9, 1], [7, -10], [2, -10]], p.dark); });
+        E(0, -3, 3, 1.8, t('#ffb08a'));
+      });
       [[-4, .2], [6, -.4], [14, .8], [22, -.2], [30, .5]].forEach(([x, r], i) => at(x, -.6, r, null, () => {
         fp('M-3 0 Q0 -1.8 3 0 Q0 -.6 -3 0 Z', t('#f2b36a'));
         [-1.4, 0, 1.4].forEach((k) => L(k, -1, k + .2, -.3, t('#d9893e'), .2));
@@ -343,8 +426,10 @@
 
     /* S5 카페 통유리: 은행나무와 하늘이 그대로 비친다 (D5 가해자이기도 하다) */
     'sparrow:cafeGlass': { w: 200, h: 260, d: (time, t) => {
-      RR(-100, -260, 200, 260, 3, t('#3b3049'));
+      const fr = planes(t, '#4a4060');
+      RR(-100, -260, 200, 260, 3, fr.mid); R(-100, -230, 3, 230, fr.lit); R(97, -230, 3, 230, fr.dark);           // 문틀: 왼쪽 모 볕, 오른쪽 모 그늘
       RR(-94, -230, 188, 224, 2, t('#a9cfe0'));
+      faded(.35, () => P([[-94, -230], [94, -230], [94, -224], [-88, -224], [-88, -6], [-94, -6]], t('#2a2240')));  // 유리 위·왼쪽으로 지는 틀 그림자
       at(0, 0, 0, null, () => {
         faded(.75, () => {
           R(-30, -120, 8, 114, t('#7a5a3e'));
@@ -354,9 +439,12 @@
         });
         faded(.4, () => { fp('M-60 -230 L-40 -230 L20 -6 L0 -6 Z', WHITE); fp('M40 -230 L48 -230 L94 -60 L94 -30 Z', WHITE); });
       });
-      RR(-100, -260, 200, 30, 3, t('#6b4f3a'));
+      const sign = planes(t, '#6b4f3a');                                                                           // 간판: 앞면, 볕 받는 윗면, 그늘진 아랫면
+      curvy([[-100, -260], [-104, -264], [104, -264], [100, -260]], sign.lit);
+      R(-100, -260, 200, 30, sign.mid); curvy([[-100, -230], [100, -230], [98, -227], [-98, -227]], sign.deep);
       label('CAFE  모퉁이', 0, -239, '700 16px serif', t('#fbf7ee'), 'center');
-      RR(-3, -240, 6, 236, 1, t('#3b3049')); RR(-12, -130, 3, 30, 1.5, t('#cfcad8'));
+      RR(-3, -227, 6, 223, 1, fr.mid); R(-3, -227, 1.6, 223, fr.lit);
+      const knob = planes(t, '#cfcad8'); RR(-12, -130, 3, 30, 1.5, knob.mid); R(-12, -130, 1, 30, knob.lit);
     } },
     /* S5 가게 앞 화분: 제라늄과 흙 위를 기는 애벌레 */
     'sparrow:planterBugs': { w: 50, h: 52, d: (time, t) => {
@@ -365,16 +453,21 @@
         E(x, y, 4.5, 4, t(i % 2 ? '#e6453a' : '#ff6b7a')); E(x, y, 1.4, 1.4, t('#ffd56b'));
       });
       [[-14, -24], [14, -26], [6, -20]].forEach(([x, y]) => fp(`M${x} ${y} c-3 -4 3 -6 4 -1 c-1 2 -3 2 -4 1 Z`, t('#6fa275')));
-      fp('M-22 -20 L22 -20 L18 0 L-18 0 Z', t('#d9825f')); fp('M8 -20 L22 -20 L18 0 L6 0 Z', t(shade('#d9825f')));
-      RR(-24, -22, 48, 4, 2, t('#c46a4a')); E(0, -21.5, 21, 1.6, t('#5f4a3a'));
+      const clay = planes(t, '#d9825f'), pot = [[-21, -19], [21, -19], [19.6, -8, 17, 0], [-17, 0], [-19.6, -8, -21, -19]];
+      curvy(pot, clay.mid);
+      inside(pot, () => { P([[-24, -20], [-16, -20], [-13, 1], [-20, 1]], clay.lit); P([[8, -20], [24, -20], [20, 1], [6, 1]], clay.dark); });
+      const lip = [[-24, -22], [24, -22], [24.4, -20, 23, -18.4], [-23, -18.4], [-24.4, -20, -24, -22]];             // 두툼한 테
+      curvy(lip, clay.mid); inside(lip, () => { R(-25, -23, 50, 1.8, clay.lit); R(14, -23, 11, 5, clay.dark); });
+      E(0, -21.6, 21, 1.4, t('#5f4a3a'));
       const inch = Math.abs(Math.sin(time * 2));
       sp(`M10 -22 q${2 - inch} ${-2 - inch * 2} ${4 - inch} 0 q1 1 2.5 0`, t('#93c26a'), 1.2); E(16.5 - inch, -22.4, .8, .8, t('#5f8f68'));
     } },
 
     /* S6 쥐 끈끈이: 반들거리는 판 위에 반듯하게 놓인 쌀알 (D6 가해자이기도 하다) */
     'sparrow:glueTrap': { w: 44, h: 8, d: (time, t) => {
-      fp('M-22 0 L22 0 L18 -5 L-18 -5 Z', t('#e8c24a'));
-      fp('M-19 -.8 L19 -.8 L16 -4.4 L-16 -4.4 Z', t('#f4dc7a'));
+      const tray = planes(t, '#e8c24a');                                                                           // 끈끈이 판: 볕 받는 윗면, 앞 턱, 그늘진 오른쪽 턱
+      fp('M-22 0 L22 0 L18 -5 L-18 -5 Z', tray.mid); fp('M18 -5 L22 0 L19 -.8 L16 -4.4 Z', tray.dark);
+      fp('M-19 -.8 L19 -.8 L16 -4.4 L-16 -4.4 Z', tray.lit);
       faded(.55 + Math.sin(time * 1.5) * .2, () => { fp('M-12 -4 L-4 -4 L-8 -1.4 L-15 -1.4 Z', WHITE); E(10, -2.4, 4, .5, WHITE); });
       for (let i = 0; i < 10; i++) E(-9 + (i % 5) * 4, -3.6 + Math.floor(i / 5) * 1.6, .7, .35, t(RICE));
       at(14, -3, .4, null, () => { fp('M-3 0 Q0 -1.4 3 0 Q0 .4 -3 0 Z', t('#a87650')); L(-3, 0, 3, 0, t('#5e4030'), .15); });
@@ -382,9 +475,14 @@
     } },
     /* S6 터진 쌀 포대: 고양이 다니는 길목에 쌀이 줄줄 샌다 */
     'sparrow:riceSack': { w: 60, h: 42, d: (time, t) => {
-      fp('M-20 0 C-24 -14 -20 -34 -12 -40 C-4 -42 6 -42 12 -38 C20 -30 22 -12 18 0 Z', t('#efe8d8'));
-      fp('M6 -40 C16 -34 22 -16 18 0 L8 0 C12 -14 10 -30 6 -40 Z', t('#ddd3bf'));
-      faded(.3, () => { for (let y = -36; y < 0; y += 3) L(-20, y, 18, y + 1, t('#b8ab92'), .3); });
+      const sk = planes(t, '#e8e0cc');                                                                             // 귀가 선 쌀 포대, 퍼져 주저앉은 바닥
+      const sack = [[-20, 0], [-25, -12, -21, -30, -17, -38], [-20, -43], [-12, -40], [-2, -41.6, 8, -40], [16, -44], [14, -36], [21, -26, 22, -10, 19, 0], [0, 1.4, -20, 0]];
+      curvy(sack, sk.mid);
+      inside(sack, () => {
+        fp('M-26 2 L-26 -46 L-12 -46 C-17 -34 -18 -16 -14 2 Z', sk.lit);
+        fp('M6 -46 C14 -34 16 -14 12 2 L26 2 L26 -46 Z', sk.dark);
+      });
+      sp('M-17 -37 Q-2 -38.6 14 -36', t('#b8ab92'), .5);                                                            // 꿰맨 윗단 한 줄
       RR(-14, -30, 20, 12, 2, t('#5fa39a'));
       label('햅쌀', -10, -22, '800 5px sans-serif', t('#fbf7ee'));
       fp('M14 -10 L19 -6 L16 -2 Z', t('#3a3445'));
@@ -395,9 +493,11 @@
 
     /* S7 눈 덮인 처마 밑: 동그랗게 부풀어 붙어 자는 무리 */
     'sparrow:huddleEave': { w: 120, h: 46, d: (time, t) => {
-      RR(-60, -2, 120, 4, 1, t('#8d8a9c'));
-      fp('M-62 -30 L62 -30 L58 -40 L-58 -40 Z', t('#7a5a5e'));
-      for (let x = -58; x < 58; x += 8) fp(`M${x} -30 q4 4 8 0 Z`, t('#5f4a52'));
+      const beam = planes(t, '#8d8a9c'), roof = planes(t, '#7a5a5e');
+      curvy([[-60, -2], [-57, -4], [62, -4], [60, -2]], beam.lit); RR(-60, -2, 120, 4, 1, beam.mid);                 // 새들이 앉은 처마 보
+      fp('M-62 -30 L62 -30 L58 -40 L-58 -40 Z', roof.mid);
+      fp('M-62 -30 L62 -30 L60 -27 L-60 -27 Z', roof.deep);                                                          // 처마 밑 그늘
+      for (let x = -58; x < 58; x += 8) { fp(`M${x} -30 q4 4 8 0 Z`, roof.dark); fp(`M${x} -30 q2 2.6 4 2.6 L${x + 4} -30 Z`, roof.mid); }   // 기와 끝: 왼쪽 반은 볕
       fp('M-60 -40 C-40 -46 40 -46 60 -40 L58 -38 C30 -42 -30 -42 -58 -38 Z', t(WHITE));
       [-40, 8, 44].forEach((x, i) => fp(`M${x} -30 L${x + 1.2} ${-24 - i} L${x + 2.4} -30 Z`, t('#e3f2fa')));
       [-36, -22, -8, 6, 20].forEach((x, i) => sparrow(time, t, { x, y: -2, pose: 'puff', sleepy: i !== 2, flip: i > 2, seed: i }));
@@ -406,10 +506,11 @@
     /* S7 보일러 연통: 그을린 벽에서 따뜻한 김이 나온다 (D7 가해자이기도 하다) */
     'sparrow:flue': { w: 80, h: 50, d: (time, t) => {
       faded(.25, () => E(-24, -24, 14, 18, '#2a2240'));
-      RR(-38, -36, 8, 26, 2, t('#cfcad8'));
-      RR(-32, -28, 52, 12, 6, t('#e3e1e8')); RR(-32, -20, 52, 4, 2, t('#c9c4d2'));
-      [-20, -8, 4].forEach((x) => RR(x, -29, 2, 14, 1, t('#b5afc0')));
-      E(22, -22, 3.4, 7, t('#b5afc0')); E(22.6, -22, 2.2, 5.4, t('#2a2240'));
+      const plate = planes(t, '#cfcad8'), band = planes(t, '#b5afc0');
+      RR(-38, -36, 8, 26, 2, plate.mid); R(-38, -34, 2, 22, plate.lit);                                             // 벽 고정판
+      pipeRun(t, '#e3e1e8', -32, -28, 54, 12);
+      [-18, 2].forEach((x) => { RR(x, -29, 3, 14, 1.2, band.mid); R(x, -29, 1, 14, band.lit); });                  // 이음 띠 두 개
+      E(22, -22, 3.4, 6.4, band.lit); E(22.8, -22, 2.4, 5.2, t('#2a2240'));                                         // 볕 받는 연통 입과 까만 속
       puffs(time, t, { n: 7, speed: .35, x: 28, y: -22, dx: 4, dy: -26, wob: 2, r: 4, alpha: .75 });
       faded(.6, () => { E(18, -16, 2.6, .8, '#4a4258'); E(24, -31, 1.8, .6, '#4a4258'); });
     } },
@@ -431,27 +532,33 @@
       for (let i = 0; i < 20; i++) faded(.5, () => E(48 + i * 6.5, -96 + i * 4.6 + (hash(i, 2) - .5) * i * 1.6 + Math.sin(time * 1.2 + i) * 1.2, 4 + i * 1.2 + Math.sin(time * 1.6 + i * 1.3) * 1.2, 3.6 + i, t(i % 2 ? WHITE : '#eef0f4')));
       person(time, t, { h: 172, top: '#4a5d7a', bottom: '#3d4c66', hair: '#2f2a3a', arm: 'out',
         extra: (hy, r) => { RR(r * .1, hy, r * .9, r * .7, r * .3, t('#f4f1ea')); RR(-r * 1.05, hy - r * 1.1, r * 2.1, r * .7, r * .3, t('#e8c24a')); } });
-      RR(10, -104, 26, 12, 4, t('#e8c24a')); RR(14, -110, 10, 6, 2, t('#c9a03a'));
-      RR(34, -100, 12, 4, 2, t('#8d8a9c')); E(46, -98, 2.4, 3, t('#5f5a66'));
+      const tank = planes(t, '#e8c24a'), steel = planes(t, '#8d8a9c');                                                // 연막기: 둥근 통, 위 손잡이, 앞으로 뻗은 분사관
+      const body = [[10, -98], [10, -104, 16, -105], [30, -105], [36, -105, 37, -98], [36, -92, 30, -92], [16, -92], [10, -92, 10, -98]];
+      curvy(body, tank.mid); inside(body, () => { R(8, -106, 30, 4, tank.lit); R(30, -106, 8, 16, tank.dark); });
+      curvy([[14, -105], [15, -111], [23, -111], [24, -105], [21, -105], [20.4, -108.4], [17.6, -108.4], [17, -105]], tank.dark);
+      pipeRun(t, '#8d8a9c', 34, -100, 12, 4);
+      E(46.4, -98, 2.2, 3, steel.lit); E(47, -98, 1.4, 2, t('#5f5a66'));
       [[-6, 0], [6, 1]].forEach(([x, k]) => E(x + Math.sin(time * 3 + k) * 10 + 60, -1, 1.6, .5, t('#93c26a')));
     } },
 
     /* S9 필로티 천장 배관 틈: 보온재 감은 배관 위로 삐져나온 지푸라기 */
     'sparrow:pipeGap': { w: 150, h: 40, d: (time, t) => {
-      RR(-76, -40, 152, 12, 2, t('#cfcad8'));
+      ceiling(t, -76, -40, 152, 12);
       faded(.3, () => R(-74, -28, 148, 10, '#2a2240'));
       [-50, 30].forEach((x) => { L(x, -28, x, -14, t('#7d7a8c'), 1.2); RR(x - 4, -16, 8, 3, 1, t('#7d7a8c')); });
-      RR(-76, -14, 152, 9, 4.5, t('#d8dbe2')); [-60, -30, 0, 30, 60].forEach((x) => L(x, -14, x, -5, t('#b5b9c3'), .5));
-      RR(-76, -5, 152, 5, 2.5, t('#9aa3bb'));
+      const wrap = pipeRun(t, '#d8dbe2', -76, -14, 152, 9); [-46, 14].forEach((x) => L(x, -14, x - 2, -5, wrap.dark, .6));   // 보온재 감은 이음 두 줄
+      pipeRun(t, '#9aa3bb', -76, -5, 152, 5);
       strawNest(t, 6, -14, 28, 12, 6);
       at(18, -24, .5 + Math.sin(time * 2) * .1, null, () => fp('M0 0 Q3 -1 6 0 Q3 .6 0 0 Z', t('#f4f1ea')));
     } },
     /* S9 실외기 앞 초록 새 그물: 찢어진 틈이 아늑해 보인다 (D8 가해자이기도 하다) */
     'sparrow:birdNet': { w: 100, h: 80, d: (time, t) => {
-      block(-40, -64, 80, 58, '#ece8ef', t);
-      E(-6, -35, 20, 20, t('#c9c4d2')); E(-6, -35, 15, 15, t('#b5afc0'));
-      at(-6, -35, time * .6, null, () => [0, 1, 2].forEach((k) => at(0, 0, k * TAU / 3, null, () => E(7, 0, 8, 3, t('#9a94a8')))));
-      RR(-44, -6, 88, 6, 2, t('#8d8a9c'));
+      box3(t, '#ebe7ef', -40, -62, 74, 56, 6);                                                                     // 실외기: 볕 받는 윗면, 그늘진 옆면
+      const G = planes(t, '#c4bfcd'), S = planes(t, '#8d8a9c');
+      E(-6, -35, 20, 20, G.dark); E(-5, -34, 17.4, 17.4, G.mid);
+      at(-5, -34, time * .6, null, () => [0, 1, 2].forEach((k) => at(0, 0, k * TAU / 3, null, () => curvy([[1.4, -1.4], [5, -7, 12, -7], [15, -2.6, 13.6, 1.2], [8, 2.6, 1.4, 1.4]], G.lit))));
+      E(-5, -34, 3, 3, S.mid);
+      curvy([[-44, -6], [-41, -8.4], [47, -8.4], [44, -6]], S.lit); RR(-44, -6, 88, 6, 1.4, S.mid);
       ctx.save(); ctx.beginPath(); ctx.rect(-46, -78, 92, 76); ctx.clip();
       const sway = Math.sin(time * 1.3) * .8;
       faded(.18, () => R(-46, -78, 92, 76, t('#3f8f5a')));
@@ -467,18 +574,21 @@
     } },
     /* S9 버드스파이크 간판: 뾰족한 침이 줄줄이 박혀 있다 */
     'sparrow:spikeSign': { w: 130, h: 52, d: (time, t) => {
-      block(-62, -36, 124, 36, '#5f8fb0', t);
-      label('우리 부동산', -6, -12, '800 15px sans-serif', t('#fbf7ee'), 'center');
-      RR(-60, -38, 120, 2, 1, t('#b5b9c3'));
-      RR(-60, -40, 120, 3, 1, t('#8d8a9c'));
-      for (let x = -56; x <= 56; x += 6) [-.45, 0, .45].forEach((a) => L(x, -40, x + Math.sin(a) * 13, -40 - Math.cos(a) * 13, t('#e3e6ec'), .6));
+      box3(t, '#5f8fb0', -62, -36, 114, 36, 8);
+      label('우리 부동산', -5, -12, '800 15px sans-serif', t('#fbf7ee'), 'center');
+      const strip = planes(t, '#8d8a9c'), pin = planes(t, '#e3e6ec');
+      RR(-60, -42, 118, 3, 1, strip.mid); R(-60, -42, 118, 1, strip.lit);                                            // 침을 박은 띠
+      for (let x = -56; x <= 54; x += 6) [-.45, 0, .45].forEach((a) => {                                            // 가는 삼각 침: 왼쪽 볕, 오른쪽 그늘
+        const tx = x + Math.sin(a) * 13, ty = -42 - Math.cos(a) * 13;
+        P([[x - .7, -42], [x, -42], [tx, ty]], pin.lit); P([[x, -42], [x + .7, -42], [tx, ty]], pin.dark);
+      });
       faded(.5 + Math.sin(time * 2) * .4, () => { L(20, -51, 24, -51, WHITE, .5); L(22, -53, 22, -49, WHITE, .5); });
     } },
 
     /* S10 배관 틈 둥지: 다섯 새끼가 쩍쩍 입을 벌리고 짝이 벌레를 물고 온다 */
     'sparrow:chicksPipe': { w: 90, h: 40, d: (time, t) => {
-      RR(-46, -40, 92, 10, 2, t('#cfcad8'));
-      RR(-46, -9, 92, 9, 4.5, t('#d8dbe2')); [-30, 0, 30].forEach((x) => L(x, -9, x, 0, t('#b5b9c3'), .5));
+      ceiling(t, -46, -40, 92, 10);
+      const wrap = pipeRun(t, '#d8dbe2', -46, -9, 92, 9); L(-28, -9, -30, 0, wrap.dark, .6);
       strawNest(t, -6, -9, 34, 10, 8);
       [-18, -11, -4, 3].forEach((x, i) => chick(time, t, x, -12, i, .95));
       sparrow(time, t, { x: 22, y: -9, flip: true, worm: true, seed: 4 });

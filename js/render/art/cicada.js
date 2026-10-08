@@ -6,7 +6,7 @@
   else { Object.assign(ACTORS, pack.art); ANIMALS.cicada = pack.hero; }
 })((() => {
   const BODY = '#2f2a2b', BODY_HI = '#4d4446', MARK = '#7fae6a', BELLY = '#e2cfa4', WING = '#eaf6ff', VEIN = '#56664a';
-  const BARK = '#8a7564', BARK_HI = '#a8927e', BARK_PEEL = '#c98d5a', SAP = '#e0a03a', SHELL = '#b07a3e';
+  const BARK = '#8a7564', BARK_PEEL = '#c98d5a', SAP = '#e0a03a', SHELL = '#b07a3e';
   const LEAF = '#6fa86a', LEAF_DK = '#4f8a55', SOIL = '#7a5a44', SOIL_DK = '#4f3a2e', SMOKE = '#f4f1ea';
 
   /** 투명도를 잠깐 바꿔 그린다 */
@@ -14,6 +14,22 @@
 
   /** 곡선 경로를 칠한다. build(ctx)에서 moveTo/curveTo로 모양을 만든다 */
   function shape(color, build) { ctx.fillStyle = color; ctx.beginPath(); build(ctx); ctx.closePath(); ctx.fill(); }
+
+  /** cm 점 목록으로 경로를 만든다 (y는 아래가 +). 점 형식은 forms.js와 같다: [x,y] · [cx,cy,x,y] · [c1x,c1y,c2x,c2y,x,y] */
+  function trace(pts) {
+    ctx.beginPath();
+    pts.forEach((p, i) => {
+      if (!i) ctx.moveTo(p[0], p[1]);
+      else if (p.length === 2) ctx.lineTo(p[0], p[1]);
+      else if (p.length === 4) ctx.quadraticCurveTo(p[0], p[1], p[2], p[3]);
+      else ctx.bezierCurveTo(p[0], p[1], p[2], p[3], p[4], p[5]);
+    });
+    ctx.closePath();
+  }
+  /** 면 하나를 오려 붙인다 */
+  function slab(c, pts) { trace(pts); ctx.fillStyle = c; ctx.fill(); }
+  /** 외곽(pts) 안에만 draw()가 칠해진다. 빛·그늘 면이 실루엣 밖으로 삐져나오지 않게 */
+  function inside(pts, draw) { ctx.save(); trace(pts); ctx.clip(); draw(); ctx.restore(); }
 
   /** 곡선 선 */
   function curve(color, w, build) {
@@ -105,17 +121,22 @@
     });
   }
 
-  /** 나무껍질 판과 갈라진 틈 (사각형 영역 안에 흩뿌림) */
-  function barkTexture(x0, y0, w, h, t, salt) {
-    for (let i = 0; i < Math.round(w * h / 18); i++) {
-      const x = x0 + hash(i, salt) * w, y = y0 + hash(i, salt + 1) * h, r = .8 + hash(i, salt + 2) * 1.6;
-      const peel = hash(i, salt + 3) > .78;
-      shape(t(peel ? BARK_PEEL : BARK_HI), (c) => { c.moveTo(x - r, y); c.quadraticCurveTo(x - r * .6, y - r * 1.4, x + r * .3, y - r * 1.2); c.quadraticCurveTo(x + r * 1.1, y - r * .2, x + r * .5, y + r * .6); c.quadraticCurveTo(x - r * .3, y + r * .9, x - r, y); });
-    }
-    curve(t(shade(BARK)), .18, (c) => {
-      for (let i = 0; i < Math.round(w / 3); i++) {
-        const x = x0 + hash(i, salt + 5) * w, y = y0 + hash(i, salt + 6) * h * .6;
-        c.moveTo(x, y); c.quadraticCurveTo(x + .6, y + h * .15, x - .2, y + h * .3);
+  /** 둥근 줄기 하나: 외곽(pts)을 가운데 톤으로 오리고, 왼쪽 볕 띠와 오른쪽 그늘 띠로 원기둥 면을 나눈다.
+      x0~x1은 줄기 폭, y0~y1은 칠할 높이 범위. 껍질은 세로로 긴 판 몇 장과 벗겨진 자리 두어 개만 */
+  function roundTrunk(pts, x0, x1, y0, y1, c, t, salt, peels = 0, plates = null) {
+    const p = planes(t, c), w = x1 - x0, n = plates ?? Math.round(w / 6);
+    slab(p.mid, pts);
+    inside(pts, () => {
+      slab(p.lit, [[x0 - 4, y0], [x0 + w * .24, y0], [x0 + w * .2, y1], [x0 - 4, y1]]);
+      slab(p.dark, [[x0 + w * .66, y0], [x1 + 6, y0], [x1 + 6, y1], [x0 + w * .7, y1]]);
+      for (let i = 0; i < n; i++) {                                                           // 세로로 긴 껍질 판
+        const u = .12 + hash(i, salt) * .62, x = x0 + w * u, ya = y0 + hash(i, salt + 1) * (y1 - y0) * .5, len = (y1 - y0) * (.3 + hash(i, salt + 2) * .3), bw = w * .05;
+        slab(u < .45 ? p.lit : p.dark, [[x, ya], [x + bw * 1.6, ya + len * .5, x + bw * .3, ya + len], [x - bw, ya + len * .5, x, ya]]);
+      }
+      for (let i = 0; i < peels; i++) {                                                       // 벗겨진 껍질 사이 주황 속껍질
+        const x = x0 + w * (.3 + hash(i, salt + 7) * .3), y = y0 + (y1 - y0) * (.25 + i * .4), r = w * .07;
+        slab(t(BARK_PEEL), [[x - r, y], [x - r * .4, y - r * 1.6, x + r * .9, y - r * 1.3], [x + r * 1.4, y + r * .4, x + r * .3, y + r * 1.5], [x - r * .8, y + r * 1.2, x - r, y]]);
+        slab(t(shade(BARK_PEEL)), [[x + r * .9, y - r * 1.3], [x + r * 1.4, y + r * .4, x + r * .3, y + r * 1.5], [x + r * .6, y]]);
       }
     });
   }
@@ -152,14 +173,19 @@
   const art = {
     /* C1 — 칠 년 만에 뚫고 나온 흙 구멍. 엄지손가락만 한 구멍 둘레로 흙 알갱이가 쌓였다 */
     'cicada:soilHole': { w: 7, h: 2, d: (time, t) => {
-      shape(t(SOIL), (c) => { c.moveTo(-3.4, 0); c.bezierCurveTo(-2.6, -.9, -1.4, -1.2, -.4, -1.05); c.bezierCurveTo(.8, -1.3, 2.2, -.9, 3.4, 0); });
-      shape(t(mix(SOIL, '#ffffff', .15)), (c) => { c.moveTo(-2.6, -.5); c.bezierCurveTo(-1.8, -1, -.9, -1.15, -.3, -1.02); c.quadraticCurveTo(-1.6, -.8, -2.6, -.5); });
-      E(0, -.95, .82, .32, t(SOIL_DK)); E(0, -.9, .62, .22, t('#22181a'));
-      curve(t('#e9dcc4'), .06, (c) => { c.moveTo(.3, -.9); c.bezierCurveTo(.9, -1.6, 1.5, -1.2, 1.3, -.8); });
-      for (let i = 0; i < 16; i++) {
-        const a = hash(i, 71) * Math.PI, r = 1.1 + hash(i, 72) * 1.9, s = .1 + hash(i, 73) * .14;
-        E(Math.cos(a) * r * (i % 2 ? 1 : -1), -Math.sin(a) * .5 - .25, s, s * .8, t(i % 3 ? SOIL : SOIL_DK));
-      }
+      const S = planes(t, SOIL);
+      const mound = [[-3.5, 0], [-2.7, -.5, -1.8, -1.05, -.85, -1.12], [.2, -1.32, 1.5, -1.25, 2.3, -.85], [2.9, -.5, 3.3, -.2, 3.5, 0]];
+      slab(S.mid, mound);
+      inside(mound, () => {
+        slab(S.lit, [[-3.6, 0], [-2.6, -1.3, -.6, -1.6, .9, -1.35], [-.6, -.95, -2.2, -.5, -3.6, 0]]);       // 볕 받는 왼쪽 어깨
+        slab(S.dark, [[1.3, -1.6], [2.3, -.7, 2, -.1, 2.2, .1], [3.8, .1], [3.8, -1.6]]);                   // 오른쪽 그늘 비탈
+      });
+      E(0, -1.02, .84, .32, S.deep); E(.08, -.98, .6, .2, t('#22181a'));                                     // 구멍
+      slab(S.lit, [[-.84, -1.02], [-.4, -.7, .4, -.68, .84, -1.0], [.3, -.8, -.4, -.82, -.84, -1.02]]);     // 앞 둔덕 입술
+      [[-2.4, -.3, .22], [-1.5, -.95, .16], [1.5, -1.05, .18], [2.6, -.3, .24]].forEach(([x, y, r]) => {  // 파낸 흙덩이
+        slab(S.dark, [[x - r, y], [x - r, y - r, x, y - r * 1.1], [x + r * 1.1, y - r * .6, x + r, y + r * .2], [x, y + r * .4, x - r, y]]);
+        slab(S.lit, [[x - r, y], [x - r, y - r, x, y - r * 1.1], [x + r * .2, y - r * .5, x - r, y]]);
+      });
       [[-3, 2.4], [2.6, 2], [3.2, 1.4]].forEach(([x, h], i) => {
         const sw = Math.sin(time * 1.3 + i) * .12;
         shape(t(i ? LEAF : LEAF_DK), (c) => { c.moveTo(x - .1, 0); c.quadraticCurveTo(x - .2, -h * .6, x + sw, -h); c.quadraticCurveTo(x + .2, -h * .5, x + .12, 0); });
@@ -170,9 +196,10 @@
     /* C1 — 화단과 맞닿은 보도블록 가장자리. 블록 틈에 이끼와 풀이 났다 */
     'cicada:paverEdge': { w: 34, h: 2, d: (time, t) => {
       for (let i = 0; i < 3; i++) {
-        const x = -16.5 + i * 11, c = i % 2 ? '#b9a7a0' : '#c98f7a';
-        RR(x, -1.5, 10.4, 1.5, .25, t(shade(c))); RR(x, -1.5, 10.4, .45, .2, t(mix(c, '#ffffff', .25)));
-        for (let k = 0; k < 6; k++) E(x + 1 + hash(i * 9 + k, 81) * 8.4, -.8 + hash(i * 9 + k, 82) * .5, .08, .06, t(shade(shade(c))));
+        const x = -16.5 + i * 11, p = planes(t, i % 2 ? '#b9a7a0' : '#c98f7a'), w = 10.4;
+        slab(p.mid, [[x, 0], [x, -1.05], [x + w, -1.05], [x + w, 0]]);                                    // 앞면
+        slab(p.lit, [[x, -1.05], [x + .4, -1.5], [x + w - .3, -1.5], [x + w, -1.05]]);                    // 모서리를 깎은 윗면
+        slab(p.dark, [[x + w - .45, 0], [x + w - .45, -1.05], [x + w, -1.05], [x + w, 0]]);               // 오른쪽 모서리 그늘
         if (i < 2) {
           RR(x + 10.4, -.9, .6, .9, .1, t('#5f7f4f'));
           shape(t(LEAF), (c2) => { c2.moveTo(x + 10.6, -.8); c2.quadraticCurveTo(x + 10.2, -2.2, x + 9.6 + Math.sin(time + i) * .1, -2.6); c2.quadraticCurveTo(x + 10.6, -2, x + 10.9, -.8); });
@@ -185,32 +212,31 @@
       const lift = Math.max(0, Math.sin(time * 2.2)) * 3.5;
       faded(.25 - lift * .04, () => E(0, -.05, 12 - lift, .45, t(INK)));
       ctx.save(); ctx.translate(0, -lift); ctx.rotate(-lift * .015);
-      const blue = '#5f8fb0';
-      RR(-12.2, -1.8, 24.4, 1.8, .9, t('#f4f1ea')); RR(-12.2, -.6, 24.4, .6, .3, t('#cfc8bc'));
-      for (let x = -11; x < 11; x += 1.4) P([[x, 0], [x + .7, -.35], [x + 1.4, 0]], t('#a8a294'));
-      shape(t(blue), (c) => { c.moveTo(-12, -1.7); c.bezierCurveTo(-12.6, -4, -10.5, -5.3, -7, -5.6); c.lineTo(-1, -7.8); c.bezierCurveTo(1, -10, 5, -10.6, 8.5, -10.2); c.bezierCurveTo(11, -9.6, 12.2, -6, 12, -1.7); });
-      shape(t(shade(blue)), (c) => { c.moveTo(6, -1.7); c.bezierCurveTo(7, -6, 9, -9.6, 9.8, -10); c.bezierCurveTo(11.4, -9, 12.2, -6, 12, -1.7); });
-      shape(t('#f4f1ea'), (c) => { c.moveTo(-12, -1.7); c.bezierCurveTo(-12.5, -3.8, -10.5, -5, -7.5, -5.3); c.quadraticCurveTo(-8.5, -3, -7.6, -1.7); });
+      const B = planes(t, '#5f8fb0'), S = planes(t, '#f4f1ea');
+      slab(S.mid, [[-12.2, -1.9], [-12.9, -.4, -11.4, 0, -10.4, 0], [11, 0], [12.4, 0, 12.5, -1, 12.2, -1.9]]);   // 앞코가 들린 밑창
+      slab(S.dark, [[-11.6, -.45], [-11.2, 0, -10.4, 0], [11, 0], [12.2, -.1, 12.4, -.5]]);
+      const upper = [[-12, -1.7], [-12.6, -4, -10.5, -5.3, -7, -5.6], [-1, -7.8], [1, -10, 5, -10.6, 8.5, -10.2], [11, -9.6, 12.2, -6, 12, -1.7]];
+      slab(B.mid, upper);
+      inside(upper, () => {
+        slab(B.lit, [[-13, -1], [-13, -6.2], [-7, -6.4], [-1.2, -8.8], [.6, -11], [-1, -7, -6, -4.2, -13, -1]]);   // 볕 받는 발등 윗면
+        slab(B.dark, [[6.6, -1], [7.4, -6, 9, -9.6, 9.8, -11], [13, -11], [13, -1]]);                           // 뒤꿈치 옆면
+      });
+      slab(S.lit, [[-12, -1.7], [-12.5, -3.8, -10.5, -5, -7.5, -5.3], [-8.5, -3, -7.6, -1.7]]);                   // 앞코 고무
+      slab(S.lit, [[-12, -1.95], [12.2, -1.95], [12.2, -1.5], [-12.1, -1.5]]);                                   // 밑창 윗테
       curve(t('#ffd56b'), .5, (c) => { c.moveTo(-5, -2.6); c.bezierCurveTo(-1, -2.4, 3, -4, 6, -6.4); });
-      shape(t('#3d4c66'), (c) => { c.moveTo(1.2, -9.4); c.bezierCurveTo(3, -10.6, 6.5, -10.8, 8.6, -10.2); c.quadraticCurveTo(5, -9.4, 1.2, -9.4); });
-      curve(t(WHITE), .2, (c) => [0, 1, 2, 3].forEach((i) => { const x = -4.6 + i * 1.5, y = -6.6 - i * .75; c.moveTo(x, y); c.lineTo(x + 1.6, y - 1.2); c.moveTo(x + 1.6, y); c.lineTo(x, y - 1.2); }));
-      [0, 1, 2, 3].forEach((i) => E(-4.6 + i * 1.5, -6.6 - i * .75, .18, .18, t('#cfc8bc')));
+      slab(B.deep, [[1.2, -9.4], [3, -10.6, 6.5, -10.8, 8.6, -10.2], [5, -9.4, 1.2, -9.4]]);                       // 발 넣는 구멍
+      [0, 1, 2].forEach((i) => { const x = -4.2 + i * 1.7, y = -6.8 - i * .85; slab(S.lit, [[x, y], [x + 1.3, y - .9], [x + 1.6, y - .5], [x + .3, y + .4]]); });   // 끈 세 줄
       RR(10.6, -9.8, 1.2, 2.6, .5, t('#ff8fa3'));
       ctx.restore();
     } },
 
     /* C2 — 키 낮은 회양목. 반들반들한 작은 잎이 촘촘하다 */
     'cicada:boxwood': { w: 14, h: 15, d: (time, t) => {
-      const stem = t('#6b4f3e'), sway = Math.sin(time * .9) * .015;
+      const sway = Math.sin(time * .9) * .015;
       ctx.save(); ctx.rotate(sway);
-      curve(stem, .35, (c) => { c.moveTo(0, 0); c.quadraticCurveTo(-.5, -7, -3, -13); c.moveTo(-.2, -4); c.quadraticCurveTo(3, -8, 5, -12); c.moveTo(-.6, -8); c.quadraticCurveTo(-4, -9, -6, -10); });
-      for (let i = 0; i < 46; i++) {
-        const u = hash(i, 91), br = i % 3, x = br === 0 ? -3 * u - .2 : br === 1 ? 5 * u : -6 * u, y = br === 0 ? -13 * u - 1 : br === 1 ? -4 - 8 * u : -8 - 2 * u;
-        const ox = (hash(i, 92) - .5) * 2.6, oy = (hash(i, 93) - .5) * 2;
-        placed(x + ox, y + oy, 1, hash(i, 94) * Math.PI, () => {
-          E(0, 0, .62, .36, t(i % 4 ? LEAF_DK : '#3f6f48')); faded(.45, () => E(-.15, -.12, .3, .08, WHITE));
-        });
-      }
+      ctx.save(); ctx.beginPath(); ctx.rect(-9, -16, 18, 16); ctx.clip();
+      leafMass(0, -6.6, 7, 7.2, .41, t, 7);                                                                     // 땅에 눌려 둥글게 다듬은 잎 덩어리
+      ctx.restore();
       ctx.restore();
     } },
 
@@ -226,19 +252,14 @@
 
     /* C2·C3 — 단지 느티나무 줄기 아랫부분(지름 30cm). 비늘처럼 벗겨진 껍질 사이로 주황 속껍질이 보인다 */
     'cicada:barkTrunk': { w: 34, h: 46, d: (time, t) => {
-      shape(t(shade(BARK)), (c) => { c.moveTo(-17, 0); c.bezierCurveTo(-13, -1.5, -12.5, -6, -12.5, -12); c.lineTo(-11.8, -48); c.lineTo(12.2, -48); c.lineTo(12.8, -12); c.bezierCurveTo(13, -5, 14, -1.5, 18, 0); });
-      shape(t(BARK), (c) => { c.moveTo(-17, 0); c.bezierCurveTo(-13, -1.5, -12.5, -6, -12.5, -12); c.lineTo(-11.8, -48); c.lineTo(6, -48); c.lineTo(6.6, -12); c.bezierCurveTo(7, -5, 8, -1.5, 10, 0); });
-      ctx.save(); ctx.beginPath(); ctx.rect(-12.6, -48, 24.6, 48); ctx.clip();
-      barkTexture(-12, -46, 24, 44, t, 111);
-      ctx.restore();
+      const pts = [[-17, 0], [-13, -1.5, -12.5, -6, -12.5, -12], [-11.8, -48], [12.2, -48], [12.8, -12], [13, -5, 14, -1.5, 18, 0]];
+      roundTrunk(pts, -12.5, 12.6, -48, 0, BARK, t, 111, 2);
       shape(t('#6f9a5a'), (c) => { c.moveTo(-17, 0); c.quadraticCurveTo(-14, -1.6, -12, -2.6); c.quadraticCurveTo(-10, -1, -8, 0); });
-      faded(.18, () => RR(-10.5, -48, 2.2, 46, 1, WHITE));
     } },
 
     /* C3 — 옆 가지에서 먼저 껍질을 벗는 매미. 연둣빛 몸을 뒤로 젖혔고, 한쪽 날개가 구겨졌다 */
     'cicada:molting': { w: 5, h: 8, d: (time, t) => {
-      shape(t(BARK), (c) => { c.moveTo(.5, 0); c.lineTo(.7, -8.4); c.lineTo(1.5, -8.4); c.lineTo(1.4, 0); });
-      faded(.35, () => RR(.65, -8.4, .2, 8.4, .1, WHITE));
+      roundTrunk([[.5, 0], [.7, -8.4], [1.5, -8.4], [1.4, 0]], .5, 1.5, -8.4, 0, BARK, t, 121, 0, 0);
       placed(.55, -3.2, .85, -Math.PI / 2, () => shellShape(t, true));
       placed(-.3, -4.4, .8, Math.PI * .58 + Math.sin(time * .8) * .04, () => {
         cicadaBody(time, t, { pale: true, noBlush: true });
@@ -262,13 +283,11 @@
     /* C5 — 벚나무 줄기(지름 14cm). 가로 줄무늬 껍질 상처에서 호박색 수액이 배어 흐른다 */
     'cicada:sapOoze': { w: 16, h: 30, d: (time, t) => {
       const cherry = '#7a5560';
-      shape(t(shade(cherry)), (c) => { c.moveTo(-7.5, 0); c.lineTo(-6.8, -32); c.lineTo(7, -32); c.lineTo(7.6, 0); });
-      shape(t(cherry), (c) => { c.moveTo(-7.5, 0); c.lineTo(-6.8, -32); c.lineTo(3.4, -32); c.lineTo(3.8, 0); });
-      for (let i = 0; i < 9; i++) {
-        const y = -2 - i * 3.3 - hash(i, 171) * 1.2;
-        RR(-6.6 + hash(i, 172) * 3, y, 3 + hash(i, 173) * 4, .32, .16, t('#c9a3a0'));
+      roundTrunk([[-7.5, 0], [-6.8, -32], [7, -32], [7.6, 0]], -7.5, 7.6, -32, 0, cherry, t, 171, 0, 0);
+      for (let i = 0; i < 6; i++) {                                                                              // 벚나무 가로 껍질눈
+        const y = -3 - i * 4.8 - hash(i, 171) * 1.2, x = -5.6 + hash(i, 172) * 3;
+        slab(t(mix(cherry, '#ffffff', .4)), [[x, y], [x + 2.4 + hash(i, 173) * 3, y - .12], [x + 2.6 + hash(i, 173) * 3, y + .1], [x + .2, y + .2]]);
       }
-      faded(.25, () => RR(-6, -32, 1.4, 32, .7, WHITE));
       shape(t('#4a3036'), (c) => { c.moveTo(-1.6, -12.4); c.bezierCurveTo(-.6, -13.6, .8, -13.2, 1.2, -12.2); c.bezierCurveTo(.4, -11.2, -.9, -11.3, -1.6, -12.4); });
       shape(t(SAP), (c) => { c.moveTo(-1.1, -12); c.bezierCurveTo(-1.3, -9.5, -.2, -7.5, -.6, -5); c.quadraticCurveTo(-.2, -4.2, .3, -5.2); c.bezierCurveTo(.5, -7.6, 1.1, -10, .7, -12.1); });
       faded(.7, () => curve(t('#ffd98a'), .14, (c) => { c.moveTo(-.75, -11.4); c.bezierCurveTo(-.9, -9.4, -.2, -7.8, -.45, -6); }));
@@ -301,27 +320,39 @@
     /* C6·D7 — 기다란 장대 끝의 초록 잠자리채. 그물이 축 늘어져 흔들린다 */
     'cicada:bugNet': { w: 26, h: 30, d: (time, t) => {
       ctx.save(); ctx.rotate(Math.sin(time * 1.1) * .05);
-      const green = '#5fbf7a';
-      RR(4.5, -30, .9, 22, .45, t('#e9c46a')); faded(.4, () => RR(4.6, -30, .25, 22, .12, WHITE));
-      faded(.45, () => shape(t(green), (c) => { c.moveTo(-5, -8); c.bezierCurveTo(-5.5, -1, -2, 4, 1, 4.5); c.bezierCurveTo(2.5, 3, 5, -2, 5, -8); }));
-      curve(t(shade(green)), .05, (c) => {
-        for (let i = 1; i < 7; i++) { const u = i / 7; c.moveTo(-5 + u * 10, -8); c.quadraticCurveTo(-3 + u * 6, -1, 1, 4.4); }
-        for (let j = 1; j < 6; j++) { const y = -8 + j * 2.2, w = 5 * (1 - j / 6.5); c.moveTo(1 - w - .2, y); c.quadraticCurveTo(1, y + .6, 1 + w - .2, y); }
+      const P0 = planes(t, '#e9c46a'), N = planes(t, '#5fbf7a');
+      slab(P0.mid, [[4.5, -8.4], [4.6, -30], [5.4, -30], [5.5, -8.4]]);                                          // 장대
+      slab(P0.lit, [[4.5, -8.4], [4.6, -30], [4.85, -30], [4.78, -8.4]]); slab(P0.dark, [[5.18, -8.4], [5.2, -30], [5.4, -30], [5.5, -8.4]]);
+      const bag = [[-5, -8], [-5.5, -1, -2, 4, 1, 4.5], [2.5, 3, 5, -2, 5, -8]];
+      faded(.62, () => {
+        slab(N.mid, bag);
+        inside(bag, () => {
+          slab(N.lit, [[-6, -9], [-4.4, -1, -1, 3.4, .6, 5], [-1.4, -1, -2.2, -6, -1.4, -9]]);                    // 볕 받는 왼쪽 자락
+          slab(N.dark, [[2.2, -9], [3, -2, 1.8, 3, 1.2, 5], [6, 5], [6, -9]]);                                     // 오른쪽 그늘 자락
+        });
       });
-      E(0, -8, 5.3, 1.1, t('#3d8a52')); E(0, -8, 4.7, .7, t(mix('#ffffff', green, .3)));
-      curve(t('#ffd56b'), .25, (c) => { c.ellipse(0, -8, 5, .9, 0, 0, TAU); });
+      faded(.5, () => curve(N.dark, .06, (c) => { c.moveTo(-1.4, -8.8); c.quadraticCurveTo(-1, -1, 1, 4.3); c.moveTo(2.4, -8.6); c.quadraticCurveTo(2.4, -1, 1, 4.3); }));
+      faded(.75, () => E(0, -8, 4.9, .85, N.deep));                                                              // 그물 입구 안쪽
+      curve(P0.dark, .28, (c) => c.ellipse(0, -8, 5, .9, 0, Math.PI, TAU));                                      // 테 뒤쪽 (그늘)
+      curve(P0.lit, .3, (c) => c.ellipse(0, -8, 5, .9, 0, 0, Math.PI));                                          // 테 앞쪽 (볕)
       ctx.restore();
     } },
 
     /* C6·K1·D6 — 초록 뚜껑 투명 채집통. 숨구멍 뚫린 뚜껑과 노란 어깨끈 */
     'cicada:bugBox': { w: 14, h: 10, d: (time, t) => {
+      const L0 = planes(t, '#4fae6a'), G = planes(t, '#bfe2f5');
       faded(.2, () => E(0, -.05, 7, .3, t(INK)));
-      faded(.3, () => RR(-6.5, -8, 13, 8, .8, t('#cfe8f5')));
-      faded(.5, () => curve(t('#9fc4d8'), .12, (c) => c.roundRect(-6.5, -8, 13, 8, .8)));
-      faded(.5, () => { P([[-5.6, -7.2], [-4.6, -7.2], [-5.8, -.8], [-6, -.8]], WHITE); P([[5, -7], [5.4, -7], [4.4, -1], [4.1, -1]], WHITE); });
-      RR(-7, -9.4, 14, 1.6, .5, t('#4fae6a')); RR(-7, -8.3, 14, .5, .25, t(shade('#4fae6a')));
-      RR(-2.6, -10, 5.2, .7, .3, t('#3d8a52'));
-      for (let i = 0; i < 7; i++) E(-5.4 + i * 1.8, -8.8, .16, .1, t('#2f6a40'));
+      faded(.38, () => {
+        slab(G.mid, [[-6.6, 0], [-6.6, -8], [5.2, -8], [5.2, 0]]);                                                // 투명한 앞면
+        slab(G.dark, [[5.2, 0], [5.2, -8], [6.8, -8.9], [6.8, -.9]]);                                             // 옆면
+        slab(G.deep, [[-6.6, 0], [5.2, 0], [5.2, -.5], [-6.6, -.5]]);                                             // 바닥 테
+      });
+      faded(.6, () => slab(WHITE, [[-5.4, -7.4], [-4.3, -7.4], [-5.6, -.9], [-6, -.9]]));                        // 비친 빛 한 줄
+      slab(L0.mid, [[-7, -8], [-7, -9.2], [5.6, -9.2], [5.6, -8]]);                                             // 뚜껑 앞 테
+      slab(L0.dark, [[5.6, -8], [5.6, -9.2], [7.2, -10.1], [7.2, -8.9]]);                                       // 뚜껑 옆
+      slab(L0.lit, [[-7, -9.2], [5.6, -9.2], [7.2, -10.1], [-5.4, -10.1]]);                                     // 뚜껑 윗면
+      slab(L0.mid, [[-2.4, -9.35], [2.2, -9.35], [2.9, -9.85], [-1.7, -9.85]]);                                 // 먹이 넣는 쪽문
+      for (let i = 0; i < 5; i++) E(-5.4 + i * 1.3 + (i > 1 ? 4.2 : 0), -9.6, .16, .08, L0.deep);                // 숨구멍
       curve(t('#ffd56b'), .3, (c) => { c.moveTo(-6.6, -8.6); c.bezierCurveTo(-8, -14, 8, -14, 6.6, -8.6); });
     } },
 
@@ -333,8 +364,7 @@
 
     /* C7 — 느티나무 가지에 빼곡히 붙어 우는 수컷들. 배를 떨 때마다 소리 물결이 퍼진다 */
     'cicada:chorus': { w: 14, h: 24, d: (time, t) => {
-      shape(t(BARK), (c) => { c.moveTo(-3, 0); c.lineTo(-2.4, -26); c.lineTo(2.6, -26); c.lineTo(3.2, 0); });
-      ctx.save(); ctx.beginPath(); ctx.rect(-3, -26, 6.2, 26); ctx.clip(); barkTexture(-3, -25, 6, 24, t, 131); ctx.restore();
+      roundTrunk([[-3, 0], [-2.4, -26], [2.6, -26], [3.2, 0]], -3, 3.2, -26, 0, BARK, t, 131, 1);
       [[-2.4, -6, 1], [2.6, -13, -1], [-2.2, -20, 1]].forEach(([x, y, s], i) => {
         placed(x, y, 1, s > 0 ? -Math.PI / 2 : Math.PI / 2, () => { ctx.scale(1, s); cicadaBody(time + i * .7, t, { sing: true, noBlush: i === 1 }); });
         for (let k = 0; k < 2; k++) {
@@ -346,39 +376,45 @@
 
     /* C7 — 1층 창문 아래쪽. 회색 외벽, 알루미늄 창틀, 촘촘한 방충망 너머로 텔레비전 빛이 깜빡인다 */
     'cicada:windowScreen': { w: 34, h: 48, d: (time, t) => {
-      const wall = '#d8d2c8', alu = '#d4d0dc';
-      RR(-17, -48, 34, 48, 0, t(wall)); RR(-17, -3, 34, 3, 0, t(shade(wall)));
-      curve(t('#c6bfb3'), .12, (c) => [-9, -25].forEach((y) => { c.moveTo(-17, y); c.lineTo(17, y); }));
+      const Wl = planes(t, '#d8d2c8'), A = planes(t, '#d4d0dc'), S = planes(t, '#e9e6ee');
+      slab(Wl.mid, [[-17, 0], [-17, -48], [17, -48], [17, 0]]);
+      slab(Wl.lit, [[-17, -48], [-12.6, -48], [-12.6, -12], [-17, -10]]);                                       // 창 왼쪽 벽 (볕)
+      slab(Wl.dark, [[-17, 0], [-17, -3], [17, -3], [17, 0]]);                                                  // 걸레받이 그늘
       RR(-12, -48, 24, 34, 0, t('#2c2a3a'));
       const tv = .45 + Math.sin(time * 5) * .12 + (hash(Math.floor(time * 3), 3) - .5) * .25;
       faded(tv, () => E(5, -32, 7, 6, '#8fb8ff'));
       faded(.3, () => E(-4, -22, 6, 3, '#ffd9a8'));
       ctx.save(); ctx.beginPath(); ctx.rect(-11.4, -48, 22.8, 33.4); ctx.clip();
-      faded(.55, () => curve('#b9b4c8', .05, (c) => {
+      faded(.35, () => curve('#b9b4c8', .05, (c) => {
         for (let x = -11.4; x <= 11.4; x += .45) { c.moveTo(x, -48); c.lineTo(x, -14.6); }
         for (let y = -48; y <= -14.6; y += .45) { c.moveTo(-11.4, y); c.lineTo(11.4, y); }
       }));
       ctx.restore();
-      RR(-12.6, -48, 1.2, 34, .3, t(alu)); RR(11.4, -48, 1.2, 34, .3, t(shade(alu))); RR(-.5, -48, 1, 33.4, .3, t(alu));
-      faded(.3, () => P([[-9, -48], [-6.5, -48], [-10, -15], [-11, -15]], WHITE));
-      RR(-14, -15, 28, 1.6, .4, t('#e9e6ee')); RR(-14, -13.8, 28, .5, .2, t(shade('#e9e6ee')));
-      [[-7, -14.9], [6, -14.9]].forEach(([x, y]) => faded(.5, () => E(x, y, .9, .16, t('#8a8494'))));
+      slab(A.lit, [[-12.6, -48], [-11.4, -48], [-11.4, -14.6], [-12.6, -14.6]]);                                // 창틀: 왼쪽 볕
+      slab(A.mid, [[-.5, -48], [.5, -48], [.5, -14.6], [-.5, -14.6]]);
+      slab(A.dark, [[11.4, -48], [12.6, -48], [12.6, -14.6], [11.4, -14.6]]);                                   // 오른쪽 그늘
+      faded(.25, () => slab(WHITE, [[-9, -48], [-6.5, -48], [-10, -15], [-11, -15]]));
+      faded(.35, () => slab(Wl.deep, [[-13.6, -13], [14, -13], [13, -11.4], [-12.6, -11.4]]));                   // 창턱 그림자
+      slab(S.mid, [[-14, -13.4], [14, -13.4], [14, -14.6], [-14, -14.6]]);                                       // 창턱 앞면
+      slab(S.lit, [[-14, -14.6], [14, -14.6], [13.2, -15.2], [-13.2, -15.2]]);                                   // 창턱 윗면
     } },
 
     /* C8·D8 — 골목 가로등 기둥 아랫부분과 위에서 쏟아지는 주황 불빛 */
     'cicada:streetlamp': { w: 30, h: 46, d: (time, t) => {
-      const pulse = .22 + Math.sin(time * 1.6) * .03;
+      const pulse = .22 + Math.sin(time * 1.6) * .03, B = planes(t, '#a8a294'), Pl = planes(t, '#7f8a88');
       faded(pulse, () => P([[-4, -60], [4, -60], [15, 0], [-15, 0]], '#ffd27a'));
       faded(pulse + .1, () => E(0, -.1, 15, 1.2, '#ffe2a8'));
-      RR(-7, -3, 14, 3, .6, t('#a8a294')); RR(-7, -3, 14, .7, .3, t('#c9c4b8'));
-      shape(t('#7f8a88'), (c) => { c.moveTo(-5.5, -3); c.lineTo(-4.2, -60); c.lineTo(4.2, -60); c.lineTo(5.5, -3); });
-      shape(t(shade('#7f8a88')), (c) => { c.moveTo(2.4, -3); c.lineTo(2, -60); c.lineTo(4.2, -60); c.lineTo(5.5, -3); });
-      faded(.35, () => RR(-3.8, -60, .9, 57, .4, WHITE));
-      RR(-2.6, -18, 4, 6, .5, t('#6f7a78')); E(-.6, -15, .3, .3, t('#4a5250'));
-      RR(-4.2, -30, 6, 4.4, .2, t('#f4f1ea')); RR(-3.7, -29.2, 5, .6, .1, t('#e6765f'));
-      [0, 1, 2].forEach((i) => RR(-3.7, -28 + i * .9, 4 - i, .35, .1, t('#8d8a9c')));
-      faded(.8, () => RR(-4, -36, 5, 3.2, .2, t('#ffd56b')));
-      RR(-3.6, -35.4, 3.6, .4, .1, t('#3b3049')); RR(-3.6, -34.6, 2.6, .4, .1, t('#3b3049'));
+      slab(B.mid, [[-7, 0], [-7, -2.6], [5.6, -2.6], [5.6, 0]]);                                                 // 받침 앞면
+      slab(B.dark, [[5.6, 0], [5.6, -2.6], [7.2, -3.4], [7.2, -.8]]);                                            // 받침 옆면
+      slab(B.lit, [[-7, -2.6], [5.6, -2.6], [7.2, -3.4], [-5.4, -3.4]]);                                         // 받침 윗면
+      const pole = [[-4.8, -3], [-3.9, -60], [4.1, -60], [5.2, -3]];
+      slab(Pl.mid, pole);
+      inside(pole, () => { slab(Pl.lit, [[-6, -3], [-6, -60], [-2.2, -60], [-2.8, -3]]); slab(Pl.dark, [[2.3, -3], [1.9, -60], [6, -60], [6, -3]]); });
+      slab(Pl.dark, [[-5.2, -3], [5.6, -3], [5.4, -4.4], [-5, -4.4]]); slab(Pl.lit, [[-5.2, -3], [-2.6, -3], [-2.6, -4.4], [-5, -4.4]]);   // 밑동 고리
+      slab(Pl.dark, [[-2.4, -12.6], [1.4, -12.6], [1.4, -18], [-2.4, -18]]); slab(Pl.lit, [[-2.4, -12.6], [1.4, -12.6], [1.4, -13.1], [-2.4, -13.1]]);   // 점검 뚜껑
+      E(.6, -15.3, .25, .25, Pl.deep);
+      slab(t('#f4f1ea'), [[-4.2, -25.4], [1.6, -25.6], [1.8, -30], [-4.4, -29.8]]); RR(-3.7, -29.2, 5, .6, .1, t('#e6765f'));   // 붙은 전단지
+      slab(t(shade('#f4f1ea')), [[1.6, -25.6], [1.8, -30], [1.3, -29.9], [1.1, -25.6]]);
     } },
 
     /* C8 — 불빛 아래 맴도는 나방과 날벌레 (제자리에서 팔랑) */
@@ -404,11 +440,13 @@
 
     /* C10·D11 — 한여름 주차장 아스팔트. 흰 주차선이 갈라지고 열기가 아지랑이처럼 일렁인다 */
     'cicada:hotAsphalt': { w: 26, h: 7, d: (time, t) => {
-      shape(t('#4a4652'), (c) => { c.moveTo(-13, 0); c.lineTo(-12.4, -.35); c.lineTo(12.6, -.3); c.lineTo(13, 0); });
+      const A = planes(t, '#4a4652'), Ln = planes(t, '#f4f1ea');
+      slab(A.mid, [[-13, 0], [-12.4, -.35], [12.6, -.3], [13, 0]]);
+      slab(A.dark, [[-13, 0], [-12.8, -.1], [12.8, -.08], [13, 0]]);
       faded(.35, () => E(-2, -.3, 7, .12, '#fff1cf'));
-      for (let i = 0; i < 30; i++) E(-12.5 + hash(i, 161) * 25, -.18 + hash(i, 162) * .16, .08, .05, t(i % 2 ? '#6d6877' : '#2f2c38'));
-      RR(2, -.4, 6, .42, .1, t('#f4f1ea'));
-      curve(t('#bdb6b0'), .05, (c) => { c.moveTo(3.4, -.4); c.lineTo(3.9, -.1); c.lineTo(3.6, 0); c.moveTo(6.2, -.38); c.lineTo(5.8, -.05); });
+      for (let i = 0; i < 10; i++) E(-12 + hash(i, 161) * 24, -.2 + hash(i, 162) * .1, .1, .05, i % 2 ? A.lit : A.deep);
+      slab(Ln.lit, [[2, -.4], [8, -.4], [8, -.24], [2, -.24]]); slab(Ln.dark, [[2, -.24], [8, -.24], [8, -.16], [2, -.16]]);   // 주차선
+      curve(t('#bdb6b0'), .05, (c) => { c.moveTo(3.4, -.4); c.lineTo(3.9, -.1); c.lineTo(3.6, 0); });
       ctx.save(); ctx.strokeStyle = '#fff1cf'; ctx.lineWidth = .14; ctx.lineCap = 'round';
       for (let i = 0; i < 6; i++) {
         const x0 = -11 + i * 4.4, ph = (time * .7 + i * .37) % 1;
@@ -422,14 +460,20 @@
 
     /* C10 — 주차된 차 밑 그늘. 깜깜한 틈에서 고양이 눈 두 개가 깜빡인다 */
     'cicada:catUnderCar': { w: 34, h: 30, d: (time, t) => {
-      const car = '#8c7fa8';
+      const C = planes(t, '#8c7fa8'), T = planes(t, '#3a3445'), H = planes(t, '#cfcad8');
       faded(.55, () => shape(t('#2a2533'), (c) => { c.moveTo(-17, 0); c.lineTo(-15, -16); c.lineTo(17, -16); c.lineTo(17, 0); }));
-      shape(t(shade(car)), (c) => { c.moveTo(-17, -15); c.quadraticCurveTo(-17.5, -19, -14, -20); c.lineTo(17, -20); c.lineTo(17, -15); });
-      RR(-17, -34, 34, 15, 2, t(car)); faded(.3, () => RR(-15, -33, 30, 1.2, .6, WHITE));
-      RR(-17.6, -21.5, 4, 2.4, 1, t('#ff9a6a'));
+      const body = [[-17, -34], [17, -34], [17, -15], [-15.6, -15], [-17.6, -16.4, -17.6, -19]];
+      slab(C.mid, body);
+      inside(body, () => {
+        slab(C.lit, [[-18, -34], [18, -34], [18, -31.4], [-18, -30.6]]);                                           // 문 어깨선 위 (볕)
+        slab(C.dark, [[-18, -21.6], [0, -22.4, 18, -22.2], [18, -14], [-18, -14]]);                               // 문턱 아래 그늘
+        E(24, -16, 18.6, 18.6, C.deep);                                                                            // 바퀴 홈 안쪽
+      });
+      slab(t('#ff9a6a'), [[-17.6, -20.2], [-14.6, -20.6], [-14.4, -19.2], [-17.6, -18.8]]);                      // 옆 깜빡이
       ctx.save(); ctx.beginPath(); ctx.rect(-17, -40, 34, 40); ctx.clip();
-      E(24, -16, 16.5, 16.5, t('#3a3445')); E(24, -16, 7, 7, t('#cfcad8'));
-      curve(t('#5f5a6c'), .5, (c) => { c.arc(24, -16, 12, 0, TAU); });
+      E(24, -16, 16.5, 16.5, T.mid);
+      ctx.save(); ctx.beginPath(); ctx.arc(24, -16, 16.5, 0, TAU); ctx.clip(); E(22.4, -17.6, 16.5, 16.5, T.lit); E(25, -15, 16, 16, T.mid); ctx.restore();   // 타이어 볕 받은 테
+      E(24, -16, 7.4, 7.4, H.dark); E(23.5, -16.5, 6.8, 6.8, H.lit);
       ctx.restore();
       const blink = Math.sin(time * .9) > .95 ? .15 : 1;
       [[-3.4, -7], [-.2, -7.2]].forEach(([x, y]) => {
@@ -452,10 +496,14 @@
 
     /* C11 — 알 낳기 좋은 마른 잔가지. 껍질에 비스듬한 산란 자국이 줄지어 있다 */
     'cicada:deadTwig': { w: 18, h: 5, d: (time, t) => {
-      const grey = '#a2948a';
-      shape(t(grey), (c) => { c.moveTo(-9, -.1); c.quadraticCurveTo(0, -.9, 9, -.5); c.lineTo(9, .1); c.quadraticCurveTo(0, -.2, -9, .5); });
-      curve(t(grey), .22, (c) => { c.moveTo(-3, -.5); c.quadraticCurveTo(-4, -2.4, -5.6, -3.6); c.moveTo(4, -.6); c.quadraticCurveTo(5, -2, 6.4, -2.6); });
-      faded(.4, () => curve(WHITE, .06, (c) => { c.moveTo(-8.6, -.05); c.quadraticCurveTo(0, -.82, 8.6, -.45); }));
+      const G = planes(t, '#a2948a'), twig = [[-9, -.1], [0, -.9, 9, -.5], [9, .1], [0, -.2, -9, .5]];
+      slab(G.lit, [[-3, -.5], [-4, -2.4, -5.6, -3.6], [-5.2, -3.8], [-3.5, -2.7, -2.5, -.6]]);                  // 곁가지 (볕 쪽)
+      slab(G.mid, [[4, -.6], [5, -2, 6.4, -2.6], [6.5, -2.3], [5.3, -1.6, 4.6, -.5]]);
+      slab(G.mid, twig);
+      inside(twig, () => {
+        slab(G.lit, [[-9.5, -1.6], [9.5, -1.6], [9.5, -.38], [0, -.7, -9.5, .05]]);                               // 윗면
+        slab(G.dark, [[-9.5, .3], [0, -.36, 9.5, -.12], [9.5, 1], [-9.5, 1]]);                                    // 아랫면 그늘
+      });
       for (let i = 0; i < 9; i++) {
         const x = -6 + i * 1.3, y = -.4 - Math.sin((x + 9) / 18 * Math.PI) * .25;
         L(x - .18, y + .2, x + .18, y - .2, t('#5a4a3e'), .1);
@@ -465,18 +513,20 @@
 
     /* C11·D13 — 관리인의 긴 자루 가지치기 가위. 날이 철컥철컥 열렸다 닫힌다 */
     'cicada:pruningShears': { w: 30, h: 22, d: (time, t) => {
-      const open = (Math.sin(time * 2.6) + 1) * .18;
+      const open = (Math.sin(time * 2.6) + 1) * .18, H = planes(t, '#e6765f'), G = planes(t, '#3b3445');
       curve(t('#6b4f3e'), .5, (c) => { c.moveTo(-14, -8); c.quadraticCurveTo(-6, -9, 0, -8); });
       placed(-4, -8.6, 1, .1, () => leaf(3.4, LEAF, t, 7));
       ctx.save(); ctx.translate(-1, -9);
-      [[-open, '#c9c4cc', '#e9e6ee'], [open, '#a29fb2', '#cfcad8']].forEach(([a, c1, c2]) => {
+      [[-open, '#c9c4cc'], [open, '#a29fb2']].forEach(([a, c0]) => {
+        const B = planes(t, c0), blade = [[.6, .4], [0, -.1], [-1.5, -1.3, -4.2, -1.1, -5.4, -.2], [-3, .5, .6, .4]];
         ctx.save(); ctx.rotate(a);
-        shape(t(c1), (c) => { c.moveTo(0, 0); c.bezierCurveTo(-1.5, -1.2, -4.2, -1, -5.2, -.2); c.quadraticCurveTo(-3, .4, 0, .4); });
-        faded(.6, () => shape(t(c2), (c) => { c.moveTo(-.4, -.2); c.bezierCurveTo(-1.5, -.9, -3.6, -.8, -4.8, -.3); c.quadraticCurveTo(-2.6, -.1, -.4, -.2); }));
-        RR(0, -.45, 17, .9, .45, t('#e6765f')); RR(12, -.6, 6, 1.2, .5, t('#3b3445'));
+        slab(B.mid, blade);
+        inside(blade, () => { slab(B.lit, [[1, -.05], [-1.6, -.45, -4, -.55, -5.8, -.2], [-6, -2], [1, -2]]); slab(B.dark, [[1, .25], [-2, .2, -4.6, .05, -6, .1], [-6, 1], [1, 1]]); });   // 등은 밝게, 날 끝은 그늘
+        slab(H.mid, [[0, -.46], [12, -.42], [12, .42], [0, .46]]); slab(H.lit, [[0, -.46], [12, -.42], [12, -.08], [0, -.08]]);   // 빨간 자루
+        slab(G.mid, [[12, -.62], [17.6, -.56], [18.3, 0, 17.6, .56], [12, .62]]); slab(G.lit, [[12, -.62], [17.6, -.56], [18, -.2], [12, -.18]]);   // 손잡이
         ctx.restore();
       });
-      E(0, 0, .5, .5, t('#5f5a6c')); E(0, 0, .2, .2, t('#cfcad8'));
+      E(0, 0, .5, .5, t('#5f5a6c')); E(-.08, -.08, .22, .22, t('#cfcad8'));
       ctx.restore();
       for (let i = 0; i < 3; i++) {
         const ph = (time * .4 + i / 3) % 1;
