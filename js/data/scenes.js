@@ -91,4 +91,11 @@ const SCENES = {
   },
 };
 
-if (typeof module !== 'undefined' && module.exports) module.exports = { SCENES };
+/* 동물별 새 배경은 js/data/places/<동물>.js에 둔다. 브라우저에서는 각 파일이 SCENES에 스스로 더하고,
+   Node(테스트·문서 스크립트)에서는 여기서 모아 합친다 */
+if (typeof module !== 'undefined' && module.exports) {
+  const fs = require('node:fs'), path = require('node:path'), dir = path.join(__dirname, 'places');
+  const extra = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith('.js')).sort()
+    .map((f) => require(path.join(dir, f))) : [];
+  module.exports = { SCENES: Object.assign({}, SCENES, ...extra) };
+}
