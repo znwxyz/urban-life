@@ -437,7 +437,7 @@ function drawScene(v, sp, dt) {
   const s = scaleFor(sp);
   const eye = sp ? sp.eye : DEFAULT_EYE;
   // 세로로 긴 휴대폰 화면은 아래쪽을 선택 카드가 덮으므로, 땅과 인물을 화면 위쪽 절반으로 올린다
-  const g = H > W * PORTRAIT_TALL ? clamp(H * .32 + eye * s, H * .42, H * .5) : clamp(H * .5 + eye * s, H * .56, H * .78);
+  const g = H > W * PORTRAIT_TALL ? clamp(H * .35 + eye * s, H * .45, H * .53) : clamp(H * .5 + eye * s, H * .56, H * .78);
   lastFrame = { s, g };
   const bx = v.trans ? (v.trans.boundaryX - v.camX) * s : -1;
   if (v.trans && bx < -SEAM_SHADE) v.trans = null;
