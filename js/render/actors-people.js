@@ -23,36 +23,41 @@ function person(time, t, o) {
   personHead(H, top - headR * .8 + breathe * .5, headR, o, t);
 }
 
-/** 바지 두 짝(무릎이 살짝 굽은 통), 신발 */
+/** 바지 두 짝: 엉덩이에서 무릎을 지나 발목으로 가늘어지고 종아리가 뒤로 살짝 부푼다. 뒷다리는 그늘색.
+    o.feet가 'slipper'면 맨발에 슬리퍼({ sole, strap })를 신는다 */
 function personLegs(H, legH, o, t) {
-  const hip = -legH, w = H * .068;
-  [[-H * .04, t(shade(o.bottom))], [H * .035, t(o.bottom)]].forEach(([lx, c]) => {
-    curvy([[lx - w / 2, hip], [lx + w / 2 + H * .006, hip], [lx + w * .55, hip + legH * .5, lx + w * .32, -H * .03], [lx - w * .38, -H * .03], [lx - w * .62, hip + legH * .45, lx - w / 2, hip]], c);
-    R(lx - w * .38, -H * .052, w * .7, H * .006, t(mix(o.bottom, '#2f2a3a', .25)));                      // 바짓단
-    personShoe(lx - w * .32, H, t);
+  const leg = (lx) => [[lx - .046 * H, legH], [lx + .04 * H, legH], [lx + .044 * H, legH * .72, lx + .03 * H, legH * .5], [lx + .022 * H, legH * .25, lx + .019 * H, H * .045],
+    [lx - .016 * H, H * .045], [lx - .036 * H, legH * .3, lx - .03 * H, legH * .5], [lx - .05 * H, legH * .75, lx - .046 * H, legH]];
+  [[-H * .04, t(shade(o.bottom)), true], [H * .035, t(o.bottom), false]].forEach(([lx, c, isBack]) => {
+    if (o.feet === 'slipper') personSlipper(lx - H * .03, H, o, t, isBack); else personShoe(lx - H * .03, H, t, isBack);
+    cut(0, 0, 1, leg(lx), c);
   });
-  L(H * .045, hip + legH * .45, H * .055, hip + legH * .6, t(shade(o.bottom)), H * .004);                // 무릎 주름
 }
 
-function personShoe(x, H, t) {
-  const l = H * .105, h = H * .036;
-  curvy([[x - l * .1, 0], [x - l * .14, -h * 1.1, x + l * .2, -h * 1.15], [x + l * .55, -h], [x + l * .95, -h * .6, x + l, 0]], t(SHOE));
-  R(x - l * .12, -h * .22, l * 1.1, h * .22, t(SOLE));
-  E(x + l * .45, -h * .78, l * .12, h * .12, t(mix(SHOE, '#ffffff', .25)));
+/** 옆에서 본 운동화: 높은 뒤꿈치에서 발등을 타고 둥근 앞코로 내려가는 갑피 한 장, 그 아래 밝은 밑창 */
+function personShoe(x, H, t, isBack) {
+  const l = H * .108, c = isBack ? shade(SHOE) : SHOE;
+  cut(x, 0, 1, [[0, 0], [-l * .06, l * .2, -l * .02, l * .4], [l * .3, l * .44], [l * .52, l * .38, l * .72, l * .3], [l * .98, l * .24, l * 1.02, l * .1], [l, 0]], t(c));
+  cut(x, 0, 1, [[-l * .03, 0], [l * 1.01, 0], [l * 1.03, l * .06, l * 1.01, l * .1], [l * .5, l * .08], [-l * .04, l * .1]], t(isBack ? shade(SOLE) : SOLE));
 }
 
-/** 몸통: 어깨가 둥근 윗옷, 옷자락, 목선, 주름 */
+/** 맨발에 끈 슬리퍼: 납작한 밑창, 발등을 가로지르는 끈, 끈 밖으로 나온 발가락 */
+function personSlipper(x, H, o, t, isBack) {
+  const l = H * .115, f = (c) => t(isBack ? shade(c) : c), sl = o.slipper || {};
+  cut(x, 0, 1, [[l * .02, l * .14], [-l * .02, l * .32, l * .12, l * .42], [l * .5, l * .32], [l * .86, l * .26, l * .98, l * .16], [l * .94, l * .1, l * .8, l * .12]], f(SKIN));
+  cut(x, 0, 1, [[-l * .08, 0], [l * 1.06, 0], [l * 1.12, l * .14, l * 1, l * .16], [-l * .06, l * .17]], f(sl.sole || '#ff8fa3'));
+  cut(x, 0, 1, [[l * .3, l * .14], [l * .34, l * .46, l * .56, l * .44], [l * .78, l * .14]], f(sl.strap || '#ffd56b'));
+}
+
+/** 몸통: 어깨가 둥글게 떨어지는 윗옷 한 장. 빛이 왼쪽 위에서 와서 오른쪽 옆구리가 그늘진다 */
 function personTorso(H, top, legH, o, t) {
-  const c = t(o.top), d = t(shade(o.top)), hem = -legH + H * .035;
-  curvy([[-H * .1, hem], [-H * .118, top + H * .12, -H * .1, top + H * .03], [-H * .05, top - H * .006, 0, top], [H * .05, top - H * .006, H * .095, top + H * .03],
-    [H * .115, top + H * .14, H * .105, hem]], c);
-  curvy([[-H * .1, hem - H * .02], [H * .105, hem - H * .02], [H * .108, hem + H * .006], [-H * .103, hem + H * .006]], d);   // 밑단
-  curvy([[-H * .02, top + H * .002], [0, top + H * .03, H * .025, top + H * .002]], t(SKIN));            // 목선
-  R(-H * .014, top - H * .02, H * .03, H * .022, t(SKIN));
-  ctx.strokeStyle = d; ctx.lineWidth = H * .0035; ctx.lineCap = 'round'; ctx.beginPath();
-  ctx.moveTo(-H * .06, hem - H * .05); ctx.quadraticCurveTo(-H * .03, hem - H * .09, -H * .045, hem - H * .14);
-  ctx.moveTo(H * .07, hem - H * .04); ctx.quadraticCurveTo(H * .05, hem - H * .07, H * .065, hem - H * .1);
-  ctx.stroke();
+  const T = -top, hem = legH - H * .035;
+  const shirt = [[-H * .02, T], [H * .025, T], [H * .07, T - H * .005, H * .095, T - H * .03], [H * .112, T - H * .1, H * .106, T - H * .2], [H * .104, hem + H * .04, H * .112, hem],
+    [0, hem - H * .012, -H * .104, hem], [-H * .114, T - H * .2, -H * .104, T - H * .08], [-H * .095, T - H * .01, -H * .02, T]];
+  cut(0, 0, 1, shirt, t(o.top));
+  within(0, 0, 1, shirt, () => cut(0, 0, 1, [[H * .07, T], [H * .05, T - H * .12, H * .066, hem - H * .02], [H * .2, hem - H * .02], [H * .2, T]], t(shade(o.top))));
+  R(-H * .014, top - H * .02, H * .03, H * .022, t(SKIN));                                                  // 목
+  cut(0, 0, 1, [[-H * .022, T + H * .001], [0, T - H * .028, H * .027, T + H * .001]], t(SKIN));            // 목선
 }
 
 /** 몸 뒤로 늘어진 반대쪽 팔 (그늘색) */

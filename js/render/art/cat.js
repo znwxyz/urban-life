@@ -207,23 +207,27 @@ function artHandAt(t, x, y, ang, s, o) {
   return {
     /* C1 상자 속: 꼼짝 않는 형제들과 담요 한 조각 */
     'cat:siblingsBox': { w: 92, h: 54, d: (time, t) => {
-      RR(-29, -38, 58, 38, 4, t(shade(shade(CARD))));
-      P([[-29, -38], [-41, -47], [-36, -52], [-24, -38]], t(shade(CARD)));
-      P([[29, -38], [42, -49], [45, -44], [33, -36]], t(CARD));
+      const box = carton(-30, 0, 1, 50, 26, 9, CARD, t), blue = planes(t, '#a8c8e8');
+      box.back();
       at(-9, -25, () => curledCat(time, t, KITTEN_TABBY, .62, 0));
       at(10, -26, () => curledCat(time, t, KITTEN_WHITE, .58, 1));
-      RR(-26, -29, 22, 5, 2.5, t('#a8c8e8'));
-      block(-29, -27, 58, 27, CARD, t); R(-3, -27, 7, 12, t('#ecd3a6'));
-      P([[-24, -28], [6, -28], [3, -15], [-21, -17]], t('#a8c8e8'));
-      [[-18, -24], [-9, -22], [0, -24], [-14, -19]].forEach(([x, y]) => E(x, y, 1.3, 1.3, t('#f4f1ea')));
+      box.front();
+      cut(0, 0, 1, [[-27, 28], [-14, 30, 4, 27], [8, 26], [6, 20, 9, 13], [2, 15, -3, 12], [-9, 15, -16, 12], [-21, 13, -24, 16], [-27, 22, -27, 28]], blue.mid);   // 가장자리에 걸친 담요
+      cut(0, 0, 1, [[-4, 27], [8, 26], [6, 20, 9, 13], [2, 15, -3, 12], [-2, 20, -4, 27]], blue.dark);
+      [[-19, 22], [-11, 19], [-15, 25]].forEach(([x, y]) => E(x, -y, 1.3, 1.3, t('#f4f1ea')));
     } },
     /* C1 해 질 녘, 슬리퍼 소리가 계단을 내려온다 */
     'cat:stairSlipper': { w: 102, h: 204, d: (time, t) => {
-      [0, 1, 2, 3].forEach((i) => { block(-50 + i * 22, -16 * (i + 1), 100 - i * 22, 16 * (i + 1), '#c9c2b8', t); R(-50 + i * 22, -16 * (i + 1), 100 - i * 22, 2, t('#e3ddd4')); });
+      const st = planes(t, '#c9c2b8'), D = [6, 4];
+      cut(0, 0, 1, [[50, 0], [50 + D[0], D[1]], [50 + D[0], 64 + D[1]], [50, 64]], st.dark);
+      [0, 1, 2, 3].forEach((i) => {
+        const x0 = -50 + i * 22, x1 = i < 3 ? x0 + 22 : 50, top = 16 * (i + 1);
+        cut(0, 0, 1, [[x0, top], [x1, top], [x1 + D[0], top + D[1]], [x0 + D[0], top + D[1]]], st.lit);     // 디딤판 윗면
+        cut(0, 0, 1, [[x0, 0], [50, 0], [50, top], [x0, top]], st.mid);
+      });
       at(16, -48, () => {
         ctx.scale(-1, 1);
-        person(time, t, { h: 158, ...AUNTIE, arm: 'down', extra: (hy, r) => auntieCurls(t)(0, hy, r) });
-        E(-6, -2, 10, 3.5, t('#ff8fa3')); E(8, -2, 10, 3.5, t('#ff8fa3')); RR(-10, -6, 9, 4, 2, t('#ffd56b')); RR(4, -6, 9, 4, 2, t('#ffd56b'));
+        person(time, t, { h: 158, ...AUNTIE, arm: 'down', feet: 'slipper', slipper: { sole: '#ff8fa3', strap: '#ffd56b' }, extra: (hy, r) => auntieCurls(t)(0, hy, r) });
       });
       const p = (time * 1.5) % 1;
       faded(1 - p, () => [0, 1].forEach((i) => { ctx.strokeStyle = t('#fffaf0'); ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(-8, -50, 6 + i * 5 + p * 6, Math.PI * .9, Math.PI * 1.4); ctx.stroke(); }));

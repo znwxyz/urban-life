@@ -6,14 +6,25 @@ const LEAF = Object.freeze(['#7fb08a', '#6a9c78', '#93c29a', '#5f8f6c']);
 /** 바닥에 닿는 납작한 그림자 */
 const footShadow = (cx, g, rx, s) => E(cx, g - .3 * s, rx, Math.max(1, rx * .12), 'rgba(38,26,58,.18)');
 
-/** 겹겹이 오려 붙인 잎 덩어리: 어두운 잎 → 밝은 잎 순서로 쌓는다 */
+/** 잎 덩어리: 가장자리가 물결치는 오린 종이 세 장. 그늘(전체) 위에 왼쪽 위로 비킨 앞면, 그 위에 작은 볕 조각 (n은 물결 수) */
 function leafMass(cx, cy, rx, ry, r, t, n = 7) {
-  for (let k = 0; k < n; k++) {
-    const a = (k / n) * TAU + r * 3, d = .55 + hash(k, r * 17) * .3;
-    E(cx + Math.cos(a) * rx * d * .6, cy + Math.sin(a) * ry * d * .5, rx * .48, ry * .46, t(LEAF[(k + 1) % 2 ? 1 : 3]));
-  }
-  E(cx, cy, rx * .72, ry * .7, t(LEAF[0]));
-  E(cx - rx * .2, cy - ry * .25, rx * .42, ry * .36, t(LEAF[2]));
+  const lobes = Math.max(5, n + 2);
+  const blob = (bx, by, brx, bry, salt) => {
+    ctx.beginPath();
+    for (let k = 0; k <= lobes; k++) {
+      const a = (k / lobes) * TAU + r * 3 + salt, rr = .92 + hash(k % lobes, r * 17 + salt) * .12;
+      const px = bx + Math.cos(a) * brx * rr, py = by + Math.sin(a) * bry * rr;
+      if (!k) { ctx.moveTo(px, py); continue; }
+      const am = a - Math.PI / lobes, bulge = 1.16 + hash(k % lobes, r * 29 + salt) * .1;
+      ctx.quadraticCurveTo(bx + Math.cos(am) * brx * bulge, by + Math.sin(am) * bry * bulge, px, py);
+    }
+    ctx.closePath();
+  };
+  blob(cx, cy, rx, ry, 0); ctx.fillStyle = t(LEAF[3]); ctx.fill();
+  ctx.save(); blob(cx, cy, rx, ry, 0); ctx.clip();
+  blob(cx - rx * .12, cy - ry * .14, rx * .86, ry * .8, 1.3); ctx.fillStyle = t(LEAF[0]); ctx.fill();
+  blob(cx - rx * .36, cy - ry * .42, rx * .42, ry * .34, 2.1); ctx.fillStyle = t(LEAF[2]); ctx.fill();
+  ctx.restore();
 }
 
 const ITEMS = {
@@ -40,37 +51,6 @@ const ITEMS = {
   feather: { w: 7, h: .6, d: (x, g, s, r, t) => {
     E(x + 3.8 * s, g - .3 * s, 3.2 * s, .45 * s, t('#dfe2e8')); L(x, g - .2 * s, x + 7 * s, g - .3 * s, t('#c4c9d4'), Math.max(.5, .1 * s));
   } },
-  trashbag: { w: 62, h: 72, d: (x, g, s, r, t) => {
-    const c = r < .5 ? '#f5f0df' : '#d6e09a', d = shade(c);
-    footShadow(x + 31 * s, g, 30 * s, s);
-    curvy([[x + 4 * s, g], [x - 6 * s, g - 40 * s, x + 20 * s, g - 52 * s], [x + 26 * s, g - 56 * s], [x + 31 * s, g - 50 * s], [x + 36 * s, g - 56 * s], [x + 44 * s, g - 52 * s], [x + 70 * s, g - 38 * s, x + 58 * s, g]], t(c));
-    curvy([[x + 40 * s, g], [x + 52 * s, g - 30 * s, x + 46 * s, g - 48 * s], [x + 66 * s, g - 30 * s, x + 58 * s, g]], t(d));
-    curvy([[x + 25 * s, g - 54 * s], [x + 22 * s, g - 70 * s], [x + 30 * s, g - 62 * s], [x + 38 * s, g - 72 * s], [x + 36 * s, g - 54 * s]], t(c));   // 묶은 매듭
-    L(x + 14 * s, g - 30 * s, x + 22 * s, g - 12 * s, t(d), Math.max(.6, 1.2 * s)); L(x + 30 * s, g - 44 * s, x + 28 * s, g - 20 * s, t(d), Math.max(.6, 1 * s));
-  } },
-  box: { w: 55, h: 40, d: (x, g, s, r, t) => {
-    footShadow(x + 27 * s, g, 28 * s, s);
-    block(x, g - 40 * s, 55 * s, 40 * s, '#d9b27c', t); R(x + 20 * s, g - 40 * s, 10 * s, 40 * s, t('#efe3c8'));
-    P([[x, g - 40 * s], [x + 8 * s, g - 50 * s], [x + 22 * s, g - 48 * s], [x + 20 * s, g - 40 * s]], t('#c9a06a'));   // 들린 뚜껑
-    R(x + 34 * s, g - 30 * s, 14 * s, 8 * s, t('#f4f1ea')); R(x + 36 * s, g - 28 * s, 10 * s, 1 * s, t('#8d8a9c'));
-  } },
-  bike: { w: 175, h: 100, d: (x, g, s, r, t) => {
-    const frame = t(r < .5 ? '#4a4f63' : '#5f8fb0'), tire = t('#2f2a3a'), rr = 33 * s, lw = Math.max(1, 3 * s);
-    [35, 140].forEach((wx) => {
-      ctx.strokeStyle = tire; ctx.lineWidth = Math.max(1, 4.5 * s); ctx.beginPath(); ctx.arc(x + wx * s, g - rr, rr - 2 * s, 0, TAU); ctx.stroke();
-      ctx.strokeStyle = t('#b9b3c4'); ctx.lineWidth = Math.max(.5, .6 * s); ctx.beginPath();
-      for (let k = 0; k < 8; k++) { const a = k * Math.PI / 8; ctx.moveTo(x + wx * s - Math.cos(a) * rr * .85, g - rr - Math.sin(a) * rr * .85); ctx.lineTo(x + wx * s + Math.cos(a) * rr * .85, g - rr + Math.sin(a) * rr * .85); }
-      ctx.stroke();
-    });
-    ctx.strokeStyle = frame; ctx.lineWidth = lw; ctx.lineJoin = 'round'; ctx.beginPath();
-    ctx.moveTo(x + 35 * s, g - rr); ctx.lineTo(x + 80 * s, g - 72 * s); ctx.lineTo(x + 128 * s, g - 72 * s); ctx.lineTo(x + 140 * s, g - rr);
-    ctx.moveTo(x + 80 * s, g - 72 * s); ctx.lineTo(x + 92 * s, g - rr); ctx.lineTo(x + 35 * s, g - rr); ctx.moveTo(x + 92 * s, g - rr); ctx.lineTo(x + 128 * s, g - 72 * s);
-    ctx.moveTo(x + 76 * s, g - 72 * s); ctx.lineTo(x + 72 * s, g - 84 * s); ctx.moveTo(x + 128 * s, g - 72 * s); ctx.lineTo(x + 124 * s, g - 92 * s); ctx.lineTo(x + 112 * s, g - 96 * s);
-    ctx.stroke();
-    RR(x + 60 * s, g - 90 * s, 26 * s, 7 * s, 3.5 * s, t('#3b3049'));                                // 안장
-    E(x + 92 * s, g - rr, 7 * s, 7 * s, t('#8d8a9c'));
-    RR(x + 128 * s, g - 88 * s, 30 * s, 16 * s, 3 * s, t('#c9c4cc'));                               // 앞 바구니
-  } },
   pot: { w: 40, h: 65, d: (x, g, s, r, t) => {
     footShadow(x + 20 * s, g, 18 * s, s);
     P([[x + 4 * s, g - 34 * s], [x + 36 * s, g - 34 * s], [x + 31 * s, g], [x + 9 * s, g]], t('#d9825f'));
@@ -84,78 +64,10 @@ const ITEMS = {
     block(x, g - 95 * s, 50 * s, 95 * s, '#5fa39a', t); R(x - 3 * s, g - 101 * s, 56 * s, 8 * s, t('#4c8a82'));
     RR(x + 12 * s, g - 88 * s, 20 * s, 6 * s, 3 * s, t('#2f4a48')); R(x + 6 * s, g - 50 * s, 30 * s, 14 * s, t('#f4f1ea'));
   } },
-  bench: { w: 160, h: 85, d: (x, g, s, r, t) => {
-    const wood = '#d08c62', iron = t('#4a4f63');
-    footShadow(x + 80 * s, g, 80 * s, s);
-    [12, 140].forEach((lx) => { R(x + lx * s, g - 45 * s, 8 * s, 45 * s, iron); curvy([[x + (lx - 2) * s, g - 45 * s], [x + (lx + 2) * s, g - 70 * s, x + (lx + 4) * s, g - 90 * s], [x + (lx + 9) * s, g - 90 * s], [x + (lx + 6) * s, g - 70 * s, x + (lx + 10) * s, g - 45 * s]], iron); });
-    [[48, 7], [62, 6], [78, 7], [90, 6]].forEach(([y, h], k) => { R(x, g - y * s, 160 * s, h * s, t(k % 2 ? shade(wood) : wood)); R(x, g - y * s, 160 * s, Math.max(.6, .8 * s), t(mix(wood, '#ffffff', .25))); });
-  } },
-  car: { w: 430, h: 145, d: (x, g, s, r, t) => {
-    const c = pick(['#f3e9dc', '#e6765f', '#5fa39a', '#8c7fa8'], r), d = shade(c), glass = t('#cfe3ea');
-    footShadow(x + 215 * s, g, 210 * s, s);
-    curvy([[x + 70 * s, g - 100 * s], [x + 110 * s, g - 158 * s], [x + 300 * s, g - 158 * s], [x + 350 * s, g - 104 * s]], t(c));
-    curvy([[x + 112 * s, g - 104 * s], [x + 132 * s, g - 148 * s], [x + 212 * s, g - 148 * s], [x + 212 * s, g - 104 * s]], glass);
-    curvy([[x + 222 * s, g - 104 * s], [x + 222 * s, g - 148 * s], [x + 292 * s, g - 148 * s], [x + 330 * s, g - 104 * s]], glass);
-    ctx.globalAlpha = .4; P([[x + 150 * s, g - 108 * s], [x + 170 * s, g - 146 * s], [x + 182 * s, g - 146 * s], [x + 162 * s, g - 108 * s]], '#ffffff'); ctx.globalAlpha = 1;
-    RR(x, g - 108 * s, 430 * s, 76 * s, 30 * s, t(c));
-    RR(x, g - 66 * s, 430 * s, 30 * s, 14 * s, t(d));
-    R(x + 215 * s, g - 104 * s, 2 * s, 66 * s, t(d)); R(x + 175 * s, g - 92 * s, 22 * s, 4 * s, t(d)); R(x + 265 * s, g - 92 * s, 22 * s, 4 * s, t(d));
-    E(x + 16 * s, g - 86 * s, 10 * s, 8 * s, t('#fff1b8')); RR(x + 412 * s, g - 92 * s, 16 * s, 14 * s, 4 * s, t('#e6765f'));
-    RR(x + 180 * s, g - 48 * s, 70 * s, 14 * s, 3 * s, t('#f4f1ea'));                                // 번호판
-    [95, 335].forEach((wx) => {
-      E(x + wx * s, g - 34 * s, 40 * s, 40 * s, t(mix(d, '#2f2a3a', .5)));
-      E(x + wx * s, g - 32 * s, 32 * s, 32 * s, t('#3a3445')); E(x + wx * s, g - 32 * s, 15 * s, 15 * s, t('#cfcad8'));
-      for (let k = 0; k < 5; k++) { const a = k * TAU / 5; E(x + wx * s + Math.cos(a) * 9 * s, g - 32 * s + Math.sin(a) * 9 * s, 2.4 * s, 2.4 * s, t('#9a95a8')); }
-    });
-  } },
-  tree: { w: 300, h: 620, d: (x, g, s, r, t) => {
-    const bark = '#8a6a52';
-    footShadow(x + 150 * s, g, 110 * s, s);
-    curvy([[x + 128 * s, g], [x + 142 * s, g - 200 * s, x + 136 * s, g - 360 * s], [x + 166 * s, g - 360 * s], [x + 158 * s, g - 200 * s, x + 176 * s, g]], t(bark));
-    curvy([[x + 150 * s, g - 300 * s], [x + 110 * s, g - 360 * s, x + 80 * s, g - 380 * s], [x + 84 * s, g - 390 * s], [x + 120 * s, g - 380 * s, x + 156 * s, g - 330 * s]], t(bark));
-    R(x + 160 * s, g - 340 * s, 6 * s, 340 * s, t(shade(bark)));
-    for (let k = 0; k < 6; k++) R(x + (140 + hash(k, r) * 18) * s, g - (40 + k * 50) * s, 8 * s, 2 * s, t(shade(bark)));   // 나무껍질 결
-    leafMass(x + 85 * s, g - 380 * s, 85 * s, 70 * s, r + .1, t);
-    leafMass(x + 205 * s, g - 420 * s, 95 * s, 80 * s, r + .3, t);
-    leafMass(x + 150 * s, g - 500 * s, 120 * s, 100 * s, r + .5, t);
-    E(x + 150 * s, g - 280 * s, 60 * s, 18 * s, t(mix(LEAF[3], '#2f2a3a', .2)));                   // 잎 아래 그늘
-  } },
-  pole: { w: 30, h: 900, d: (x, g, s, r, t) => {
-    const concrete = '#a29fb2';
-    footShadow(x + 13 * s, g, 18 * s, s);
-    P([[x, g], [x + 3 * s, g - 900 * s], [x + 23 * s, g - 900 * s], [x + 26 * s, g]], t(concrete));
-    R(x + 18 * s, g - 900 * s, 6 * s, 900 * s, t(shade(concrete)));
-    for (let k = 0; k < 4; k++) R(x - 2 * s, g - (160 + k * 18) * s, 30 * s, 10 * s, t(k % 2 ? '#f4f1ea' : '#e8c24a'));   // 전단지 붙였다 뗀 자국 띠
-    R(x - 60 * s, g - 840 * s, 146 * s, 10 * s, t('#8d8a9c')); R(x - 40 * s, g - 790 * s, 106 * s, 8 * s, t('#8d8a9c'));
-    [-55, -20, 50, 80].forEach((dx) => RR(x + dx * s, g - 852 * s, 6 * s, 12 * s, 2 * s, t('#f4f1ea')));   // 애자
-    RR(x + 28 * s, g - 720 * s, 40 * s, 70 * s, 12 * s, t('#8d8a9c'));                              // 변압기
-    for (let k = 0; k < 6; k++) R(x + (5 + (k % 2) * 6) * s, g - (300 + k * 40) * s, 16 * s, 3 * s, t('#5f5a6e'));   // 발판 못
-    P([[x + 26 * s, g - 760 * s], [x + 120 * s, g - 760 * s], [x + 110 * s, g - 740 * s], [x + 26 * s, g - 745 * s]], t('#e9e4f0'));
-  } },
   column: { w: 60, h: 250, d: (x, g, s, r, t) => {
     block(x, g - 250 * s, 60 * s, 250 * s, '#cbb2a6', t);
     for (let k = 0; k < 4; k++) R(x, g - (40 + k * 8) * s, 50 * s, 4 * s, t(k % 2 ? '#f4f1ea' : '#3b3049'));   // 주차 기둥 경고 띠
     R(x, g - 250 * s, 60 * s, 3 * s, t('#e3d6cc'));
-  } },
-  shrub: { w: 90, h: 60, d: (x, g, s, r, t) => { footShadow(x + 45 * s, g, 44 * s, s); leafMass(x + 45 * s, g - 30 * s, 45 * s, 30 * s, r, t, 6); } },
-  recycleBin: { w: 70, h: 112, d: (x, g, s, r, t) => {
-    const c = pick(['#5f8fb0', '#6fae7f', '#f0c27a', '#e6765f'], r);
-    footShadow(x + 35 * s, g, 36 * s, s);
-    P([[x + 2 * s, g - 100 * s], [x + 68 * s, g - 100 * s], [x + 64 * s, g], [x + 6 * s, g]], t(c));
-    P([[x + 52 * s, g - 100 * s], [x + 68 * s, g - 100 * s], [x + 64 * s, g], [x + 50 * s, g]], t(shade(c)));
-    RR(x - 3 * s, g - 112 * s, 76 * s, 13 * s, 3 * s, t(shade(c))); R(x + 18 * s, g - 108 * s, 30 * s, 4 * s, t('#2f2a3a'));
-    E(x + 30 * s, g - 64 * s, 14 * s, 14 * s, t('#fffaf0'));
-    ctx.strokeStyle = t(c); ctx.lineWidth = Math.max(1, 2 * s); ctx.beginPath();                    // 재활용 화살표
-    for (let k = 0; k < 3; k++) { const a = k * TAU / 3 - .3; ctx.moveTo(x + 30 * s + Math.cos(a) * 8 * s, g - 64 * s + Math.sin(a) * 8 * s); ctx.lineTo(x + 30 * s + Math.cos(a + 1.6) * 8 * s, g - 64 * s + Math.sin(a + 1.6) * 8 * s); }
-    ctx.stroke();
-    [14, 56].forEach((wx) => { E(x + wx * s, g - 5 * s, 5 * s, 5 * s, t('#2f2a3a')); E(x + wx * s, g - 5 * s, 2 * s, 2 * s, t('#9a95a8')); });
-  } },
-  cardboard: { w: 96, h: 32, d: (x, g, s, r, t) => {
-    for (let k = 0; k < 4; k++) {
-      const c = k % 2 ? '#d9b27c' : '#c9a06a', dx = (k % 2) * 6 * s;
-      R(x + dx, g - (k + 1) * 8 * s, 90 * s, 7 * s, t(c)); R(x + dx, g - (k + 1) * 8 * s, 90 * s, Math.max(.5, 1 * s), t(mix(c, '#ffffff', .3)));
-    }
-    R(x + 40 * s, g - 32 * s, 3 * s, 32 * s, t('#f4f1ea')); R(x + 30 * s, g - 32 * s, 3 * s, 32 * s, t('#f4f1ea'));   // 노끈
   } },
   gasTank: { w: 36, h: 128, d: (x, g, s, r, t) => {
     footShadow(x + 18 * s, g, 18 * s, s);
