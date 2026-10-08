@@ -104,7 +104,7 @@ function showPicker() {
 
 /* 오른쪽 아래 구석 '캐릭터 직접 고르기': 누르면 위쪽으로 동물 이름이 펼쳐진다 */
 /* 이름 길이가 들쑥날쑥해 보이게 짧은 이름과 긴 이름을 번갈아 둔다. 목록에 없는 새 동물은 뒤에 붙는다 */
-const DIRECT_ORDER = Object.freeze(['sparrow', 'cat', 'cicada', 'cockroach', 'mouse', 'fly', 'mosquito', 'pigeon', 'dog']);
+const DIRECT_ORDER = Object.freeze(['sparrow', 'cat', 'cicada', 'cockroach', 'mouse', 'fly', 'mosquito', 'pigeon', 'dog', 'butterfly', 'magpie', 'wasp', 'crow']);
 const directOrder = () => [...DIRECT_ORDER.filter((k) => SPECIES[k]), ...SPECIES_KEYS.filter((k) => !DIRECT_ORDER.includes(k))];
 
 function setDirectOpen(open) {
