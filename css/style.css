@@ -126,8 +126,12 @@ button { font: inherit; color: inherit; }
 .fx-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .home-panels { display: flex; flex-direction: column; align-items: center; gap: 22px; }
 .home-panels:not(:has(> :not([hidden]))) { display: none; }
-.picker-title, .pick-grid, .home-actions, .home-panels, .direct-pick { filter: url(#tvJitter); }
-@media (prefers-reduced-motion: reduce) { .picker-title, .pick-grid, .home-actions, .home-panels, .direct-pick { filter: none; } }
+.picker-title, .pick-grid, .home-hint, .home-actions, .home-panels, .direct-pick { filter: url(#tvJitter); }
+@media (prefers-reduced-motion: reduce) { .picker-title, .pick-grid, .home-hint, .home-actions, .home-panels, .direct-pick { filter: none; } }
+.home-hint {
+  margin: -8px 0 0; padding: 4px 10px 3px; font-family: var(--f-small); font-size: 12px;
+  color: var(--paper); background: rgba(59, 48, 73, .55); rotate: .6deg;
+}
 .support-toggle {
   border: 0; cursor: pointer; padding: 8px 16px 7px; background: var(--pink); color: var(--paper); rotate: 1.2deg;
   transition: background .12s, translate .12s;
