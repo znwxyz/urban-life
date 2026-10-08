@@ -5,3 +5,5 @@ cd "$(dirname "$0")/.."
 V=$(date +%Y%m%d%H%M)
 sed -i '' -E "s#(src=\"js/[^\"]+\.js)(\?v=[^\"]*)?\"#\1?v=$V\"#g; s#(href=\"css/style\.css)(\?v=[^\"]*)?\"#\1?v=$V\"#g" index.html
 echo "asset version: $V"
+
+node "$(dirname "$0")/build-en.js"

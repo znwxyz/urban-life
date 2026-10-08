@@ -22,6 +22,9 @@
   --f-small: "New Gulim", "새굴림", "NewGulim", "Galmuri11", "Apple SD Gothic Neo", sans-serif;
   color-scheme: light;
 }
+/* 영어판: 타자기체. 한글 픽셀 글꼴(갈무리)은 영문이 뭉개진다 */
+html:lang(en) { --f-body: "Courier Prime", "Courier New", monospace; --f-small: "Courier Prime", "Courier New", monospace; }
+html:lang(en) body { -webkit-font-smoothing: antialiased; }
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { height: 100%; }
@@ -126,8 +129,8 @@ button { font: inherit; color: inherit; }
 .fx-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .home-panels { display: flex; flex-direction: column; align-items: center; gap: 22px; }
 .home-panels:not(:has(> :not([hidden]))) { display: none; }
-.picker-title, .pick-grid, .home-hint, .home-actions, .home-panels, .direct-pick, .album-pick { filter: url(#tvJitter); }
-@media (prefers-reduced-motion: reduce) { .picker-title, .pick-grid, .home-hint, .home-actions, .home-panels, .direct-pick, .album-pick { filter: none; } }
+.picker-title, .pick-grid, .home-hint, .home-actions, .home-panels, .direct-pick, .album-pick, .lang-switch { filter: url(#tvJitter); }
+@media (prefers-reduced-motion: reduce) { .picker-title, .pick-grid, .home-hint, .home-actions, .home-panels, .direct-pick, .album-pick, .lang-switch { filter: none; } }
 .home-hint {
   margin: -8px 0 0; padding: 4px 10px 3px; font-family: var(--f-small); font-size: 12px;
   color: var(--paper); background: rgba(59, 48, 73, .55); rotate: .6deg;
@@ -378,3 +381,11 @@ button { font: inherit; color: inherit; }
 .album-card:hover, .album-card:focus-visible { translate: var(--shift, 0px) -14px; rotate: 0deg; outline: none; }
 .album-empty { margin: 30vh auto 0; text-align: center; color: var(--paper); line-height: 1.7; }
 @media (prefers-reduced-motion: reduce) { .album-card { transition: none; } }
+
+/* 홈 맨 위 언어 전환 (English ver. / 한국어) */
+.lang-switch {
+  position: fixed; z-index: 4; top: calc(14px + env(safe-area-inset-top, 0px)); left: 50%; translate: -50% 0; rotate: -1deg;
+  border: 0; cursor: pointer; padding: 5px 12px 4px; font-family: var(--f-small); font-size: 12px;
+  background: var(--paper); color: var(--ink); filter: drop-shadow(0 2px 0 rgba(59, 48, 73, .25));
+}
+.lang-switch:hover, .lang-switch:focus-visible { background: var(--ink); color: var(--paper); outline: none; }

@@ -3,5 +3,6 @@ const SPECIES = {};
 
 function registerSpecies(sp) {
   if (!sp || !sp.key || !sp.scenes || !sp.endings) throw new Error('잘못된 동물 데이터');
-  SPECIES[sp.key] = sp;
+  // 영어판이면 이야기 문장만 번역으로 덮어쓴다 (js/core/i18n.js)
+  SPECIES[sp.key] = typeof localizeSpecies === 'function' ? localizeSpecies(sp) : sp;
 }

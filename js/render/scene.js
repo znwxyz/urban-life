@@ -385,7 +385,7 @@ function drawTracker(f, sp) {
   ctx.strokeStyle = TRACKER; ctx.lineWidth = 1.5; ctx.beginPath();
   [[L0, T, 1, 1], [R0, T, -1, 1], [L0, B, 1, -1], [R0, B, -1, -1]].forEach(([x, y, dx, dy]) => { ctx.moveTo(x + dx * k, y); ctx.lineTo(x, y); ctx.lineTo(x, y + dy * k); });
   ctx.stroke();
-  ctx.fillStyle = TRACKER; ctx.font = '11px "New Gulim", "Galmuri11", monospace'; ctx.fillText(`나 · ${sp.size}`, L0, T - 7);
+  ctx.fillStyle = TRACKER; ctx.font = '11px "New Gulim", "Galmuri11", monospace'; ctx.fillText(`${tx('tracker.me')} · ${sp.size}`, L0, T - 7);
   ctx.restore();
 }
 

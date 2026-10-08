@@ -91,7 +91,7 @@ function showPicker() {
   // 그림은 일부러 넣지 않는다. 직접 태어나 봐야 어떻게 생겼는지 알 수 있다
   const name = h('b', null, '?');
   const btn = h('button', { class: 'species roulette', 'aria-live': 'polite', onclick: () => spinRoulette(btn, name) },
-    name, h('span', { class: 'roulette-cta' }, '태어나기'));
+    name, h('span', { class: 'roulette-cta' }, tx('home.bornBtn')));
   btn.style.setProperty('--deckle', deckle());
   $('pickGrid').replaceChildren(h('div', { class: 'species-wrap' }, btn));
   setDirectOpen(false);
@@ -110,7 +110,7 @@ const directOrder = () => [...DIRECT_ORDER.filter((k) => SPECIES[k]), ...SPECIES
 function setDirectOpen(open) {
   $('directList').hidden = !open;
   $('directToggle').setAttribute('aria-expanded', String(open));
-  $('directToggle').textContent = `캐릭터 직접 고르기 ${open ? '▾' : '▴'}`;
+  $('directToggle').textContent = `${tx('direct.toggle')} ${open ? '▾' : '▴'}`;
 }
 
 function pickDirect(key) {
@@ -156,11 +156,11 @@ function revealBirth(key) {
   updateHud(sp, run); hideCaption();
   showCard({
     body: [
-      h('div', { class: 'eyebrow' }, `${sp.place}에서`),
-      h('h2', null, `${sp.name}로 태어났다`),
+      h('div', { class: 'eyebrow' }, tx('birth.place', { place: sp.place })),
+      h('h2', null, tx('birth.title', { name: nameInText(sp) })),
       h('p', null, sp.intro),
     ],
-    next: { label: '살아 보기', act: enterScene },
+    next: { label: tx('birth.go'), act: enterScene },
   });
 }
 
@@ -175,7 +175,8 @@ function enterScene() {
   view.propX = view.camX + travelAhead(view.cruise, ms) + PROP_SCREEN_X * visibleCm(sp);
   placeCast(sp);
   hideCard(); updateHud(sp, run);
-  showCaption(`생후 ${durLabel(run.day)} · ${SEASON_KO[seasonOf(month)]}${node.night ? ' · 밤' : ''}`, `${sc.area} · ${sc.name}`);
+  const pl = placeName(node.bg, sc);
+  showCaption(tx('caption.age', { age: durText(run.day), season: seasonText(seasonOf(month)) }) + (node.night ? tx('caption.night') : ''), `${pl.area} · ${pl.name}`);
   clearTimeout(moveTimer);
   moveTimer = setTimeout(showChoice, ms);
 }
@@ -185,7 +186,7 @@ function showChoice() {
   phase = 'choice';
   hideCaption();
   showCard({
-    body: [h('div', { class: 'eyebrow' }, SCENES[node.bg].name), h('h2', null, node.title), h('p', null, node.text)],
+    body: [h('div', { class: 'eyebrow' }, placeName(node.bg, SCENES[node.bg]).name), h('h2', null, node.title), h('p', null, node.text)],
     choices: node.choices.map((c, i) => ({ label: c.t, act: () => chooseOption(i) })),
   });
 }
@@ -198,8 +199,8 @@ function chooseOption(i) {
     run = applyChoice(sp, run, i);
   } catch (err) {
     console.error('선택을 처리하지 못했다', err);
-    showCard({ body: [h('h2', null, '이 장면에서 문제가 생겼다'), h('p', null, '시나리오 데이터를 확인해 주세요.')],
-      next: { label: '처음으로', act: showPicker } });
+    showCard({ body: [h('h2', null, tx('error.title')), h('p', null, tx('error.body'))],
+      next: { label: tx('error.back'), act: showPicker } });
     return;
   }
   if (!run.ending) { updateHud(sp, run, prev); showOutcome(prev); return; }
@@ -218,11 +219,11 @@ function showOutcome(prev) {
   showCard({
     body: [
       h('div', { class: 'eyebrow' }, run.path[run.path.length - 1].choice),
-      h('p', { class: 'result' }, o.msg || '시간이 흘렀다.'),
+      h('p', { class: 'result' }, o.msg || tx('outcome.default')),
       o.hurt ? h('p', { class: 'ouch' }, o.hurtMsg) : null,
       stamps(o, sp.kidUnit),
     ],
-    next: { label: '계속', act: enterScene },
+    next: { label: tx('next'), act: enterScene },
   });
   if (prev) setTimeout(() => animateStats(prev, run), reducedMotion ? 0 : DEAL_MS);
 }
@@ -238,11 +239,11 @@ function showEnding() {
       run.outcome && run.outcome.fatal && run.outcome.msg ? h('p', { class: 'ouch' }, run.outcome.msg) : null,
       h('h2', null, end.title),
       h('p', { class: 'result' }, end.line),
-      h('p', { class: 'meta' }, `생후 ${durLabel(run.day)} · ${end.cause}${run.kids ? ` · 남긴 ${sp.kidUnit} ${run.kids}` : ''}`),
+      h('p', { class: 'meta' }, tx('ending.meta', { age: durText(run.day), cause: end.cause }) + (run.kids ? tx('ending.kids', { unit: sp.kidUnit, n: run.kids }) : '')),
       end.kind !== 'dead' ? memoryButton(sp.key) : null,
     ],
     top: guestbookSection(sp, run.ending, run.day),
-    choices: [{ label: `${sp.name}로 다시`, act: () => revealBirth(sp.key) }, { label: '다른 동물 고르기', act: showPicker }],
+    choices: [{ label: tx('ending.again', { name: nameInText(sp) }), act: () => revealBirth(sp.key) }, { label: tx('ending.other'), act: showPicker }],
   });
   // 해피엔딩과 노멀엔딩(끝까지 살아남은 엔딩) 모두 기억카드를 띄운다. 죽음 엔딩은 띄우지 않는다
   if (end.kind !== 'dead') { addCollected(sp.key); preloadMemory(sp.key); scheduleMemory(sp.key); }
@@ -267,6 +268,10 @@ function frame(now) {
 /* 시작. 뷰어가 페이지를 갱신해도 진행 중인 판을 이어 간다 */
 window.claude?.hot?.snapshot?.(() => ({ run, phase }));
 function boot(data) {
+  applyStaticText();
+  const langBtn = $('langSwitch');
+  langBtn.lang = LANG === 'en' ? 'ko' : 'en';
+  langBtn.addEventListener('click', () => switchLang(LANG === 'en' ? 'ko' : 'en'));
   resizeStage(); resizeFx(); setupWall(); setupSupport(); setupDirectPick(); setupMemory(); setupAlbum();
   addEventListener('resize', () => { resizeStage(); resizeFx(); });
   requestAnimationFrame(frame);

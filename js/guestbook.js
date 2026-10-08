@@ -44,7 +44,7 @@ async function postNote(species, ending, message, days) {
 /** "9개월 생존" 같은 라벨. 생존 기간이 없으면 null */
 function survivedLabel(row) {
   const d = noteDays(row);
-  return d === null ? null : h('span', { class: 'note-days' }, `${durLabel(d)} 생존`);
+  return d === null ? null : h('span', { class: 'note-days' }, tx('note.survived', { age: durText(d) }));
 }
 
 function readLastPost() {
@@ -64,11 +64,11 @@ function noteItem(sp, row) {
 function guestbookSection(sp, endingId, days) {
   const list = h('ul', { class: 'notes' });
   const status = h('p', { class: 'note-status', role: 'status' });
-  const input = h('input', { type: 'text', maxlength: String(NOTE_MAX), placeholder: `${NOTE_MAX}자까지 짧게`, 'aria-label': `${sp.name}에게 한 마디` });
-  const button = h('button', { type: 'submit', class: 'note-send' }, '남기기');
+  const input = h('input', { type: 'text', maxlength: String(NOTE_MAX), placeholder: tx('note.placeholder', { n: NOTE_MAX }), 'aria-label': tx('note.title', { name: nameInText(sp) }) });
+  const button = h('button', { type: 'submit', class: 'note-send' }, tx('note.send'));
   const form = h('form', { class: 'note-form' }, input, button);
-  const goWall = h('button', { type: 'button', class: 'wall-link', onclick: () => { showPicker(); openWall(sp.key); } }, '방명록 보러가기 →');
-  const section = h('section', { class: 'guestbook' }, h('h3', null, `${sp.name}에게 한 마디`), form, status, list, goWall);
+  const goWall = h('button', { type: 'button', class: 'wall-link', onclick: () => { showPicker(); openWall(sp.key); } }, tx('note.toWall'));
+  const section = h('section', { class: 'guestbook' }, h('h3', null, tx('note.title', { name: nameInText(sp) })), form, status, list, goWall);
 
   if (!guestbookReady()) {
     input.disabled = true; button.disabled = true;
@@ -78,24 +78,24 @@ function guestbookSection(sp, endingId, days) {
   const refresh = () => fetchNotes(sp.key)
     .then((rows) => {
       list.replaceChildren(...rows.map((r) => noteItem(sp, r)));
-      if (!rows.length) status.textContent = `아직 ${sp.name}에게 남긴 말이 없어요. 첫 마디를 남겨 주세요.`;
+      if (!rows.length) status.textContent = tx('note.emptyFor', { name: nameInText(sp) });
     })
-    .catch((err) => { console.warn(err); status.textContent = '방명록을 불러오지 못했어요. 잠시 뒤에 다시 열어 주세요.'; });
+    .catch((err) => { console.warn(err); status.textContent = tx('note.loadFail'); });
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     const note = cleanNote(input.value);
-    if (!note.ok) { status.textContent = note.error; return; }
-    if (!canPostAt(readLastPost(), Date.now())) { status.textContent = '조금 뒤에 다시 남길 수 있어요.'; return; }
-    button.disabled = true; status.textContent = '남기는 중…';
+    if (!note.ok) { status.textContent = tx(`note.${note.code}`, { n: NOTE_MAX }); return; }
+    if (!canPostAt(readLastPost(), Date.now())) { status.textContent = tx('note.cooldown'); return; }
+    button.disabled = true; status.textContent = tx('note.sending');
     postNote(sp.key, endingId, note.text, days)
       .then(() => {
         writeLastPost(Date.now());
         input.value = '';
-        status.textContent = '남겼어요.';
+        status.textContent = tx('note.sent');
         list.prepend(noteItem(sp, { message: note.text, ending: endingId, days }));
       })
-      .catch((err) => { console.warn(err); status.textContent = '남기지 못했어요. 잠시 뒤에 다시 시도해 주세요.'; })
+      .catch((err) => { console.warn(err); status.textContent = tx('note.sendFail'); })
       .finally(() => { button.disabled = false; });
   });
   refresh();
@@ -107,23 +107,23 @@ const WALL_LIMIT = 40;
 
 function wallItem(row) {
   const sp = SPECIES[row.species];
-  return h('li', null, h('span', { class: 'wall-who' }, sp ? `${sp.name}에게` : ''), h('span', { class: 'note-text' }, row.message), survivedLabel(row));
+  return h('li', null, h('span', { class: 'wall-who' }, sp ? tx('wall.to', { name: nameInText(sp) }) : ''), h('span', { class: 'note-text' }, row.message), survivedLabel(row));
 }
 
 function renderWall(wall, filter) {
-  const status = h('p', { class: 'note-status', role: 'status' }, '불러오는 중…');
+  const status = h('p', { class: 'note-status', role: 'status' }, tx('wall.loading'));
   const list = h('ul', { class: 'notes wall-notes' });
   const tabs = h('div', { class: 'wall-tabs', role: 'tablist' },
-    [['', '전체'], ...SPECIES_KEYS.map((k) => [k, SPECIES[k].name])].map(([key, label]) =>
+    [['', tx('wall.all')], ...SPECIES_KEYS.map((k) => [k, SPECIES[k].name])].map(([key, label]) =>
       h('button', { class: `wall-tab${key === filter ? ' on' : ''}`, role: 'tab', 'aria-selected': String(key === filter), onclick: () => renderWall(wall, key) }, label)));
   wall.replaceChildren(tabs, status, list);
-  if (!guestbookReady()) { status.textContent = '방명록은 곧 열려요.'; return; }
+  if (!guestbookReady()) { status.textContent = tx('wall.soon'); return; }
   fetchNotes(filter || null, WALL_LIMIT)
     .then((rows) => {
       list.replaceChildren(...rows.filter((r) => typeof r.species === 'string').map(wallItem));
-      status.textContent = rows.length ? '' : '아직 남긴 말이 없어요. 한 번 살아 보고 첫 마디를 남겨 주세요.';
+      status.textContent = rows.length ? '' : tx('wall.none');
     })
-    .catch((err) => { console.warn(err); status.textContent = '방명록을 불러오지 못했어요. 잠시 뒤에 다시 열어 주세요.'; });
+    .catch((err) => { console.warn(err); status.textContent = tx('note.loadFail'); });
 }
 
 /** 방명록 모아보기를 펼친다. filter에 동물 키를 주면 그 동물 탭으로 연다 */
@@ -131,7 +131,7 @@ function openWall(filter = '') {
   const toggle = $('wallToggle'), wall = $('wall');
   wall.hidden = false;
   toggle.setAttribute('aria-expanded', 'true');
-  toggle.textContent = '방명록 접기 ▲';
+  toggle.textContent = tx('wall.close');
   wall.style.setProperty('--deckle', deckle());
   renderWall(wall, filter);
   wall.scrollIntoView({ block: 'nearest', behavior: reducedMotionUi ? 'auto' : 'smooth' });
@@ -140,7 +140,7 @@ function openWall(filter = '') {
 function closeWall() {
   $('wall').hidden = true;
   $('wallToggle').setAttribute('aria-expanded', 'false');
-  $('wallToggle').textContent = '방명록 모아보기 ▼';
+  $('wallToggle').textContent = tx('wall.open');
 }
 
 function setupWall() {
@@ -149,8 +149,8 @@ function setupWall() {
 
 /* 제작자 응원: 토스·카카오페이 송금 링크를 새 탭으로 연다. 링크가 하나도 없으면 버튼을 숨긴다 */
 const SUPPORT_LINKS = Object.freeze([
-  ['toss', '토스로 응원하기', /^https:\/\/toss\.me\/[\w.-]+\/?$/],
-  ['kakaopay', '라떼 한 잔 보내기', /^https:\/\/qr\.kakaopay\.com\/[\w-]+\/?$/],
+  ['toss', 'support.toss', /^https:\/\/toss\.me\/[\w.-]+\/?$/],
+  ['kakaopay', 'support.kakaopay', /^https:\/\/qr\.kakaopay\.com\/[\w-]+\/?$/],
 ]);
 
 /** 설정된 링크 중 모양이 올바른 것만 쓴다 */
@@ -162,7 +162,7 @@ const PC_QUERY = '(min-width: 900px) and (hover: hover)';
 function kakaopayQr(link) {
   if (!link || !SUPPORT.kakaopayQr) return null;
   const qr = h('figure', { class: 'support-qr', id: 'supportQr', hidden: '' },
-    h('img', { src: SUPPORT.kakaopayQr, width: '240', height: '224', alt: '카카오페이 송금 QR 코드', loading: 'lazy' }));
+    h('img', { src: SUPPORT.kakaopayQr, width: '240', height: '224', alt: tx('support.qrAlt'), loading: 'lazy' }));
   link.setAttribute('aria-controls', 'supportQr');
   link.addEventListener('click', (e) => {
     if (!window.matchMedia(PC_QUERY).matches) return;
@@ -186,7 +186,7 @@ function linkedinLink() {
   const path = document.createElementNS(SVG_NS, 'path');
   path.setAttribute('d', LINKEDIN_PATH);
   svg.append(path);
-  return h('a', { class: 'support-link linkedin', href: SUPPORT.linkedin, target: '_blank', rel: 'noopener noreferrer', 'aria-label': '제작자 링크드인', title: '제작자 링크드인' }, svg);
+  return h('a', { class: 'support-link linkedin', href: SUPPORT.linkedin, target: '_blank', rel: 'noopener noreferrer', 'aria-label': tx('support.linkedin'), title: tx('support.linkedin') }, svg);
 }
 
 function setupSupport() {
@@ -194,10 +194,10 @@ function setupSupport() {
   if (!links.length) return;
   toggle.hidden = false;
   const anchors = links.map(([key, label]) =>
-    h('a', { class: `support-link ${key}`, href: SUPPORT[key], target: '_blank', rel: 'noopener noreferrer' }, label));
+    h('a', { class: `support-link ${key}`, href: SUPPORT[key], target: '_blank', rel: 'noopener noreferrer' }, tx(label)));
   const qr = kakaopayQr(anchors.find((a) => a.classList.contains('kakaopay')));
   box.replaceChildren(
-    h('p', null, '세상이 혼란스럽고 저는 내일을 모르겠습니다. 그래도 이것저것을 만드는 디자이너입니다. 참고로 아이스 라떼를 몹시 좋아합니다.'),
+    h('p', null, tx('support.intro')),
     h('div', { class: 'support-links' }, anchors, linkedinLink()),
     qr,
   );

@@ -6,10 +6,10 @@ const CONTROL_CHARS = /[\u0000-\u001f\u007f]/g;
 
 /** 사용자가 쓴 글(외부 입력)을 다듬고 검사한다 */
 function cleanNote(raw) {
-  if (typeof raw !== 'string') return { ok: false, error: '한 마디를 적어 주세요.' };
+  if (typeof raw !== 'string') return { ok: false, code: 'empty', error: '한 마디를 적어 주세요.' };
   const text = raw.replace(CONTROL_CHARS, ' ').replace(/\s+/g, ' ').trim();
-  if (!text) return { ok: false, error: '한 마디를 적어 주세요.' };
-  if ([...text].length > NOTE_MAX) return { ok: false, error: `${NOTE_MAX}자까지 쓸 수 있어요.` };
+  if (!text) return { ok: false, code: 'empty', error: '한 마디를 적어 주세요.' };
+  if ([...text].length > NOTE_MAX) return { ok: false, code: 'long', error: `${NOTE_MAX}자까지 쓸 수 있어요.` };
   return { ok: true, text };
 }
 

@@ -161,7 +161,7 @@ function updateHud(sp, run, shown = run) {
   segBar($('hpBar'), shown.hp); segBar($('foodBar'), shown.food);
   $('hpNum').textContent = shown.hp; $('foodNum').textContent = shown.food;
   $('kids').textContent = run.kids ? `${sp.kidUnit} ${run.kids}` : '';
-  $('age').textContent = `생후 ${durLabel(run.day)} · ${SEASON_KO[seasonOf(monthOf(sp, run.day))]}`;
+  $('age').textContent = tx('caption.age', { age: durText(run.day), season: seasonText(seasonOf(monthOf(sp, run.day))) });
 }
 
 let lastScale = 0;
@@ -177,9 +177,9 @@ function updateScaleBar(s) {
 /** 체력·포만 변화를 도장처럼 찍는다 */
 function stamps(o, kidUnit) {
   const list = [];
-  if (o.dHp) list.push(h('span', { class: `stamp ${o.dHp > 0 ? 'up' : 'down'}`, 'data-stat': 'hp' }, `체력 ${o.dHp > 0 ? '+' : '-'}${Math.abs(o.dHp)}`));
-  if (o.dFood) list.push(h('span', { class: `stamp ${o.dFood > 0 ? 'up' : 'down'}`, 'data-stat': 'food' }, `포만 ${o.dFood > 0 ? '+' : '-'}${Math.abs(o.dFood)}`));
+  if (o.dHp) list.push(h('span', { class: `stamp ${o.dHp > 0 ? 'up' : 'down'}`, 'data-stat': 'hp' }, `${tx('stamp.hp')} ${o.dHp > 0 ? '+' : '-'}${Math.abs(o.dHp)}`));
+  if (o.dFood) list.push(h('span', { class: `stamp ${o.dFood > 0 ? 'up' : 'down'}`, 'data-stat': 'food' }, `${tx('stamp.food')} ${o.dFood > 0 ? '+' : '-'}${Math.abs(o.dFood)}`));
   if (o.kids) list.push(h('span', { class: 'stamp kid' }, `${kidUnit} +${o.kids}`));
-  if (o.starving) list.push(h('span', { class: 'stamp down' }, '굶주림'));
+  if (o.starving) list.push(h('span', { class: 'stamp down' }, tx('stamp.starving')));
   return list.length ? h('div', { class: 'stamps' }, list) : null;
 }

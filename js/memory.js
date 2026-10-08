@@ -18,7 +18,7 @@ function openMemory(key) {
   memoryReturnFocus = document.activeElement;
   $('memoryFail').hidden = true;
   img.hidden = false;
-  img.alt = m.alt;
+  img.alt = LANG === 'ko' ? m.alt : tx('memory.alt', { name: SPECIES[key] ? nameInText(SPECIES[key]) : key });
   img.onerror = () => { img.hidden = true; $('memoryFail').hidden = false; };
   img.src = memoryImage(key);
   box.querySelector('.memory-frame').style.setProperty('--deckle', deckle());
@@ -46,7 +46,7 @@ function scheduleMemory(key) {
 
 /** 엔딩 카드 안의 '기억 다시 보기' 단추 */
 const memoryButton = (key) => (MEMORIES[key]
-  ? h('button', { class: 'memory-again', type: 'button', onclick: () => openMemory(key) }, '기억 다시 보기')
+  ? h('button', { class: 'memory-again', type: 'button', onclick: () => openMemory(key) }, tx('memory.again'))
   : null);
 
 function setupMemory() {
@@ -83,8 +83,8 @@ function renderAlbum() {
   $('albumCount').textContent = `${list.length} / ${Object.keys(MEMORIES).length}`;
   $('albumEmpty').hidden = list.length > 0;
   $('albumStack').replaceChildren(...list.map((key, i) => {
-    const card = h('button', { class: 'album-card', type: 'button', 'aria-label': `${SPECIES[key] ? SPECIES[key].name : key} 기억카드 크게 보기`, onclick: () => openMemory(key) },
-      h('img', { src: memoryImage(key), alt: MEMORIES[key].alt, loading: 'lazy', decoding: 'async', width: '700', height: '438' }));
+    const card = h('button', { class: 'album-card', type: 'button', 'aria-label': tx('album.cardLabel', { name: SPECIES[key] ? nameInText(SPECIES[key]) : key }), onclick: () => openMemory(key) },
+      h('img', { src: memoryImage(key), alt: LANG === 'ko' ? MEMORIES[key].alt : tx('memory.alt', { name: SPECIES[key] ? nameInText(SPECIES[key]) : key }), loading: 'lazy', decoding: 'async', width: '700', height: '438' }));
     card.style.setProperty('--deckle', deckle());
     card.style.setProperty('--tilt', `${((hash(i, 91) - .5) * 5).toFixed(2)}deg`);
     card.style.setProperty('--shift', `${((hash(i, 92) - .5) * 24).toFixed(0)}px`);
