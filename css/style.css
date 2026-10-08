@@ -126,8 +126,8 @@ button { font: inherit; color: inherit; }
 .fx-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .home-panels { display: flex; flex-direction: column; align-items: center; gap: 22px; }
 .home-panels:not(:has(> :not([hidden]))) { display: none; }
-.picker-title, .pick-grid, .home-hint, .home-actions, .home-panels, .direct-pick { filter: url(#tvJitter); }
-@media (prefers-reduced-motion: reduce) { .picker-title, .pick-grid, .home-hint, .home-actions, .home-panels, .direct-pick { filter: none; } }
+.picker-title, .pick-grid, .home-hint, .home-actions, .home-panels, .direct-pick, .album-pick { filter: url(#tvJitter); }
+@media (prefers-reduced-motion: reduce) { .picker-title, .pick-grid, .home-hint, .home-actions, .home-panels, .direct-pick, .album-pick { filter: none; } }
 .home-hint {
   margin: -8px 0 0; padding: 4px 10px 3px; font-family: var(--f-small); font-size: 12px;
   color: var(--paper); background: rgba(59, 48, 73, .55); rotate: .6deg;
@@ -348,3 +348,33 @@ button { font: inherit; color: inherit; }
   font: inherit; font-size: 13px; color: var(--pink-deep); text-decoration: underline; text-underline-offset: 3px;
 }
 @media (prefers-reduced-motion: reduce) { .memory, .memory-frame { transition: none; translate: none; } }
+
+/* 왼쪽 아래 '수집한 기억카드 보기' (오른쪽 아래 '캐릭터 직접 고르기'와 짝) */
+.album-pick { position: fixed; z-index: 4; left: 16px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+
+/* 기억카드 모음: 사진 더미처럼 위아래로 겹쳐 쌓인다 */
+.album {
+  position: fixed; inset: 0; z-index: 25; overflow-y: auto; overscroll-behavior: contain;
+  background: rgba(30, 24, 42, .82);
+  padding: max(16px, env(safe-area-inset-top, 0px)) 16px calc(40px + env(safe-area-inset-bottom, 0px));
+}
+.album-head {
+  position: sticky; top: 0; z-index: 2; display: flex; align-items: baseline; gap: 10px;
+  width: min(560px, 100%); margin: 0 auto 18px; padding: 10px 0;
+}
+.album-head h2 { margin: 0; font-size: 22px; font-weight: 400; color: var(--paper); }
+.album-count { font-family: var(--f-small); font-size: 12px; color: var(--paper); opacity: .7; }
+.album-head .memory-close { position: static; margin-left: auto; }
+.album-stack { list-style: none; margin: 0 auto; padding: 0; width: min(560px, 100%); display: flex; flex-direction: column; }
+/* 아래 카드가 위 카드에 반쯤 덮이도록 겹친다 */
+.album-stack li + li { margin-top: calc(min(560px, 100vw - 32px) * -.36); }
+.album-card {
+  display: block; width: 100%; border: 0; padding: 10px; cursor: pointer; background: var(--paper);
+  clip-path: var(--deckle); filter: drop-shadow(0 6px 0 rgba(20, 14, 30, .35));
+  rotate: var(--tilt, 0deg); translate: var(--shift, 0px) 0;
+  transition: translate .2s cubic-bezier(.16, 1, .3, 1), rotate .2s;
+}
+.album-card img { display: block; width: 100%; height: auto; }
+.album-card:hover, .album-card:focus-visible { translate: var(--shift, 0px) -14px; rotate: 0deg; outline: none; }
+.album-empty { margin: 30vh auto 0; text-align: center; color: var(--paper); line-height: 1.7; }
+@media (prefers-reduced-motion: reduce) { .album-card { transition: none; } }

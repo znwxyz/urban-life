@@ -145,7 +145,7 @@ function spinRoulette(btn, name) {
 function revealBirth(key) {
   const sp = SPECIES[key];
   closeMemory();
-  clearTimeout(moveTimer); clearTimeout(rouletteTimer); stopJitter(); $('picker').hidden = true;
+  clearTimeout(moveTimer); clearTimeout(rouletteTimer); stopJitter(); closeAlbum(); $('picker').hidden = true;
   run = newRun(sp); phase = 'birth';
   clearDeath();
   startIris(() => heroRect(sp));
@@ -244,7 +244,7 @@ function showEnding() {
     top: guestbookSection(sp, run.ending, run.day),
     choices: [{ label: `${sp.name}로 다시`, act: () => revealBirth(sp.key) }, { label: '다른 동물 고르기', act: showPicker }],
   });
-  if (end.kind === 'happy') { preloadMemory(sp.key); scheduleMemory(sp.key); }
+  if (end.kind === 'happy') { addCollected(sp.key); preloadMemory(sp.key); scheduleMemory(sp.key); }
 }
 
 let last = performance.now();
@@ -266,7 +266,7 @@ function frame(now) {
 /* 시작. 뷰어가 페이지를 갱신해도 진행 중인 판을 이어 간다 */
 window.claude?.hot?.snapshot?.(() => ({ run, phase }));
 function boot(data) {
-  resizeStage(); resizeFx(); setupWall(); setupSupport(); setupDirectPick(); setupMemory();
+  resizeStage(); resizeFx(); setupWall(); setupSupport(); setupDirectPick(); setupMemory(); setupAlbum();
   addEventListener('resize', () => { resizeStage(); resizeFx(); });
   requestAnimationFrame(frame);
   const saved = data && data.run;

@@ -60,3 +60,59 @@ function setupMemory() {
     if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); closeMemory(); }
   }, true);
 }
+
+/* ── 수집한 기억카드: 해피엔딩을 맞은 동물의 카드가 이 기기 브라우저에 모인다 ── */
+const COLLECT_KEY = 'urbanlife.memories';
+
+function loadCollected() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(COLLECT_KEY) || '[]');
+    return Array.isArray(raw) ? raw.filter((k) => typeof k === 'string' && MEMORIES[k]) : [];
+  } catch { return []; }
+}
+
+function addCollected(key) {
+  if (!MEMORIES[key]) return;
+  const list = loadCollected().filter((k) => k !== key);
+  try { localStorage.setItem(COLLECT_KEY, JSON.stringify([...list, key])); } catch (err) { console.warn('기억카드를 저장하지 못했다', err); }
+}
+
+/** 모은 카드를 사진 더미처럼 위아래로 겹쳐 쌓는다. 최근에 모은 카드가 맨 위 */
+function renderAlbum() {
+  const list = loadCollected().slice().reverse();
+  $('albumCount').textContent = `${list.length} / ${Object.keys(MEMORIES).length}`;
+  $('albumEmpty').hidden = list.length > 0;
+  $('albumStack').replaceChildren(...list.map((key, i) => {
+    const card = h('button', { class: 'album-card', type: 'button', 'aria-label': `${SPECIES[key] ? SPECIES[key].name : key} 기억카드 크게 보기`, onclick: () => openMemory(key) },
+      h('img', { src: memoryImage(key), alt: MEMORIES[key].alt, loading: 'lazy', decoding: 'async', width: '700', height: '438' }));
+    card.style.setProperty('--deckle', deckle());
+    card.style.setProperty('--tilt', `${((hash(i, 91) - .5) * 5).toFixed(2)}deg`);
+    card.style.setProperty('--shift', `${((hash(i, 92) - .5) * 24).toFixed(0)}px`);
+    return h('li', null, card);
+  }));
+}
+
+let albumReturnFocus = null;
+function openAlbum() {
+  albumReturnFocus = document.activeElement;
+  renderAlbum();
+  $('album').hidden = false;
+  $('albumClose').focus({ preventScroll: true });
+}
+
+function closeAlbum() {
+  if ($('album').hidden) return;
+  $('album').hidden = true;
+  if (albumReturnFocus && albumReturnFocus.focus) albumReturnFocus.focus({ preventScroll: true });
+  albumReturnFocus = null;
+}
+
+function setupAlbum() {
+  $('albumToggle').addEventListener('click', openAlbum);
+  $('albumClose').addEventListener('click', closeAlbum);
+  document.addEventListener('keydown', (e) => {
+    if ($('album').hidden || !$('memory').hidden) return;
+    e.stopImmediatePropagation();
+    if (e.key === 'Escape') { e.preventDefault(); closeAlbum(); }
+  }, true);
+}
