@@ -1,6 +1,6 @@
 /* 화면 문구 (한국어·영어)와 배경 장소 이름 영어판. 이야기 문장은 js/data/i18n/en/<동물>.js */
 registerUiText('ko', {
-  'lang.switch': 'English ver.',
+  'lang.switch': 'Switch to English',
   'title.kicker': '도시의 바닥,',
   'title.main': '누구로 살아볼래?',
   'home.hint': '끝까지 살아남으면 기억 카드를 볼 수 있어요!',
@@ -64,7 +64,7 @@ registerUiText('ko', {
 });
 
 registerUiText('en', {
-  'lang.switch': '한국어',
+  'lang.switch': '한국어로 바꾸기',
   'title.kicker': 'Down on the city floor,',
   'title.main': 'who will you be?',
   'home.hint': 'Make it to the end to unlock a memory card!',
