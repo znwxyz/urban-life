@@ -58,4 +58,7 @@
 - [모기](mosquito.md)
 - [생쥐](mouse.md)
 - [들개](dog.md)
+- [까치](magpie.md)
+- [까마귀](crow.md)
+- [나비](butterfly.md)
 - 보류: 고라니 (세계관 밖, 공원 하천 등장 여부 미정)

@@ -6,7 +6,7 @@ const path = require('node:path');
 const E = require('../js/core/engine.js');
 const { SCENES } = require('../js/data/scenes.js');
 
-const KEYS = ['cat', 'cockroach', 'pigeon', 'fly', 'mosquito', 'sparrow', 'cicada', 'dog', 'mouse'];
+const KEYS = ['cat', 'cockroach', 'pigeon', 'fly', 'mosquito', 'sparrow', 'cicada', 'dog', 'mouse', 'magpie', 'crow', 'butterfly'];
 const DIR_LABEL = Object.freeze({ left: '◀ 왼쪽 (← 키)', right: '▶ 오른쪽 (→ 키)', up: '▲ 위 (↑ 키)', down: '▼ 아래 (↓ 키)' });
 const LUCKY = () => .999;
 const OUT = path.join(__dirname, '..', 'docs', 'happy-routes.md');

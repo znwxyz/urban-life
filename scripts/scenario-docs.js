@@ -6,7 +6,7 @@ const { ENDING_KIND, durLabel } = require('../js/core/engine.js');
 const { SCENES } = require('../js/data/scenes.js');
 
 const ROOT = path.join(__dirname, '..');
-const KEYS = ['cat', 'cockroach', 'pigeon', 'fly', 'sparrow', 'cicada', 'mosquito', 'mouse', 'dog'];
+const KEYS = ['cat', 'cockroach', 'pigeon', 'fly', 'sparrow', 'cicada', 'mosquito', 'mouse', 'dog', 'magpie', 'crow', 'butterfly'];
 const pct = (p) => `${Math.round(p * 100)}%`;
 const ARROWS = ['◀', '▶', '▲', '▼'];
 const esc = (s) => String(s).replace(/"/g, "'");

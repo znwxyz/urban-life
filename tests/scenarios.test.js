@@ -15,7 +15,7 @@ function artKeys(key) {
 const castOk = (sp, a) => Boolean(CAST[a]) || (a.startsWith(`${sp.key}:`) && artKeys(sp.key).includes(a));
 
 /* SPECIES=cat npm test 처럼 한 종만 검사할 수 있다 */
-const KEYS = (process.env.SPECIES || 'cat,cockroach,pigeon,fly,sparrow,cicada,mosquito,mouse,dog').split(',');
+const KEYS = (process.env.SPECIES || 'cat,cockroach,pigeon,fly,sparrow,cicada,mosquito,mouse,dog,magpie,crow,butterfly').split(',');
 const ALL = KEYS.map((k) => require(`../js/data/species/${k}.js`));
 const CHOICES = 4, MAX_FATAL_P = .4, TENSION_FOOD = 30, TENSION_HP = 40, MIN_SAFE_CHOICES = 2;
 const LUCK = [[0, 0], [0, .999], [.999, 0], [.999, .999]];

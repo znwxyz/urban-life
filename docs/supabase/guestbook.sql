@@ -4,7 +4,7 @@
 
 create table if not exists public.guestbook (
   id bigint generated always as identity primary key,
-  species text not null check (species in ('cat', 'cockroach', 'pigeon', 'fly', 'mosquito', 'sparrow', 'cicada', 'dog', 'mouse')),
+  species text not null check (species in ('cat', 'cockroach', 'pigeon', 'fly', 'mosquito', 'sparrow', 'cicada', 'dog', 'mouse', 'magpie', 'crow', 'butterfly', 'wasp')),
   ending text not null check (char_length(ending) between 1 and 8),
   message text not null check (char_length(message) between 1 and 80),
   days integer check (days between 0 and 10000),
@@ -38,7 +38,7 @@ grant select, insert on public.guestbook to anon;
 -- [추가] 이미 테이블을 만들었다면, 글쓴이의 생존 기간(일) 칸만 따로 추가한다
 alter table public.guestbook add column if not exists days integer check (days between 0 and 10000);
 
--- [추가] 모기·참새·매미·들개·생쥐 방명록을 받으려면 species 목록을 늘린다
+-- [추가] 모기·참새·매미·들개·생쥐·까치·까마귀·나비·말벌 방명록을 받으려면 species 목록을 늘린다
 alter table public.guestbook drop constraint if exists guestbook_species_check;
 alter table public.guestbook add constraint guestbook_species_check
-  check (species in ('cat', 'cockroach', 'pigeon', 'fly', 'mosquito', 'sparrow', 'cicada', 'dog', 'mouse'));
+  check (species in ('cat', 'cockroach', 'pigeon', 'fly', 'mosquito', 'sparrow', 'cicada', 'dog', 'mouse', 'magpie', 'crow', 'butterfly', 'wasp'));
