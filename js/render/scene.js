@@ -2,7 +2,7 @@
 const TONE_DAY = .14, TONE_NIGHT = .5;
 const GROUND_LAYERS = Object.freeze([[.34, .1, 13], [.68, .2, 17]]);
 /* 밤 가로등: 빛 기둥 두 겹과 바닥 빛 웅덩이 두 겹의 진하기 */
-const LAMP_CONE = Object.freeze([.12, .1]), LAMP_POOL = Object.freeze([.22, .2]);
+const LAMP_CONE = Object.freeze([.12, .1]), LAMP_POOL = Object.freeze([.22, .2]), LAMP_AHEAD = .42;
 const PORTRAIT_RATIO = .9;
 
 /** 화면 1cm가 몇 px인지. 세로로 긴 휴대폰 화면에서도 동물이 너무 작아지지 않게, 화면 폭과 높이 중 큰 쪽을 기준으로 잡는다 */
@@ -302,7 +302,9 @@ function drawForeground(f) {
 function drawGlow(f) {
   const { v, g, s, sc } = f;
   if (!v.night || !v.glow) return;
-  const gx = W * .72, gy = Math.max(60, g - Math.min(H * .3, 600 * s)), rad = Math.min(W, H) * .5;
+  // 가로등은 땅에 서 있다: 주인공이 멈춰 설 자리에서 화면 폭의 LAMP_AHEAD만큼 앞. 걸으면 다가왔다가 지나간다
+  const stop = Number.isFinite(v.heroStopX) ? (v.heroStopX - v.camX) * s : W * (.72 - LAMP_AHEAD);
+  const gx = stop + W * LAMP_AHEAD, gy = Math.max(60, g - Math.min(H * .3, 600 * s)), rad = Math.min(W, H) * .5;
   const rg = ctx.createRadialGradient(gx, gy, 0, gx, gy, rad);
   rg.addColorStop(0, rgba(v.glow, .32)); rg.addColorStop(1, rgba(v.glow, 0));
   ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
@@ -315,7 +317,18 @@ function drawGlow(f) {
   E(gx, g + 6, spread * .6, Math.max(4, (H - g) * .05), rgba(v.glow, LAMP_POOL[1]));
 }
 
-function drawWeather(f, dt) {
+/** 비·눈 알갱이를 한 프레임에 한 번만 움직인다 (이음선 양쪽을 따로 그려도 두 배로 빨라지지 않게) */
+function stepWeather(v, dt) {
+  const kinds = [v.weather, v.trans && v.trans.prev.weather];
+  if (!kinds.includes('rain') && !kinds.includes('snow')) return;
+  const rain = kinds.includes('rain');
+  PARTICLES.forEach((pt) => {
+    pt.y += dt * pt.v * (rain ? 1.6 : .12);
+    if (pt.y > 1) { pt.y -= 1; pt.n += PARTICLES.length; pt.x = hash(pt.n, 204); }
+  });
+}
+
+function drawWeather(f) {
   const { v, g } = f;
   if (v.weather === 'smoke') {
     for (let k = 0; k < 6; k++) {
@@ -329,8 +342,6 @@ function drawWeather(f, dt) {
   ctx.strokeStyle = 'rgba(225,232,245,.55)'; ctx.fillStyle = 'rgba(250,250,252,.9)'; ctx.lineWidth = 1;
   ctx.beginPath();
   PARTICLES.forEach((pt) => {
-    pt.y += dt * pt.v * (rain ? 1.6 : .12);
-    if (pt.y > 1) { pt.y -= 1; pt.n += PARTICLES.length; pt.x = hash(pt.n, 204); }
     const x = pt.x * W + (rain ? 0 : Math.sin(v.t + pt.v * 9) * 8), y = pt.y * H;
     if (rain) { ctx.moveTo(x, y); ctx.lineTo(x - 2, y + 14); } else ctx.rect(x, y, 2.4, 2.4);
   });
@@ -409,10 +420,11 @@ function seamClip(bx, rightSide) {
   ctx.clip();
 }
 
-function drawSplit(v, s, g, bx, layer) {
+function drawSplit(v, s, g, bx, layer, shade = true) {
   const prev = frameFor({ ...v, ...v.trans.prev }, s, g), next = frameFor(v, s, g);
   ctx.save(); seamClip(bx, false); layer(prev); ctx.restore();
   ctx.save(); seamClip(bx, true); layer(next);
+  if (!shade) { ctx.restore(); return next; }
   const shadeGr = ctx.createLinearGradient(bx, 0, bx + SEAM_SHADE, 0);
   shadeGr.addColorStop(0, 'rgba(38,26,58,.28)'); shadeGr.addColorStop(1, 'rgba(38,26,58,0)');
   ctx.fillStyle = shadeGr; ctx.fillRect(bx - 4, 0, SEAM_SHADE + 6, H);
@@ -434,7 +446,11 @@ function drawScene(v, sp, dt) {
   if (sp) drawHero(f, sp);
   drawKiller(f);
   if (splitting) drawSplit(v, s, g, bx, drawForeground); else drawForeground(v.trans ? frameFor({ ...v, ...v.trans.prev }, s, g) : f);
-  drawGlow(f); drawWeather(f, dt);
+  // 불빛·연기·비·눈은 장면마다 자기 종이 위에만: 이음선 전에는 지난 장면 것, 이음선이 지나는 동안은 양쪽을 나눠 그린다
+  const overlays = (fr) => { drawGlow(fr); drawWeather(fr); };
+  stepWeather(v, dt);
+  if (splitting) drawSplit(v, s, g, bx, overlays, false);
+  else overlays(v.trans ? frameFor({ ...v, ...v.trans.prev }, s, g) : f);
   drawGrain(W, H); drawVignette();
   if (sp) drawTracker(f, sp);
   if (v.fade > 0) R(0, 0, W, H, `rgba(42,36,56,${v.fade})`);

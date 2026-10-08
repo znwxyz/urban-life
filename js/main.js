@@ -67,6 +67,19 @@ const rouletteDelay = (i, ticks) => {
   return ROULETTE.firstMs + (ROULETTE.lastMs - ROULETTE.firstMs) * u * u;
 };
 
+/* 홈 화면 종이 카드 테두리를 스톱모션처럼 계속 새로 오려 지글지글 움직이게 한다 */
+const BOIL_MS = 220;
+let boilTimer = null;
+function stopBoil() { clearInterval(boilTimer); boilTimer = null; }
+function startBoil() {
+  stopBoil();
+  if (reducedMotion) return;
+  boilTimer = setInterval(() => {
+    if ($('picker').hidden) { stopBoil(); return; }
+    $('picker').querySelectorAll('[style*="--deckle"]').forEach((el) => el.style.setProperty('--deckle', deckle()));
+  }, BOIL_MS);
+}
+
 /** 처음 화면: 어떤 동물로 태어날지 모르는 카드 한 장. 누르면 룰렛이 돌아 동물이 정해진다 */
 function showPicker() {
   clearTimeout(moveTimer); clearTimeout(rouletteTimer);
@@ -85,6 +98,7 @@ function showPicker() {
     h('li', null, h('button', { class: 'direct-item', onclick: () => pickDirect(key) }, SPECIES[key].name))));
   $('picker').hidden = false;
   btn.focus({ preventScroll: true });
+  startBoil();
 }
 
 /* 오른쪽 아래 구석 '캐릭터 직접 고르기': 누르면 위쪽으로 동물 이름이 펼쳐진다 */
@@ -129,7 +143,7 @@ function spinRoulette(btn, name) {
 
 function revealBirth(key) {
   const sp = SPECIES[key];
-  clearTimeout(moveTimer); clearTimeout(rouletteTimer); $('picker').hidden = true;
+  clearTimeout(moveTimer); clearTimeout(rouletteTimer); stopBoil(); $('picker').hidden = true;
   run = newRun(sp); phase = 'birth';
   clearDeath();
   startIris(() => heroRect(sp));
