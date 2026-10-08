@@ -7,6 +7,8 @@ const GROUND_FALL = .2, GROUND_BODY_FALL = .3;
 /* 바닥이 어두워지는 끝색: 장면 잉크색을 조금 더 깊게. 눈 덮인 땅은 밝은 면으로 남겨 덜 어둡게 */
 const DEEP_INK = '#171233', DEEP_MIX = .45, SNOW_DARK = .4;
 const VIGNETTE_ALPHA = .12;
+/* 밤 가로등: 빛 기둥 두 겹과 바닥 빛 웅덩이 두 겹의 진하기. 밤에 땅이 가장 어두우니 이 빛이 장면의 색 자리다 */
+const LAMP_CONE = Object.freeze([.12, .1]), LAMP_POOL = Object.freeze([.22, .2]);
 const PORTRAIT_RATIO = .9;
 
 /** 화면 1cm가 몇 px인지. 세로로 긴 휴대폰 화면에서도 동물이 너무 작아지지 않게, 화면 폭과 높이 중 큰 쪽을 기준으로 잡는다 */
@@ -40,9 +42,8 @@ function paletteFor(key, night, snow) {
   const p = snow ? winterize(base) : base;
   const out = {
     ...p,
-    cloud: night ? mix(p.skyTop, '#ffffff', .12) : mix(p.skyBottom, '#ffffff', .55),
-    cloudShade: night ? mix(p.skyTop, '#ffffff', .04) : mix(mix(p.skyBottom, '#ffffff', .55), p.skyTop, .4),
-    farA: mix(p.far1, p.skyBottom, .3), farB: p.far2,
+    cloud: night ? mix(p.skyMid || p.skyTop, '#ffffff', .1) : mix(p.skyBottom, '#ffffff', .55),
+    cloudShade: night ? mix(p.skyTop, p.skyMid || p.skyTop, .6) : mix(mix(p.skyBottom, '#ffffff', .55), p.skyTop, .4),
     toneTo: night ? NIGHT_TINT : p.skyBottom, toneAmt: night ? TONE_NIGHT : TONE_DAY,
   };
   palMemo.set(id, out);
@@ -334,12 +335,10 @@ function drawGlow(f) {
   if (sc.indoor) return;
   // 가로등 불빛: 위에서 내려오는 빛 기둥과 바닥에 고인 빛 웅덩이를 얇은 종이처럼 겹친다
   const spread = Math.min(rad * .55, (g - gy) * .6);
-  ctx.fillStyle = rgba(v.glow, .08);
-  P([[gx - 10, gy], [gx + 10, gy], [gx + spread, g], [gx - spread, g]], ctx.fillStyle);
-  ctx.fillStyle = rgba(v.glow, .07);
-  P([[gx - 6, gy], [gx + 6, gy], [gx + spread * .6, g], [gx - spread * .6, g]], ctx.fillStyle);
-  E(gx, g + 6, spread * 1.05, Math.max(6, (H - g) * .08), rgba(v.glow, .14));
-  E(gx, g + 6, spread * .6, Math.max(4, (H - g) * .05), rgba(v.glow, .12));
+  P([[gx - 10, gy], [gx + 10, gy], [gx + spread, g], [gx - spread, g]], rgba(v.glow, LAMP_CONE[0]));
+  P([[gx - 6, gy], [gx + 6, gy], [gx + spread * .6, g], [gx - spread * .6, g]], rgba(v.glow, LAMP_CONE[1]));
+  E(gx, g + 6, spread * 1.05, Math.max(6, (H - g) * .08), rgba(v.glow, LAMP_POOL[0]));
+  E(gx, g + 6, spread * .6, Math.max(4, (H - g) * .05), rgba(v.glow, LAMP_POOL[1]));
 }
 
 function drawWeather(f, dt) {

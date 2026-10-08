@@ -1,4 +1,5 @@
 /* 배경 11곳: 주택가 7 · 도심 3 · 공원 1. 팔레트는 낮 기준이고 밤·눈은 color.js가 바꾼다.
+   - 하늘은 skyTop(위) → skyMid → skyBottom(지평선) 세 색, sunGlow는 해 빛무리 색. 먼 층(far1·far2)은 하늘과 같은 색 계열로 둔다
    - far: 먼 풍경 종류 (apartments · villas · city · trees)
    - wall: 실내면 pattern/run/window, 바깥이면 건물 style
    - floor: 바닥 재질 (paper.js MATERIALS), deco: 바닥 위 표시 (scene.js FLOOR_DECO)
@@ -7,21 +8,21 @@ const SCENES = {
   villaParking: {
     name: '빌라 주차장', area: '주택가', salt: 1, floor: 'asphalt', deco: 'parkingLines', ceiling: 250, far: 'villas', fg: 'curb',
     items: { s: ['pebble', 'butt', 'leaf'], m: ['box', 'bike', 'trashbag'], l: ['car', 'column'] },
-    pal: { skyTop: '#9cc6d6', skyBottom: '#f4e3cc', sun: '#fff4dc', far1: '#d8c6c2', far2: '#bea9a8',
+    pal: { skyTop: '#8fbcd2', skyMid: '#cde0dd', skyBottom: '#f7e0c2', sun: '#fff6e2', sunGlow: '#fff0cc', far1: '#9fadbb', far2: '#8693a4',
       wall: '#cbb2a6', wallAlt: '#c2a89c', wallShade: '#8d878b', ceiling: '#aaa4a7', ground: '#8e8a8e',
       groundTop: '#b0acaf', ink: '#3f3b44', light: '#fffaf0', glass: '#a9cbd6', accent: '#e2a35e' },
   },
   aptGarden: {
     name: '아파트 단지 화단', area: '주택가', salt: 2, floor: 'grass', far: 'apartments', fg: 'grass',
     items: { s: ['leaf', 'pebble', 'feather'], m: ['shrub', 'shrub', 'bench'], l: ['tree'] },
-    pal: { skyTop: '#a3cfe0', skyBottom: '#f5ecd2', sun: '#fff6dc', far1: '#e2e5e8', far2: '#c8ced6',
+    pal: { skyTop: '#93c6dc', skyMid: '#d2e7e2', skyBottom: '#f7ebcb', sun: '#fff8e4', sunGlow: '#fff3cf', far1: '#a9bcc6', far2: '#8ea2b0',
       wall: '#d9d2c4', wallAlt: '#d0c8b8', wallShade: '#b3aa98', ceiling: '#8a9a8a', ground: '#6f9f6c',
       groundTop: '#93bd86', ink: '#2d4a42', light: '#fffbe8', glass: '#a9cbd6', accent: '#f2b56b' },
   },
   recycling: {
     name: '분리수거장', area: '주택가', salt: 3, floor: 'paver', ceiling: 280, far: 'apartments', fg: 'curb',
     items: { s: ['cap', 'pebble', 'butt'], m: ['cardboard', 'trashbag', 'recycleBin'], l: ['recycleBin'] },
-    pal: { skyTop: '#a9c3d9', skyBottom: '#efe3d0', sun: '#fff4e2', far1: '#dcdfe4', far2: '#bec6cf',
+    pal: { skyTop: '#9cbad6', skyMid: '#d4dee5', skyBottom: '#f3e1c8', sun: '#fff6e6', sunGlow: '#fff0d2', far1: '#a6b4c3', far2: '#8b9aab',
       wall: '#d8d2c8', wallAlt: '#cec7bc', wallShade: '#6f7a88', ceiling: '#7f8a97', ground: '#8d8f94',
       groundTop: '#abadb2', ink: '#3a3d47', light: '#fffaf2', glass: '#a9cbd6', accent: '#5f8fb0' },
   },
@@ -29,7 +30,7 @@ const SCENES = {
     name: '빌라 골목', area: '주택가', salt: 4, floor: 'asphalt', deco: 'manhole', far: 'villas', fg: 'curb', glow: '#f2a03d',
     wall: { style: 'villa', h: 1000 },
     items: { s: ['butt', 'leaf', 'cap'], m: ['pot', 'trashbag', 'bike'], l: ['pole', 'car'] },
-    pal: { skyTop: '#7f8fbf', skyBottom: '#f6c9a8', sun: '#fde7c8', far1: '#b9aac9', far2: '#9888b2',
+    pal: { skyTop: '#6f80b6', skyMid: '#c3a8c4', skyBottom: '#f8c39c', sun: '#fff0d6', sunGlow: '#ffd9ae', far1: '#9a8bb3', far2: '#7c6c9c',
       wall: '#cf8170', wallAlt: '#c47468', wallShade: '#a55d56', ceiling: '#5f5166', ground: '#5f5166',
       groundTop: '#806d85', ink: '#352a43', light: '#fff0dc', glass: '#8fa9c4', accent: '#f0a35e' },
   },
@@ -69,7 +70,7 @@ const SCENES = {
     name: '식당가 뒷골목', area: '도심', salt: 9, floor: 'asphalt', deco: 'manhole', far: 'city', fg: 'curb', glow: '#f2a03d',
     wall: { style: 'concrete', h: 800 },
     items: { s: ['butt', 'cap', 'crumb'], m: ['trashbag', 'crate', 'basin', 'trashbag'], l: ['gasTank', 'pole'] },
-    pal: { skyTop: '#5d6b9a', skyBottom: '#e8a98e', sun: '#ffe0c2', far1: '#948aac', far2: '#766d95',
+    pal: { skyTop: '#55628f', skyMid: '#a68aa8', skyBottom: '#eda283', sun: '#ffe8cc', sunGlow: '#ffcf9e', far1: '#857aa1', far2: '#665c88',
       wall: '#b9a99a', wallAlt: '#ad9c8c', wallShade: '#8d7d70', ceiling: '#5f5a66', ground: '#4f4a55',
       groundTop: '#6f6977', ink: '#2a2532', light: '#ffe9c9', glass: '#f2c27a', accent: '#e0694c' },
   },
@@ -77,14 +78,14 @@ const SCENES = {
     name: '편의점 앞', area: '도심', salt: 10, floor: 'paver', deco: 'tactile', far: 'city', fg: 'curb', glow: '#fff1cf',
     wall: { style: 'store', h: 1500 },
     items: { s: ['butt', 'cap', 'crumb'], m: ['plasticChair', 'bin'], l: ['parasolTable', 'pole'] },
-    pal: { skyTop: '#8fb9d6', skyBottom: '#f2e2cf', sun: '#fff5e2', far1: '#ccd5de', far2: '#afbac7',
+    pal: { skyTop: '#86b2d2', skyMid: '#cddce4', skyBottom: '#f5dfc5', sun: '#fff7e6', sunGlow: '#fff0d0', far1: '#a2b1c2', far2: '#8797aa',
       wall: '#e9ecef', wallAlt: '#dfe3e6', wallShade: '#c3c9ce', ceiling: '#8a8e96', ground: '#8a8e96',
       groundTop: '#abafb7', ink: '#383c48', light: '#fffdf5', glass: '#cde8e6', accent: '#3f9f7f' },
   },
   park: {
     name: '근린공원', area: '공원', salt: 11, floor: 'grass', far: 'trees', fg: 'grass', glow: '#f2a03d',
     items: { s: ['leaf', 'pebble', 'feather'], m: ['bench', 'shrub'], l: ['tree', 'slide', 'toilet'] },
-    pal: { skyTop: '#9fd0d6', skyBottom: '#f4edca', sun: '#fff6dc', far1: '#bcd5b7', far2: '#97be9a',
+    pal: { skyTop: '#92c8d2', skyMid: '#d0e6d8', skyBottom: '#f7ecc4', sun: '#fff8e2', sunGlow: '#fff2c8', far1: '#9fbf9f', far2: '#7fa688',
       wall: '#d9cbb8', wallAlt: '#cfc0ab', wallShade: '#b5a690', ceiling: '#5f8a64', ground: '#6f9f6c',
       groundTop: '#93bd86', ink: '#2b4f43', light: '#fffbe8', glass: '#a9cbd6', accent: '#e98a6d' },
   },

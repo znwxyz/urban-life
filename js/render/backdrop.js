@@ -14,48 +14,77 @@ let W = 0, H = 0;
 const mod = (a, m) => ((a % m) + m) % m;
 
 /* ── 하늘 ── */
+/* 해(밤에는 달)는 지평선 가까이, 주인공(왼쪽)과 선택 카드(오른쪽 아래) 사이 하늘에 둔다.
+   큰 빛무리가 하늘의 40% 남짓을 물들여 장면의 빛을 정한다 (Alto처럼) */
+const SUN = Object.freeze({ x: .42, y: .4, r: .045, glow: .6, glowAlpha: .6, core: 7, coreAlpha: .55 });
+const SKY_MID_AT = .58;
+const MOON_GLOW = '#9fb2ff', MOON_GLOW_ALPHA = .35;
+
+const sunAt = (g) => ({ x: W * SUN.x, y: g * SUN.y, r: Math.min(W, H) * SUN.r });
+/** 해 빛무리 색: 장면이 정해 두지 않으면 해를 지평선색 쪽으로 조금 물들인다. 밤에는 차가운 달빛 */
+const glowOf = (p, night) => (night ? MOON_GLOW : p.sunGlow || mix(p.sun, p.skyBottom, .25));
+
 function drawSky(f) {
   const { sc, p, g, v } = f;
   skyGradient(f);
   if (sc.indoor) return;
+  const sun = sunAt(g);
   if (v.night) {
-    STARS.forEach((st) => { ctx.globalAlpha = .45 + .4 * Math.sin(v.t * 1.3 + st.p); E(st.x * W, st.y * g, st.r, st.r, '#fff6dc'); });
+    STARS.forEach((st) => {
+      const x = st.x * W, y = st.y * g;
+      if (Math.hypot(x - sun.x, y - sun.y) < sun.r * 4) return;   // 달빛 속 별은 묻힌다
+      ctx.globalAlpha = .45 + .4 * Math.sin(v.t * 1.3 + st.p); E(x, y, st.r, st.r, '#fff6dc');
+    });
     ctx.globalAlpha = 1;
   }
-  const r = Math.min(W, H) * .05, pad = r * 2 + 12;
-  spriteDraw(`sun|${p.sun}|${p.skyBottom}|${v.night}|${r}`, W * .8, g * .28, [pad, pad, pad * 2, pad * 2], (x, y) => drawSun(f, x, y, r));
+  const pad = sun.r * 1.6 + 4;
+  spriteDraw(`sun|${p.sun}|${p.skyBottom}|${v.night}|${sun.r}`, sun.x, sun.y, [pad, pad, pad * 2, pad * 2], (x, y) => drawSun(f, x, y, sun.r));
   for (let i = 0; i < 4; i++) {
     const k = (1 - i * .16) * (i % 2 ? .8 : 1), cy = g * (.12 + .085 * i);
     const cx = mod(i * W * .37 + 90 - f.scroll * PARALLAX.cloud * (1 + i * .4) - v.t * CLOUD_DRIFT * (1 - i * .16), W + 360) - 180;
-    spriteDraw(`cloud|${k}|${p.cloud}|${p.cloudShade}`, cx, cy, [90 * k + 16, 60 * k + 16, 180 * k + 32, 76 * k + 32], (x, y) => paper(() => cloud(x, y, k, p.cloud, p.cloudShade), .45));
+    spriteDraw(`cloud|${k}|${p.cloud}|${p.cloudShade}`, cx, cy, [90 * k + 16, 60 * k + 16, 180 * k + 32, 76 * k + 32], (x, y) => cloud(x, y, k, p.cloud, p.cloudShade));
   }
 }
 
 let skyLayer = null;
-/** 하늘 그러데이션: 장면·밤낮·화면 크기가 같으면 한 번 그린 것을 그대로 찍는다 */
+/** 하늘: 위 · 가운데 · 지평선 세 색 그러데이션에 해(달) 빛무리를 더한다. 장면·밤낮·화면 크기가 같으면 한 번 그린 것을 그대로 찍는다 */
 function skyGradient(f) {
-  const { sc, p, g } = f, d = dprNow(), key = `${p.skyTop}|${p.skyBottom}|${sc.indoor}|${g}|${W}|${H}|${d}`;
+  const { sc, p, g, v } = f, d = dprNow(), night = !!v.night;
+  const mid = p.skyMid || mix(p.skyTop, p.skyBottom, .5), glow = glowOf(p, night);
+  const key = `${p.skyTop}|${mid}|${p.skyBottom}|${glow}|${night}|${sc.indoor}|${g}|${W}|${H}|${d}`;
   if (!skyLayer || skyLayer.key !== key) {
     const c = makeLayer(W, H, d);
     bake(c, W, 0, d, () => {
       const gr = ctx.createLinearGradient(0, 0, 0, sc.indoor ? H : g);
-      gr.addColorStop(0, p.skyTop); gr.addColorStop(1, p.skyBottom);
+      gr.addColorStop(0, p.skyTop); gr.addColorStop(SKY_MID_AT, mid); gr.addColorStop(1, p.skyBottom);
       ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
+      if (!sc.indoor) sunGlow(g, glow, night ? MOON_GLOW_ALPHA : SUN.glowAlpha);
     });
     skyLayer = { key, c };
   }
   ctx.drawImage(skyLayer.c, 0, 0, W, H);
 }
 
-/** 해(밤에는 달): 종이 원 세 겹 */
+/** 해(달) 둘레로 부드럽게 번지는 큰 빛무리 */
+function sunGlow(g, color, alpha) {
+  const { x, y } = sunAt(g), rad = Math.max(W, H) * SUN.glow;
+  const rg = ctx.createRadialGradient(x, y, 0, x, y, rad);
+  rg.addColorStop(0, rgba(color, alpha)); rg.addColorStop(.25, rgba(color, alpha * .5));
+  rg.addColorStop(.6, rgba(color, alpha * .2)); rg.addColorStop(1, rgba(color, 0));
+  ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+  const r = Math.min(W, H) * SUN.r * SUN.core, core = ctx.createRadialGradient(x, y, 0, x, y, r);   // 해 바로 둘레의 뜨거운 빛
+  core.addColorStop(0, rgba(color, SUN.coreAlpha)); core.addColorStop(1, rgba(color, 0));
+  ctx.fillStyle = core; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+}
+
+/** 해(밤에는 달): 빛나는 원판. 그림자 없이 바로 둘레만 한 겹 밝힌다 */
 function drawSun(f, x, y, r) {
   const { p, v } = f;
-  ctx.globalAlpha = .22; E(x, y, r * 1.75, r * 1.75, p.sun);
-  ctx.globalAlpha = .35; E(x, y, r * 1.35, r * 1.35, p.sun);
+  ctx.globalAlpha = .3; E(x, y, r * 1.45, r * 1.45, p.sun);
   ctx.globalAlpha = 1;
-  paper(() => E(x, y, r, r, p.sun), .6);
+  E(x, y, r, r, p.sun);
   if (!v.night) return;
-  const crater = mix(p.sun, p.skyBottom, .18);
+  const crater = mix(p.sun, p.skyBottom, .14);
   E(x - r * .32, y - r * .18, r * .2, r * .18, crater); E(x + r * .3, y + r * .28, r * .14, r * .12, crater); E(x + r * .1, y - r * .45, r * .08, r * .08, crater);
 }
 
@@ -75,37 +104,63 @@ function cloud(cx, cy, k, c, under) {
 /** 아주 작은 동물에게는 먼 풍경이 뿌옇게 흐려 보인다 (접사 렌즈의 얕은 심도) */
 const hazeOf = (s) => clamp((s - MACRO_FROM) / MACRO_RANGE, 0, MACRO_HAZE);
 
+/* 대기 원근: 먼 층일수록 지평선 하늘색 쪽으로 고정 비율만큼 섞는다 (색상과 밝기 모두).
+   층 이름 → [섞는 비율, 밑동 안개띠 진하기]. 안개띠는 층 바닥에서 층 높이의 FOG_RISE까지 올라오며 옅어진다 */
+const FAR_FOG = Object.freeze({ ridge0: [.85, .8], ridge1: [.72, .8], a: [.55, .75], b: [.35, .6], near: [.15, .35] });
+const FOG_RISE = .25, FOG_MAX = .92;
+/* 지금 굽고 있는 층의 안개: 층 안 디테일 색도 같은 비율로 지평선색에 섞는다.
+   밤에는 디테일 색(유리·간판·나무색)도 먼 층 깊이만큼 밤빛으로 어둡게 한 뒤 섞는다. 불 켜진 창(LIT)만 그대로 밝다 */
+const FAR_NIGHT_DEPTH = .6;
+let fog = { to: '#ffffff', amt: 0, night: false };
+const fogC = (c) => mix(fog.night ? nightTone(c, FAR_NIGHT_DEPTH) : c, fog.to, fog.amt);
+
 function drawFar(f) {
   const { sc, p, g, s } = f;
   const cfg = FAR[sc.far];
   if (!cfg) return;
-  const hz = hazeOf(s), key = `${f.v.scene}|${f.v.night}|${p.far1}|${hz}|${g}`;
-  const fade = (c, extra) => mix(c, p.skyBottom, Math.min(.85, hz + extra));
+  const hz = hazeOf(s), key = `${f.v.scene}|${f.v.night}|${p.far1}|${p.far2}|${p.skyBottom}|${hz}|${g}`;
   const res = Math.min(dprNow(), FAR_RES_MAX);
-  const strip = (name, off, y0, draw) => { const top = Math.max(0, y0); stripBlit(`${name}|${f.v.scene}`, key, off, top, g + 6 - top, draw, res); };
+  /* 층 하나: 섞는 비율을 정하고, 그 색으로 그린 뒤 밑동에 안개띠를 덮는다 */
+  const strip = (name, layer, off, y0, hgt, base, draw) => {
+    const top = Math.max(0, y0), [amt, fogA] = FAR_FOG[layer];
+    stripBlit(`${name}|${f.v.scene}`, key, off, top, g + 6 - top, (o) => {
+      fog = { to: p.skyBottom, amt: Math.min(FOG_MAX, amt + hz * (1 - amt)), night: !!f.v.night };
+      draw(o, fogC(base));
+      fogBand(g, hgt * FOG_RISE, fogA);
+    }, res);
+  };
   const maxR = g * .34;
-  [[fade(p.far1, .42), 1, 0], [fade(p.far1, .3), .7, 1.7]].forEach(([c, k, ph]) => {
-    strip(`ridge${ph}`, f.scroll * PARALLAX.ridge * (1 + ph * .2), g - maxR * k * 1.05 - 8, (o) => ridgeLayer(f, o, maxR, c, k, ph));
+  [[1, 0, 'ridge0'], [.7, 1.7, 'ridge1']].forEach(([k, ph, layer]) => {
+    strip(`ridge${ph}`, layer, f.scroll * PARALLAX.ridge * (1 + ph * .2), g - maxR * k * 1.05 - 8, maxR * k, p.far1, (o, c) => ridgeLayer(f, o, maxR, c, k, ph));
   });
-  [[cfg.a, PARALLAX.far1, fade(p.farA, 0), 0], [cfg.b, PARALLAX.far2, fade(p.farB, 0), 1]].forEach(([L, k, c, li]) => {
-    strip(`far${li}`, f.scroll * k, g - g * L.h - 50, (o) => farLayer(f, L, o, g * L.h, c, li));
+  [[cfg.a, PARALLAX.far1, p.far1, 0, 'a'], [cfg.b, PARALLAX.far2, p.far2, 1, 'b']].forEach(([L, k, base, li, layer]) => {
+    strip(`far${li}`, layer, f.scroll * k, g - g * L.h - 50, g * L.h, base, (o, c) => farLayer(f, L, o, g * L.h, c, li));
   });
-  if (cfg.near) strip('near', f.scroll * PARALLAX.near, g * .2 - 30, (o) => cfg.near(f, o, fade(mix(p.farB, p.ink, .3), hz * .3)));
+  if (cfg.near) strip('near', 'near', f.scroll * PARALLAX.near, g * .2 - 30, g * .1, mix(p.far2, p.ink, .3), (o, c) => cfg.near(f, o, c));
 }
 
-/** 도시를 둘러싼 먼 산 한 겹 (찢은 종이 능선). off는 이 능선의 스크롤 px */
+/** 층 밑동의 안개띠: 이 층의 그림 위에만(source-atop) 지평선색을 아래에서 위로 옅어지게 덮는다 */
+function fogBand(g, rise, alpha) {
+  if (alpha <= 0 || rise <= 0) return;
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-atop';
+  const gr = ctx.createLinearGradient(0, g, 0, g - rise);
+  gr.addColorStop(0, rgba(fog.to, alpha)); gr.addColorStop(1, rgba(fog.to, 0));
+  ctx.fillStyle = gr; ctx.fillRect(0, g - rise, W, rise + 8);
+  ctx.restore();
+}
+
+/** 도시를 둘러싼 먼 산 한 겹 (찢은 종이 능선, 그림자 없는 실루엣). off는 이 능선의 스크롤 px */
 function ridgeLayer(f, off, maxH, c, k, ph) {
   const { g } = f;
   ctx.fillStyle = c;
-  paper(() => {
-    ctx.beginPath(); ctx.moveTo(-10, g);
-    for (let x = -10; x <= W + 12; x += 12) {
-      const X = (x + off) / (1 + ph * .3);
-      const y = g - maxH * k * (.55 + .28 * Math.sin(X / 310 + ph) + .14 * Math.sin(X / 97 + 1 + ph) + .04 * Math.sin(X / 23));
-      ctx.lineTo(x, y + (hash(Math.floor(X / 12), 5 + ph) - .5) * 2.4);
-    }
-    ctx.lineTo(W + 12, g); ctx.closePath(); ctx.fill();
-  }, .35);
+  ctx.beginPath(); ctx.moveTo(-10, g);
+  for (let x = -10; x <= W + 12; x += 12) {
+    const X = (x + off) / (1 + ph * .3);
+    const y = g - maxH * k * (.55 + .28 * Math.sin(X / 310 + ph) + .14 * Math.sin(X / 97 + 1 + ph) + .04 * Math.sin(X / 23));
+    ctx.lineTo(x, y + (hash(Math.floor(X / 12), 5 + ph) - .5) * 2.4);
+  }
+  ctx.lineTo(W + 12, g); ctx.closePath(); ctx.fill();
 }
 
 function farLayer(f, cfg, off, maxH, color, li) {
@@ -113,110 +168,106 @@ function farLayer(f, cfg, off, maxH, color, li) {
   for (let i = i0; i <= i1; i++) cfg.draw(f, i * cfg.cell - off, i, maxH, color, li);
 }
 
-/** 앞면 + 오른쪽 그늘면을 가진 먼 건물 몸통 (그림자는 몸통에만 준다) */
+/** 앞면 + 오른쪽 그늘면을 가진 먼 건물 몸통. 먼 층일수록 그늘면도 공기에 묻혀 옅어진다 (그림자 없음) */
 function farBody(x, top, bw, bh, c, side = .18) {
-  paper(() => R(x, top, bw, bh, c), .55);
-  R(x + bw * (1 - side), top, bw * side, bh, shade(c));
+  R(x, top, bw, bh, c);
+  R(x + bw * (1 - side), top, bw * side, bh, mix(shade(c), c, fog.amt));
 }
 
+/* 가장 먼 건물 층은 디테일 없는 실루엣: 밤에만 작은 불빛 몇 개가 남는다 */
+const farLit = (x, y, w, h) => { ctx.globalAlpha = FAR_LIT_ALPHA; R(x, y, w, h, LIT); ctx.globalAlpha = 1; };
+
 const litAt = (f, a, b, p) => f.v.night && hash(a, b) < p;
+const FAR_LIT_ALPHA = .7;
 
 /* 아파트: 판상형 동, 확장한 베란다 줄, 엘리베이터 탑, 동 번호 */
 function aptFar(f, x, i, maxH, c) {
   const { g } = f, bw = 92 + hash(i, 2) * 20, bh = maxH * (.62 + .38 * hash(i, 3)), top = g - bh;
-  farBody(x, top, bw, bh, c, .16);
+  R(x, top, bw, bh, c);
   R(x + bw * .34, top - 7, bw * .18, 7, c);
-  ctx.fillStyle = mix(c, '#ffffff', .14);
-  for (let y = top + 8; y < g - 4; y += 7) ctx.fillRect(x + 3, y, bw * .8, 1.6);
   if (!f.v.night) return;
-  for (let y = top + 8, r = 0; y < g - 4; y += 7, r++) if (hash(i * 53 + r, 7) < .2) R(x + 4 + hash(i + r, 8) * bw * .7, y - 1.5, 5, 3, LIT);
+  for (let y = top + 8, r = 0; y < g - 4; y += 7, r++) if (hash(i * 53 + r, 7) < .14) farLit(x + 4 + hash(i + r, 8) * bw * .7, y - 1.5, 4, 2.5);
 }
 
 function aptNear(f, x, i, maxH, c) {
   const { g, p } = f, bw = 128 + hash(i, 12) * 36, bh = maxH * (.72 + .28 * hash(i, 13)), top = g - bh, face = bw * .84;
   farBody(x, top, bw, bh, c, .16);
-  const glass = mix(c, p.glass, .4), rail = mix(c, '#ffffff', .3), core = shade(c);
+  const glass = mix(c, fogC(p.glass), .4), rail = mix(c, fogC('#ffffff'), .2), core = mix(shade(c), c, fog.amt);
   R(x + face * .45, top, face * .1, bh, core);                                                    // 계단실
   for (let y = top + 22, fl = 0; y < g - 8; y += 10, fl++) {
     [[.05, 0], [.58, 1]].forEach(([u, side]) => {
-      const lit = litAt(f, i * 97 + fl * 3 + side, 9, .32);
+      const lit = litAt(f, i * 97 + fl * 3 + side, 9, .15);
       R(x + face * u, y, face * .37, 5.5, lit ? LIT : glass);
-      if (!lit && hash(i * 31 + fl * 7 + side, 10) > .55) R(x + face * (u + .05), y, face * .1, 5.5, mix(glass, c, .5));   // 블라인드
     });
     R(x + face * .03, y + 6.5, face * .94, 1.2, rail);
   }
   R(x - 2, top - 3, face + 4, 3, rail);                                                           // 옥상 난간
   farBody(x + face * .38, top - 15, face * .24, 12, c, .25);                                     // 엘리베이터 탑
   E(x + face * .5, top - 9, 3, 3, rail);
-  const fs = Math.round(Math.min(14, bw * .1));
-  ctx.fillStyle = rail; ctx.font = `${fs}px "Galmuri11", monospace`;
-  ctx.fillText(`${101 + mod(i, 12)}동`, x + face * .06, top + 16);
 }
 
 /* 빌라: 4~5층 상자, 옥상 물탱크·옥탑방, 방범창, 실외기, 가스관 */
 const VILLA_TINTS = Object.freeze(['#c47468', '#e9dcc6', '#9aa0b4', '#d9b27c']);
 function villaFar(f, x, i, maxH, c) {
   const { g } = f, bw = 58 + hash(i, 22) * 34, bh = maxH * (.32 + .36 * hash(i, 23)), top = g - bh;
-  farBody(x, top, bw, bh, c);
-  if (hash(i, 24) > .62) P([[x - 3, top + 1], [x + bw * .45, top - 13], [x + bw + 3, top + 1]], mix(c, '#3b3049', .12));
-  else { R(x + bw * .58, top - 9, 11, 9, mix(c, '#ffffff', .22)); R(x + bw * .58, top - 9, 11, 2, mix(c, '#ffffff', .4)); }
+  R(x, top, bw, bh, c);
+  if (hash(i, 24) > .62) P([[x - 3, top + 1], [x + bw * .45, top - 13], [x + bw + 3, top + 1]], c);
+  else R(x + bw * .58, top - 9, 11, 9, c);
   if (!f.v.night) return;
-  for (let fl = 0; fl < 4; fl++) if (hash(i * 11 + fl, 25) < .35) R(x + bw * (.15 + hash(i + fl, 26) * .5), top + 8 + fl * (bh / 4.4), 6, 4, LIT);
+  for (let fl = 0; fl < 4; fl++) if (hash(i * 11 + fl, 25) < .3) farLit(x + bw * (.15 + hash(i + fl, 26) * .5), top + 8 + fl * (bh / 4.4), 5, 3);
 }
 
 function villaNear(f, x, i, maxH, c0) {
   const { g, p } = f, bw = 84 + hash(i, 32) * 40, bh = maxH * (.48 + .45 * hash(i, 33)), top = g - bh, face = bw * .82;
-  const c = mix(c0, VILLA_TINTS[Math.floor(hash(i, 34) * VILLA_TINTS.length)], .22);
+  const c = mix(c0, fogC(VILLA_TINTS[Math.floor(hash(i, 34) * VILLA_TINTS.length)]), .22);
   farBody(x, top, bw, bh, c);
-  const frame = mix(c, '#ffffff', .3), glassC = mix(c, p.ink, .42), bar = mix(c, '#ffffff', .18);
-  R(x + face * .9, top + 6, 1.6, bh - 6, mix(c, '#e8c24a', .45));                                 // 가스관
+  const frame = mix(c, fogC('#ffffff'), .22), glassC = mix(c, fogC(p.ink), .32), bar = mix(c, fogC('#ffffff'), .12);
+  R(x + face * .9, top + 6, 1.6, bh - 6, mix(c, fogC('#e8c24a'), .35));                           // 가스관
   for (let fl = 0, y = top + 9; y < g - 14; y += 17, fl++) {
     [.1, .52].forEach((u, k) => {
-      const wx = x + face * u, ww = face * .26, lit = litAt(f, i * 41 + fl * 5 + k, 35, .3);
+      const wx = x + face * u, ww = face * .26, lit = litAt(f, i * 41 + fl * 5 + k, 35, .22);
       R(wx - 1, y - 1, ww + 2, 11, frame); R(wx, y, ww, 9, lit ? LIT : glassC);
       ctx.fillStyle = bar; for (let b = 1; b < 4; b++) ctx.fillRect(wx + (ww * b) / 4, y, .9, 9);   // 방범창
       if (hash(i * 13 + fl * 3 + k, 36) > .6) { R(wx + ww + 1.5, y + 4, 7, 5.5, frame); E(wx + ww + 5, y + 6.7, 1.6, 1.6, glassC); }   // 실외기
     });
   }
   R(x - 1.5, top - 3, face + 3, 3, frame);
-  const tank = mix(c, '#7fb3d9', .35);
+  const tank = mix(c, fogC('#7fb3d9'), .3);
   if (hash(i, 37) > .45) { RR(x + face * .6, top - 15, 15, 12, 3, tank); R(x + face * .6, top - 11, 15, 1.4, shade(tank)); R(x + face * .64, top - 3, 1.5, 3, tank); R(x + face * .6 + 11, top - 3, 1.5, 3, tank); }
-  else { E(x + face * .66, top - 9, 7, 8, tank); E(x + face * .66, top - 16, 7, 2.2, mix(tank, '#ffffff', .25)); }
+  else { E(x + face * .66, top - 9, 7, 8, tank); E(x + face * .66, top - 16, 7, 2.2, mix(tank, fogC('#ffffff'), .25)); }
   if (hash(i, 38) < .35) { farBody(x + face * .08, top - 13, face * .3, 13, c, .2); R(x + face * .14, top - 10, 5, 10, glassC); }   // 옥탑방
 }
 
 /* 도심: 층마다 간판, 세로 간판, 옥상 광고판, 안테나 */
 function cityFar(f, x, i, maxH, c) {
   const { g } = f, bw = 52 + hash(i, 42) * 30, bh = maxH * (.42 + .58 * hash(i, 43)), top = g - bh;
-  farBody(x, top, bw, bh, c);
+  R(x, top, bw, bh, c);
   if (hash(i, 44) > .5) R(x + bw * .2, top - bh * .08, bw * .5, bh * .08 + 1, c);
   if (hash(i, 45) > .6) R(x + bw * .4, top - bh * .08 - 14, 1.2, 14, c);
-  ctx.fillStyle = mix(c, '#ffffff', .12);
-  for (let xx = x + 4; xx < x + bw * .78; xx += 6) ctx.fillRect(xx, top + 5, 2, bh - 9);
   if (!f.v.night) return;
-  for (let r = 0; r < 6; r++) if (hash(i * 7 + r, 46) < .35) R(x + 4 + hash(i + r, 47) * bw * .6, top + 6 + hash(i + r, 48) * (bh - 12), 4, 3, LIT);
+  for (let r = 0; r < 6; r++) if (hash(i * 7 + r, 46) < .3) farLit(x + 4 + hash(i + r, 47) * bw * .6, top + 6 + hash(i + r, 48) * (bh - 12), 3, 2.5);
 }
 
 function cityNear(f, x, i, maxH, c) {
   const { g, p, v } = f, bw = 78 + hash(i, 52) * 36, bh = maxH * (.45 + .5 * hash(i, 53)), top = g - bh, face = bw * .82;
   farBody(x, top, bw, bh, c);
-  const glassC = mix(c, p.glass, .35), signGlow = v.night ? .35 : 0;
+  const glassC = mix(c, fogC(p.glass), .35), signGlow = v.night ? .12 : 0;
   for (let fl = 0, y = top + 7; y < g - 10; y += 15, fl++) {
-    R(x + face * .06, y, face * .88, 6, litAt(f, i * 19 + fl, 54, .45) ? LIT : glassC);
+    R(x + face * .06, y, face * .88, 6, litAt(f, i * 19 + fl, 54, .16) ? LIT : glassC);
     for (let m = 1; m < 4; m++) R(x + face * (.06 + .22 * m), y, 1, 6, c);
     if (hash(i * 23 + fl, 55) < .55) {
-      const sc = mix(mix(SIGNS[Math.floor(hash(i + fl, 56) * SIGNS.length)], c, .35), '#ffffff', signGlow);
+      const sc = mix(mix(fogC(SIGNS[Math.floor(hash(i + fl, 56) * SIGNS.length)]), c, .35), '#ffffff', signGlow);
       R(x + face * .04, y + 7.5, face * .92, 5.5, sc);
       R(x + face * .2, y + 9.5, face * .3, 1.4, mix(sc, '#ffffff', .5));
     }
   }
-  const vs = mix(mix(SIGNS[Math.floor(hash(i, 57) * SIGNS.length)], c, .25), '#ffffff', signGlow);
+  const vs = mix(mix(fogC(SIGNS[Math.floor(hash(i, 57) * SIGNS.length)]), c, .25), '#ffffff', signGlow);
   RR(x + face - 3, top + bh * .12, 8, bh * .45, 1.5, vs);                                         // 세로 간판
-  for (let k = 0; k < 4; k++) R(x + face - .5, top + bh * .15 + k * bh * .1, 3, bh * .05, mix(vs, '#3b3049', .3));
+  for (let k = 0; k < 4; k++) R(x + face - .5, top + bh * .15 + k * bh * .1, 3, bh * .05, mix(vs, fogC('#3b3049'), .3));
   if (hash(i, 58) > .62) {                                                                         // 옥상 광고판
     L(x + face * .3, top, x + face * .3, top - 10, c, 1.2); L(x + face * .7, top, x + face * .7, top - 10, c, 1.2);
-    R(x + face * .15, top - 24, face * .7, 14, mix(c, '#ffffff', .2 + signGlow));
-  } else { R(x + face * .1, top - 5, 9, 5, mix(c, '#ffffff', .2)); R(x + face * .3, top - 5, 9, 5, mix(c, '#ffffff', .2)); }
+    R(x + face * .15, top - 24, face * .7, 14, mix(c, fogC('#ffffff'), .2 + signGlow));
+  } else { R(x + face * .1, top - 5, 9, 5, mix(c, fogC('#ffffff'), .2)); R(x + face * .3, top - 5, 9, 5, mix(c, fogC('#ffffff'), .2)); }
 }
 
 /* 공원: 산자락 숲, 나무 무리, 정자, 운동기구, 가로등 */
@@ -225,7 +276,6 @@ function treesFar(f, x, i, maxH, c) {
   const r = 14 + hash(i, 62) * 12;
   if (hash(i, 63) > .55) P([[x - r * .7, g], [x, base - r * 2.2], [x + r * .7, g]], c);
   else { R(x - 1.5, base, 3, g - base, c); E(x, base - r * .6, r, r * 1.05, c); }
-  if (hash(i, 64) > .5) E(x + r * .3, base - r * .3, r * .55, r * .5, shade(c));
 }
 
 function parkNear(f, x, i, maxH, c) {
@@ -239,23 +289,24 @@ function treeClump(f, x, i, maxH, c) {
   const { g } = f, n = 2 + Math.floor(hash(i, 73) * 2);
   for (let k = 0; k < n; k++) {
     const tx = x + k * 38 + hash(i + k, 74) * 16, th = maxH * (.55 + hash(i + k, 75) * .4), r = 18 + hash(i + k, 76) * 14;
-    R(tx - 2, g - th * .55, 4, th * .55, shade(c));
-    paper(() => { E(tx, g - th * .62, r, r * .9, shade(c)); E(tx - r * .35, g - th * .7, r * .8, r * .75, c); E(tx + r * .3, g - th * .8, r * .6, r * .55, mix(c, '#ffffff', .1)); }, .5);
+    const dark = mix(shade(c), c, fog.amt);
+    R(tx - 2, g - th * .55, 4, th * .55, dark);
+    E(tx, g - th * .62, r, r * .9, dark); E(tx - r * .35, g - th * .7, r * .8, r * .75, c); E(tx + r * .3, g - th * .8, r * .6, r * .55, mix(c, fogC('#ffffff'), .1));
   }
 }
 
 /** 정자: 처마 끝이 살짝 들린 지붕 */
 function pavilion(f, x, maxH, c) {
-  const { g } = f, w = 70, h = maxH * .5, roof = mix(c, '#3b3049', .2);
-  [.12, .88].forEach((u) => R(x + w * u - 1.5, g - h, 3, h, shade(c)));
+  const { g } = f, w = 70, h = maxH * .5, roof = mix(c, fogC('#3b3049'), .2);
+  [.12, .88].forEach((u) => R(x + w * u - 1.5, g - h, 3, h, mix(shade(c), c, fog.amt)));
   R(x + 4, g - h * .35, w - 8, 2.5, c);
-  paper(() => curvy([[x - 12, g - h + 2], [x + 4, g - h - 2, x + 14, g - h - 14], [x + w - 14, g - h - 14], [x + w - 4, g - h - 2, x + w + 12, g - h + 2], [x + w / 2, g - h - 4]], roof), .5);
+  curvy([[x - 12, g - h + 2], [x + 4, g - h - 2, x + 14, g - h - 14], [x + w - 14, g - h - 14], [x + w - 4, g - h - 2, x + w + 12, g - h + 2], [x + w / 2, g - h - 4]], roof);
   R(x + w * .4, g - h - 22, w * .2, 8, roof);
 }
 
 /** 운동기구: 철봉과 허리 돌리기 */
 function gymBars(f, x, maxH, c) {
-  const { g } = f, h = maxH * .3, k = mix(c, '#5f8fb0', .3);
+  const { g } = f, h = maxH * .3, k = mix(c, fogC('#5f8fb0'), .3);
   L(x, g, x, g - h, k, 2.4); L(x + 34, g, x + 34, g - h, k, 2.4); L(x, g - h, x + 34, g - h, k, 2);
   L(x + 52, g, x + 52, g - h * .7, k, 2.4);
   ctx.strokeStyle = k; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.ellipse(x + 52, g - h * .7, 9, 3, 0, 0, TAU); ctx.stroke();
@@ -269,7 +320,7 @@ function poleRow(f, off, c, cell, hgt, lamps, wires = true) {
   ctx.lineCap = 'round';
   for (let i = i0; i <= i1; i++) {
     const x = i * cell - off + hash(i, 81) * cell * .2, top = g - hgt * (.9 + hash(i, 82) * .1);
-    paper(() => R(x - 3, top, 6, g - top, c), .4);
+    R(x - 3, top, 6, g - top, c);
     R(x - 16, top + 10, 32, 3, c); R(x - 11, top + 22, 22, 2.5, c);
     if (hash(i, 83) > .55) RR(x + 4, top + 30, 9, 14, 3, c);                                        // 변압기
     if (lamps) {
@@ -290,8 +341,8 @@ function poleRow(f, off, c, cell, hgt, lamps, wires = true) {
 
 /** 낮은 담장: 위에 기와 대신 시멘트 갓돌 */
 function lowWall(f, off, c, hgt) {
-  const { g } = f, cap = mix(c, '#ffffff', .2);
-  paper(() => R(0, g - hgt, W, hgt, c), .6);
+  const { g } = f, cap = mix(c, fogC('#ffffff'), .2);
+  R(0, g - hgt, W, hgt, c);
   R(0, g - hgt - 3, W, 4, cap);
   ctx.fillStyle = shade(c);
   for (let x = -mod(off, 46); x < W; x += 46) ctx.fillRect(x, g - hgt + 1, 1.2, hgt - 1);
@@ -301,14 +352,12 @@ function lowWall(f, off, c, hgt) {
 function hedge(f, off, c, hgt, cell) {
   const { g } = f;
   ctx.fillStyle = c;
-  paper(() => {
-    ctx.beginPath(); ctx.moveTo(-cell, g);
-    for (let x = -mod(off, cell) - cell; x < W + cell; x += cell) {
-      const n = Math.floor((x + off) / cell), r = cell * (.55 + hash(n, 85) * .35);
-      ctx.arc(x + cell / 2, g - hgt + r * .4, r, Math.PI, 0);
-    }
-    ctx.lineTo(W + cell, g); ctx.closePath(); ctx.fill();
-  }, .5);
+  ctx.beginPath(); ctx.moveTo(-cell, g);
+  for (let x = -mod(off, cell) - cell; x < W + cell; x += cell) {
+    const n = Math.floor((x + off) / cell), r = cell * (.55 + hash(n, 85) * .35);
+    ctx.arc(x + cell / 2, g - hgt + r * .4, r, Math.PI, 0);
+  }
+  ctx.lineTo(W + cell, g); ctx.closePath(); ctx.fill();
 }
 
 function railFence(f, off, c, hgt) {
@@ -320,13 +369,13 @@ function railFence(f, off, c, hgt) {
 
 const FAR = {
   apartments: { a: { cell: 150, h: .66, draw: aptFar }, b: { cell: 230, h: .5, draw: aptNear },
-    near(f, off, c) { const green = mix(c, '#5f8f6c', .45); hedge(f, off, green, f.g * .07, 26); railFence(f, off, c, f.g * .06); } },
+    near(f, off, c) { const green = mix(c, fogC('#5f8f6c'), .45); hedge(f, off, green, f.g * .07, 26); railFence(f, off, c, f.g * .06); } },
   villas: { a: { cell: 100, h: .62, draw: villaFar }, b: { cell: 140, h: .44, draw: villaNear },
-    near(f, off, c) { hedge(f, off * .9, mix(c, '#6a9c78', .35), f.g * .085, 22); lowWall(f, off, c, f.g * .06); poleRow(f, off, c, 360, f.g * .62, false); } },
+    near(f, off, c) { hedge(f, off * .9, mix(c, fogC('#6a9c78'), .35), f.g * .085, 22); lowWall(f, off, c, f.g * .06); poleRow(f, off, c, 360, f.g * .62, false); } },
   city: { a: { cell: 95, h: .66, draw: cityFar }, b: { cell: 122, h: .48, draw: cityNear },
     near(f, off, c) { poleRow(f, off, c, 330, f.g * .66, true); } },
   trees: { a: { cell: 22, h: .5, draw: treesFar }, b: { cell: 150, h: .36, draw: parkNear },
-    near(f, off, c) { hedge(f, off, mix(c, '#5f8f6c', .5), f.g * .05, 30); poleRow(f, off, c, 520, f.g * .3, true, false); } },
+    near(f, off, c) { hedge(f, off, mix(c, fogC('#5f8f6c'), .5), f.g * .05, 30); poleRow(f, off, c, 520, f.g * .3, true, false); } },
 };
 
 /* ── 바깥 건물 (cm 기준) ── */
