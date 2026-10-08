@@ -28,7 +28,9 @@ function switchLang(lang) {
   if (!LANGS.includes(lang)) return;
   try { localStorage.setItem(LANG_KEY, lang); } catch { /* 저장 못 해도 주소로 바뀐다 */ }
   const base = location.pathname.replace(/en\/(index\.html)?$/, '').replace(/index\.html$/, '');
-  location.href = lang === 'en' ? `${base}en/` : `${base}?lang=ko`;
+  // 파일로 열었을 때(file:)는 폴더 주소가 index.html을 열지 않으므로 파일 이름까지 쓴다
+  const enPage = location.protocol === 'file:' ? 'en/index.html' : 'en/';
+  location.href = lang === 'en' ? `${base}${enPage}` : `${base}${location.protocol === 'file:' ? 'index.html' : ''}?lang=ko`;
 }
 
 /* ── 이야기 번역: 문장 필드만 같은 모양으로 덮어쓴다 ── */

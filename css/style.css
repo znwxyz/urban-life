@@ -129,8 +129,8 @@ button { font: inherit; color: inherit; }
 .fx-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .home-panels { display: flex; flex-direction: column; align-items: center; gap: 22px; }
 .home-panels:not(:has(> :not([hidden]))) { display: none; }
-.picker-title, .pick-grid, .home-hint, .home-actions, .home-panels, .direct-pick, .album-pick, .lang-switch { filter: url(#tvJitter); }
-@media (prefers-reduced-motion: reduce) { .picker-title, .pick-grid, .home-hint, .home-actions, .home-panels, .direct-pick, .album-pick, .lang-switch { filter: none; } }
+.picker-title, .pick-grid, .home-hint, .home-actions, .home-panels, .direct-pick, .album-pick, .cover-title, .cover-en, .cover-langs { filter: url(#tvJitter); }
+@media (prefers-reduced-motion: reduce) { .picker-title, .pick-grid, .home-hint, .home-actions, .home-panels, .direct-pick, .album-pick, .cover-title, .cover-en, .cover-langs { filter: none; } }
 .home-hint {
   margin: -8px 0 0; padding: 4px 10px 3px; font-family: var(--f-small); font-size: 12px;
   color: var(--paper); background: rgba(59, 48, 73, .55); rotate: .6deg;
@@ -382,13 +382,21 @@ button { font: inherit; color: inherit; }
 .album-empty { margin: 30vh auto 0; text-align: center; color: var(--paper); line-height: 1.7; }
 @media (prefers-reduced-motion: reduce) { .album-card { transition: none; } }
 
-/* 홈 맨 위 언어 전환 (English ver. / 한국어) */
-.lang-switch {
-  position: relative; z-index: 4; justify-self: center; margin-bottom: 6px; rotate: -1deg;
-  border: 0; cursor: pointer; padding: 5px 12px 4px; font-family: var(--f-small); font-size: 12px;
-  background: var(--paper); color: var(--ink); filter: drop-shadow(0 2px 0 rgba(59, 48, 73, .25));
+/* 표지: 제목 + 언어 고르기. 제목은 늘 한글 글꼴, 영어 한 줄은 타자기체 */
+.cover { position: absolute; inset: 0; z-index: 3; display: grid; place-content: center; justify-items: center; gap: 18px; padding: 24px 16px; }
+.cover-title { margin: 0; font-size: 34px; font-weight: 400; font-family: "New Gulim", "새굴림", "NewGulim", "Galmuri14", "Apple SD Gothic Neo", sans-serif; }
+.cover-title .kicker { font-size: 20px; }
+.cover-en { margin: 0; padding: 5px 12px 4px; font-family: "Courier Prime", "Courier New", monospace; font-size: 14px; color: var(--paper); background: rgba(59, 48, 73, .55); rotate: .8deg; -webkit-font-smoothing: antialiased; }
+.cover-langs { display: flex; gap: 12px; margin-top: 8px; }
+.cover-lang {
+  border: 0; cursor: pointer; min-width: 116px; padding: 10px 18px 9px; font-size: 16px;
+  background: var(--paper); color: var(--ink); clip-path: polygon(0 0, 100% 4%, 97% 100%, 3% 95%);
+  transition: background .12s, color .12s, translate .12s;
 }
-.lang-switch:hover, .lang-switch:focus-visible { background: var(--ink); color: var(--paper); outline: none; }
+.cover-lang[lang="ko"] { font-family: "New Gulim", "새굴림", "NewGulim", "Galmuri14", sans-serif; }
+.cover-lang[lang="en"] { font-family: "Courier Prime", "Courier New", monospace; -webkit-font-smoothing: antialiased; }
+.cover-lang:hover, .cover-lang:focus-visible { background: var(--pink); color: var(--paper); translate: 0 -2px; outline: none; }
+@media (max-width: 480px) { .cover-title { font-size: 26px; } .cover-title .kicker { font-size: 16px; } .cover-en { font-size: 12px; } }
 
 /* 영어판 후원: EVM 주소. PC는 QR + 주소, 휴대폰은 QR 대신 '지갑 앱으로 열기' */
 .evm { display: flex; gap: 14px; align-items: flex-start; }

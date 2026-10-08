@@ -67,6 +67,32 @@ const rouletteDelay = (i, ticks) => {
   return ROULETTE.firstMs + (ROULETTE.lastMs - ROULETTE.firstMs) * u * u;
 };
 
+/* 표지: 처음 들어올 때 한 번 제목과 언어 고르기를 보여 준다. 이번 방문 동안은 다시 띄우지 않는다 */
+const COVER_KEY = 'urbanlife.coverSeen';
+function coverSeen() { try { return sessionStorage.getItem(COVER_KEY) === '1'; } catch { return false; } }
+function markCoverSeen() { try { sessionStorage.setItem(COVER_KEY, '1'); } catch { /* 저장 못 하면 다음에도 표지가 뜰 뿐 */ } }
+
+function showCover() {
+  clearTimeout(moveTimer); clearTimeout(rouletteTimer);
+  run = null; phase = 'cover';
+  updateHud(null, null); hideCaption(); hideCard();
+  setScene('villaAlley');
+  $('picker').hidden = true;
+  $('cover').hidden = false;
+  startJitter();
+  const mine = $('cover').querySelector(`[data-lang="${LANG}"]`);
+  if (mine) mine.focus({ preventScroll: true });
+}
+
+function setupCover() {
+  $('cover').querySelectorAll('[data-lang]').forEach((btn) => btn.addEventListener('click', () => {
+    markCoverSeen();
+    if (btn.dataset.lang !== LANG) { switchLang(btn.dataset.lang); return; }
+    $('cover').hidden = true;
+    showPicker();
+  }));
+}
+
 /* 홈 화면 종이 조각이 옛날 브라운관처럼 미세하게 떨리게, 노이즈 씨앗을 계속 바꾼다 (#tvJitter 필터) */
 const JITTER_MS = 70;
 let jitterTimer = null;
@@ -76,7 +102,7 @@ function startJitter() {
   const noise = document.getElementById('tvJitterNoise');
   if (reducedMotion || !noise) return;
   jitterTimer = setInterval(() => {
-    if ($('picker').hidden) { stopJitter(); return; }
+    if ($('picker').hidden && $('cover').hidden) { stopJitter(); return; }
     noise.setAttribute('seed', String(1 + Math.floor(Math.random() * 999)));
   }, JITTER_MS);
 }
@@ -84,6 +110,7 @@ function startJitter() {
 /** 처음 화면: 어떤 동물로 태어날지 모르는 카드 한 장. 누르면 룰렛이 돌아 동물이 정해진다 */
 function showPicker() {
   clearTimeout(moveTimer); clearTimeout(rouletteTimer); closeMemory();
+  $('cover').hidden = true;
   run = null; phase = 'picker';
   clearDeath(); stopIris(); closeWall();
   updateHud(null, null); hideCaption(); hideCard();
@@ -269,15 +296,13 @@ function frame(now) {
 window.claude?.hot?.snapshot?.(() => ({ run, phase }));
 function boot(data) {
   applyStaticText();
-  const langBtn = $('langSwitch');
-  langBtn.lang = LANG === 'en' ? 'ko' : 'en';
-  langBtn.addEventListener('click', () => switchLang(LANG === 'en' ? 'ko' : 'en'));
+  setupCover();
   resizeStage(); resizeFx(); setupWall(); setupSupport(); setupDirectPick(); setupMemory(); setupAlbum();
   addEventListener('resize', () => { resizeStage(); resizeFx(); });
   requestAnimationFrame(frame);
   const saved = data && data.run;
   const sp = saved && SPECIES[saved.spKey];
-  if (!sp || !isValidRun(sp, saved)) { showPicker(); return; }
+  if (!sp || !isValidRun(sp, saved)) { if (coverSeen()) showPicker(); else showCover(); return; }
   run = saved;
   const lastAt = run.path.length ? run.path[run.path.length - 1].at : sp.start;
   if (run.ending) { setScene(sp.scenes[lastAt].bg); showEnding(); return; }
