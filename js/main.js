@@ -239,12 +239,13 @@ function showEnding() {
       h('h2', null, end.title),
       h('p', { class: 'result' }, end.line),
       h('p', { class: 'meta' }, `생후 ${durLabel(run.day)} · ${end.cause}${run.kids ? ` · 남긴 ${sp.kidUnit} ${run.kids}` : ''}`),
-      end.kind === 'happy' ? memoryButton(sp.key) : null,
+      end.kind !== 'dead' ? memoryButton(sp.key) : null,
     ],
     top: guestbookSection(sp, run.ending, run.day),
     choices: [{ label: `${sp.name}로 다시`, act: () => revealBirth(sp.key) }, { label: '다른 동물 고르기', act: showPicker }],
   });
-  if (end.kind === 'happy') { addCollected(sp.key); preloadMemory(sp.key); scheduleMemory(sp.key); }
+  // 해피엔딩과 노멀엔딩(끝까지 살아남은 엔딩) 모두 기억카드를 띄운다. 죽음 엔딩은 띄우지 않는다
+  if (end.kind !== 'dead') { addCollected(sp.key); preloadMemory(sp.key); scheduleMemory(sp.key); }
 }
 
 let last = performance.now();
