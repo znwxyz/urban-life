@@ -80,8 +80,7 @@ function showCover() {
   $('picker').hidden = true;
   $('cover').hidden = false;
   startJitter();
-  const mine = $('cover').querySelector(`[data-lang="${LANG}"]`);
-  if (mine) mine.focus({ preventScroll: true });
+  // 버튼에 미리 포커스를 주지 않는다: 포커스된 쪽만 색이 바뀌어 한쪽만 눌린 것처럼 보인다
 }
 
 function setupCover() {
