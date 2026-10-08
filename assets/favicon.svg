@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- 게임 주인공 길고양이 얼굴 (js/render/animals.js drawCat과 같은 색·비율) -->
+  <path d="M9 30 L13 6 L28 18 Z" fill="#f2a65a"/>
+  <path d="M55 30 L51 6 L36 18 Z" fill="#f2a65a"/>
+  <path d="M13 26 L15 11 L25 19 Z" fill="#ff9aa8"/>
+  <path d="M51 26 L49 11 L39 19 Z" fill="#ff9aa8"/>
+  <ellipse cx="32" cy="37" rx="27" ry="23" fill="#f2a65a"/>
+  <rect x="25.5" y="14.5" width="3.4" height="9" rx="1.7" fill="#d9823f"/>
+  <rect x="30.3" y="14" width="3.4" height="9.5" rx="1.7" fill="#d9823f"/>
+  <rect x="35.1" y="14.5" width="3.4" height="9" rx="1.7" fill="#d9823f"/>
+  <ellipse cx="19" cy="38" rx="6" ry="4.7" fill="#3b3049"/>
+  <ellipse cx="45" cy="38" rx="6" ry="4.7" fill="#3b3049"/>
+  <circle cx="20.8" cy="36.4" r="2.2" fill="#fff"/>
+  <circle cx="46.8" cy="36.4" r="2.2" fill="#fff"/>
+  <ellipse cx="12" cy="47" rx="5" ry="3" fill="#ff9aa8" opacity=".6"/>
+  <ellipse cx="52" cy="47" rx="5" ry="3" fill="#ff9aa8" opacity=".6"/>
+  <ellipse cx="32" cy="44" rx="2.6" ry="1.9" fill="#ff9aa8"/>
+</svg>
