@@ -1,5 +1,5 @@
 /* 생쥐 장면 전용 그림과 주인공 생쥐. 키는 'mouse:이름'. 원점은 발밑 가운데, cm 좌표, 오른쪽을 본다. d(시간, 색조함수)
-   생쥐 눈높이는 2.5cm라서 밥알은 주먹밥, 숟가락은 다리, 할머니는 다리 두 개와 슬리퍼로만 보인다.
+   생쥐 눈높이는 2.5cm라서 밥알은 주먹밥, 햄스터 철창 집은 이층집, 사람은 작업화로만 보인다.
    빛은 왼쪽 위에서 온다: 종이마다 밑색 → 오른쪽 아래 그늘 → 왼쪽 위 밝은 면 순서로 겹쳐 붙인다 */
 (function register(pack) {
   if (typeof module !== 'undefined' && module.exports) module.exports = Object.keys(pack.art);
@@ -8,7 +8,7 @@
   const FUR = Object.freeze({ base: '#a3948a', shade: '#7c6d66', light: '#c8bbb0', belly: '#ece2d6', ear: '#b3a297',
     inner: '#f2aab4', pink: '#f0a0ab', tail: '#cfa5a2', whisker: '#5e504c' });
   const PUP = Object.freeze({ base: '#f5b9bf', shade: '#e18f9b', light: '#ffdfe2' });
-  const WOOD = '#c9925c', PLASTER = '#e6dccb', STEEL = '#b9c2c8', RICE = '#fbf7ee', BLACK = '#2d2b33';
+  const WOOD = '#c9925c', PLASTER = '#e6dccb', BLACK = '#2d2b33';
 
   const at = (x, y, draw) => { ctx.save(); ctx.translate(x, y); draw(); ctx.restore(); };
   const turn = (x, y, a, draw) => at(x, y, () => { ctx.rotate(a); draw(); });
@@ -206,17 +206,90 @@
     });
   }
 
-  /** 밥알 한 톨 */
-  function grain(t, x, y, a, k = 1) {
-    turn(x, y, a, () => { E(0, .04, .3 * k, .16 * k, t('#d9d2c4')); E(-.02, 0, .28 * k, .14 * k, t(RICE)); });
-  }
-
   /** 반짝이는 별 하나 (끈끈이 광택, 쇠 반사) */
   function glint(t, x, y, r, time, seed) {
     const s = Math.max(0, Math.sin(time * 2.2 + seed * 2.7)) * r;
     if (s < .02) return;
     fill(t('#ffffff'), () => { ctx.moveTo(x, y - s * 2); ctx.lineTo(x + s * .35, y); ctx.lineTo(x, y + s * 2); ctx.lineTo(x - s * .35, y); ctx.closePath(); });
     fill(t('#ffffff'), () => { ctx.moveTo(x - s * 1.4, y); ctx.lineTo(x, y + s * .3); ctx.lineTo(x + s * 1.4, y); ctx.lineTo(x, y - s * .3); ctx.closePath(); });
+  }
+
+  /* ───────── 햄스터 만두와 철창 집 ───────── */
+  const HAM = Object.freeze({ base: '#e0a65a', shade: '#b97f3e', light: '#f3cd92', belly: '#fbf3e6', inner: '#f2aab4', pink: '#f0a0ab' });
+  const CAGE = Object.freeze({ tray: '#7fc3b4', wire: '#d6dadd', wireShade: '#98a1a8', bedding: '#eed9a8' });
+  const SEED = '#3d383e';
+
+  /** 해바라기씨 한 알: 끝이 뾰족한 까만 씨, 흰 줄 하나 */
+  function seedAt(t, x, y, a, k = 1) {
+    turn(x, y, a, () => {
+      ctx.scale(k, k);
+      fill(t(SEED), () => { ctx.moveTo(-.55, 0); ctx.quadraticCurveTo(-.2, -.36, .55, -.06); ctx.quadraticCurveTo(-.2, .3, -.55, 0); });
+      line(t('#e9e2d4'), .07, () => { ctx.moveTo(-.38, -.02); ctx.quadraticCurveTo(0, -.1, .4, -.05); });
+    });
+  }
+
+  function hamsterBodyPath() {
+    ctx.moveTo(-5, -.4);
+    ctx.bezierCurveTo(-5.8, -3.6, -3.6, -7.2, -.2, -7.2);
+    ctx.bezierCurveTo(3, -7.2, 5.2, -5.3, 5.4, -3.4);
+    ctx.bezierCurveTo(5.6, -1.6, 4.4, -.2, 2.4, -.1);
+    ctx.bezierCurveTo(.5, 0, -3.5, 0, -5, -.4);
+  }
+
+  /** 앉아 있는 골든햄스터 (몸길이 약 11cm, 오른쪽을 본다). o: { cheeks 볼 부풂, seed 앞발에 든 씨 } */
+  function drawHamster(time, t, o = {}) {
+    const br = 1 + Math.sin(time * 2.8) * .02, chew = Math.sin(time * 9) > .3 ? .06 : 0, puff = o.cheeks ? 1.25 : 1;
+    E(-3.2, -.12, .9, .25, t(HAM.pink)); E(1.6, -.12, .8, .24, t(HAM.pink));
+    at(0, 0, () => {
+      ctx.scale(1, br);
+      turn(.7, -6.9, -.3, () => E(0, 0, .75, .8, t(HAM.shade)));
+      fill(t(HAM.shade), hamsterBodyPath);
+      clipped(hamsterBodyPath, () => {
+        at(-.2, -.2, () => fill(t(HAM.base), hamsterBodyPath));
+        turn(-1.6, -6, -.25, () => E(0, 0, 3.2, 1, t(HAM.light)));
+        E(2.2, -.4, 3.6, 2.4, t(HAM.belly));
+      });
+      E(3.3, -2.7 + chew, 1.9 * puff, 1.6 * puff, t(shade(HAM.belly)));
+      E(3.2, -2.8 + chew, 1.8 * puff, 1.5 * puff, t(HAM.belly));
+      turn(2.5, -6.8, .2, () => { E(0, 0, .8, .82, t(HAM.base)); E(.08, .05, .48, .5, t(HAM.inner)); });
+      cuteEye(3.75, -4.6, .4, .44, time, t);
+      E(5.45, -3.55, .26, .2, t(HAM.pink));
+      faded(.6, () => [-.25, .25].forEach((d) => line(t('#7a6a5c'), .04, () => { ctx.moveTo(5.3, -3.4); ctx.quadraticCurveTo(6.2, -3.4 + d, 6.9, -3.2 + d * 3); })));
+    });
+    if (o.seed) seedAt(t, 4.9, -1.5, -.9, 1.1);
+    E(4.5, -1.15, .5, .38, t(HAM.pink)); E(3.8, -.95, .48, .36, t(HAM.pink));
+  }
+
+  /** 철창 집 (폭 46cm). 플라스틱 받침, 쳇바퀴, 톱밥, 씨 그릇, 철망. o: { empty 문 열린 빈 집, hamster 그리기 } */
+  function hamsterCage(time, t, o = {}) {
+    const T = planes(t, CAGE.tray), B = planes(t, CAGE.bedding), WH = planes(t, '#f2a8b6');
+    const top = (x) => -31 + Math.max(0, Math.abs(x) - 18) ** 2 * .25;
+    const bars = (dx, dy, c, w) => { for (let x = -22; x <= 22; x += 2) line(c, w, () => { ctx.moveTo(x + dx, -9 + dy); ctx.lineTo(x + dx, top(x) + dy); }); };
+    groundShadow(0, 25, .3);
+    faded(.45, () => bars(3, -1.8, t(CAGE.wireShade), .12));                                            // 뒤 철망
+    P([[-23, -9], [23, -9], [26, -10.8], [-20, -10.8]], T.deep);
+    turn(11, -18.5, 0, () => {                                                                         // 쳇바퀴: 테두리 고리와 받침 다리
+      line(WH.dark, .5, () => { ctx.moveTo(0, 0); ctx.lineTo(-2.6, 9.5); ctx.moveTo(0, 0); ctx.lineTo(2.6, 9.5); });
+      line(WH.dark, 1.3, () => ctx.arc(0, 0, 7, 0, TAU));
+      line(WH.lit, .5, () => ctx.arc(0, 0, 7.3, 3.4, 5.2));
+      faded(.5, () => line(WH.mid, .25, () => ctx.ellipse(.6, 0, 6.6, 6.6, 0, 0, TAU)));
+      E(0, 0, .7, .7, WH.dark);
+    });
+    const bed = [[-22.5, -9], ...Array.from({ length: 12 }, (_, i) => [-22 + i * 4, -10.2 - Math.sin(i * 1.9) * .5 - hash(i, 7) * .5]), [22.5, -9]];
+    P(bed, B.mid); sheetIn(bed, () => P([[-23, -9], [-23, -12], [-6, -12], [-10, -9]], B.lit));
+    at(1, -9.6, () => { E(0, 0, 3, .9, t('#c75b4b')); E(0, -.35, 2.6, .6, t(shade('#c75b4b'))); [-1.3, -.4, .5, 1.4].forEach((x, i) => seedAt(t, x, -.6 - (i % 2) * .2, i * .7, .8)); });
+    if (o.hamster) at(-12, -9.8, () => { ctx.scale(-1.2, 1.2); drawHamster(time, t, { cheeks: true, seed: true }); });
+    P([[21, 0], [24, -1.8], [24, -10.6], [21, -9]], T.dark);                                           // 받침: 오른쪽 옆면 · 앞면 · 볕 받는 윗테
+    RR(-23, -9, 44, 9, 1.2, T.mid);
+    R(-23, -9, 44, 1.4, T.lit);
+    bars(0, 0, t(CAGE.wire), .16);
+    line(t(CAGE.wireShade), .25, () => { ctx.moveTo(-22, -9.2); for (let x = -22; x <= 22; x += 1) ctx.lineTo(x, top(x)); ctx.lineTo(22, -9.2); });
+    const door = [[-6, -12], [4, -12], [4, -25], [-6, -25]];
+    if (!o.empty) { line(t(CAGE.wireShade), .3, () => { door.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); }); return; }
+    faded(.9, () => fill(t(mix(CAGE.bedding, '#000000', .1)), () => { door.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); }));
+    const open = [[-6, -12], [-13, -14.5], [-13, -27.5], [-6, -25]];                                 // 앞으로 열린 문
+    line(t(CAGE.wire), .3, () => { open.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); });
+    for (let k = 1; k < 4; k++) line(t(CAGE.wire), .14, () => { ctx.moveTo(-6 - k * 1.75, -12 - k * .62); ctx.lineTo(-6 - k * 1.75, -25 - k * .62); });
   }
 
   const hero = (time, moving, eye, t) => drawMouse(time, t, { moving });
@@ -244,7 +317,7 @@
       sheetIn(lip, () => { P([[-8, -3], [-3, -3], [-4, 0], [-8, 0]], F.lit); P([[3.6, 0], [4.4, -3], [8, -3], [8, 0]], F.dark); });
       strip(t, -2.6, -1.2, 2.2, .25, '#fff6dc', true);                                                     // 영수증 한 장
     } },
-    /* M1: 둥지에서 주방으로 나가는 벽 구멍. 갉은 자국이 둥글게 나 있고, 엄마 발자국이 밖으로만 찍혀 있다 */
+    /* M1: 둥지에서 방으로 나가는 벽 구멍. 갉은 자국이 둥글게 나 있고, 엄마 발자국이 밖으로만 찍혀 있다 */
     'mouse:wallHole': { w: 14, h: 18, d: (time, t) => {
       wallChunk(t, 14, 18, 1);
       line(t(shade(PLASTER)), .12, () => { ctx.moveTo(3, -17.5); ctx.lineTo(2.2, -13); ctx.lineTo(3.4, -10); ctx.lineTo(2.6, -7); });
@@ -261,27 +334,7 @@
       faded(.45, () => [0, 1, 2].forEach((i) => [-.25, .25].forEach((d) => E(3.4 + i * 1.3, -.06 + d * .1, .12, .06, t('#6b5a50')))));
     } },
 
-    /* M2 마감 뒤 주방: 바닥에 떨어진 숟가락, 흘린 밥알과 김치 한 조각 */
-    'mouse:riceScraps': { w: 20, h: 2.6, d: (time, t) => {
-      const S = planes(t, STEEL), K = planes(t, '#d9563a'), G = planes(t, '#3a4f40');
-      groundShadow(1, 9);
-      // 납작한 숟가락: 손잡이 두께(그늘) 위에 윗면, 볕 받는 모서리 한 줄. 오목한 술은 오른쪽 안벽이 밝다
-      sheet([[-9.6, 0], [-2, -.2, 3.6, -.12], [3.6, -.62], [-2, -.82, -9.6, -.42]], S.dark);
-      sheet([[-9.6, -.18], [-2, -.42, 3.6, -.34], [3.6, -.66], [-2, -.86, -9.6, -.46]], S.mid);
-      sheet([[-9.6, -.36], [-2, -.7, 3.6, -.58], [3.6, -.68], [-2, -.88, -9.6, -.48]], S.lit);
-      E(6.2, -.52, 3.1, .62, S.dark); E(6.1, -.66, 2.9, .48, S.mid);
-      clipped(() => ctx.ellipse(6.1, -.66, 2.9, .48, 0, 0, TAU), () => E(7.1, -.82, 2.4, .42, S.lit));
-      [[5.4, -.75, .3], [6.6, -.82, -.4], [7.3, -.7, .9], [6, -.9, 1.4]].forEach(([x, y, a]) => grain(t, x, y, a, .9));
-      [[-6, -.18, .2], [-4.6, -.2, 2.4], [-3.2, -.16, .9], [-1.2, -.2, 2], [.4, -.17, .5], [9.2, -.18, 1.1], [10.2, -.2, 2.7], [-7.3, -.17, 1.6]]
-        .forEach(([x, y, a]) => grain(t, x, y, a));
-      // 말린 김치 잎: 바깥 그늘면, 안쪽으로 말린 볕 면, 흰 줄기 한 줄
-      sheet([[-3.6, -.1], [-3.2, -1.9, -.8, -2.3, .3, -1.1], [-.4, -.8, -1, -.2, -1.6, -.1]], K.dark);
-      sheet([[-3.4, -.2], [-3.1, -1.7, -1.1, -2, -.2, -1.2], [-1.1, -1.1, -2, -.6, -2.4, -.2]], K.mid);
-      sheet([[-3.3, -.24], [-3.1, -1.4, -2, -1.85, -1.1, -1.75], [-2, -1.3, -2.6, -.7, -2.8, -.24]], K.lit);
-      line(t('#f6e6c8'), .26, () => { ctx.moveTo(-3.1, -.25); ctx.quadraticCurveTo(-2.3, -1, -.6, -1.15); });
-      P([[1.2, -.08], [1.6, -.75], [2.9, -.6], [3.3, -.08]], G.mid); P([[1.6, -.75], [2.9, -.6], [3, -.42], [1.5, -.52]], G.lit);
-    } },
-    /* M2·M8 끈끈이: 판때기 위에 번들거리는 접착제. 한가운데 튀김 조각 */
+    /* M3·M8 끈끈이: 판때기 위에 번들거리는 접착제. 한가운데 튀김 조각 */
     'mouse:glueBoard': { w: 18, h: 2.8, d: (time, t) => {
       const B = planes(t, '#6f8fb5'), G = planes(t, '#e8c46a'), F = planes(t, '#c98234');
       groundShadow(0, 9.4, .25);
@@ -301,7 +354,7 @@
       glint(t, -5.5, -.85, .14, time, 1); glint(t, 3.2, -.95, .12, time, 2); glint(t, 6.4, -.7, .1, time, 3);
     } },
 
-    /* M3 뒷골목: 식당 뒷문 앞 음식물 수거통. 뚜껑이 덜 닫혀 국물이 흘러내린다 */
+    /* M6 뒷골목: 식당 뒷문 앞 음식물 수거통. 뚜껑이 덜 닫혀 국물이 흘러내린다 */
     'mouse:foodBin': { w: 26, h: 30, d: (time, t) => {
       const BIN = '#d9a33c';
       ctx.scale(.6, .6);
@@ -351,72 +404,6 @@
       E(-.2, -8.1, .5, .3, K.dark);
       scent(-6.2, -4.6, 3.4, time, t('#ff9fb8'));
     } },
-    /* M4: 까치가 먹다 남긴 식빵 껍질 */
-    'mouse:breadCrust': { w: 9, h: 3, d: (time, t) => {
-      groundShadow(0, 4.4);
-      const crust = [[-4.2, -.05], [-4.4, -2.4, 3.6, -3.2, 4.3, -.4], [3.4, -.05]];
-      sheet(crust, t('#c27a38'));
-      sheetIn(crust, () => {   // 볕 받는 등 껍질 · 오른쪽으로 돌아가는 끝 그늘
-        sheet([[-5, -.6], [-4.6, -3, 1, -3.6, 2.6, -3], [.6, -2.1, -2.8, -1.7, -3.4, -.4]], t('#e09a52'));
-        sheet([[2.4, -3], [5, -3], [5, 0], [3.1, 0], [3.4, -1.2, 3, -2.2, 2.4, -3]], t('#8f5523'));
-      });
-      sheet([[-3.2, -.05], [-3.2, -.15], [-3, -1.6, 2.6, -2, 3.2, -.3], [3.1, -.05]], t('#f1dcb0'));   // 속살 단면
-      [[-1.4, -.7], [1, -.8]].forEach(([x, y]) => E(x, y, .2, .1, t('#d8bf8e')));
-      [[5, -.1], [5.8, -.12], [-5.1, -.1]].forEach(([x, y], i) => E(x, y, .22 - i * .04, .14, t('#f1dcb0')));
-    } },
-
-    /* M5 장마: 길가 빗물받이. 물이 거꾸로 솟구친다 */
-    'mouse:stormDrain': { w: 26, h: 7, d: (time, t) => {
-      const C = planes(t, '#9aa0a6');
-      faded(.55, () => E(0, -.1, 13 + Math.sin(time) * .6, .6, t('#7f9aa0')));
-      // 쇠 덮개 테두리: 볕 받는 윗면, 앞 테, 오른쪽 끝면. 가운데 어두운 틈에 살 몇 개
-      P([[-9, -.35], [9, -.35], [10, -.9], [-8, -.9]], C.lit);
-      P([[9, 0], [10, -.55], [10, -.9], [9, -.35]], C.dark);
-      P([[-9, 0], [9, 0], [9, -.35], [-9, -.35]], C.mid);
-      P([[-7.6, -.42], [7.8, -.42], [8.4, -.82], [-7, -.82]], t('#2f2c35'));
-      for (let x = -6.8; x <= 7; x += 1.6) P([[x, -.42], [x + .5, -.42], [x + 1, -.82], [x + .5, -.82]], C.dark);
-      for (let i = 0; i < 4; i++) {
-        const x = -5.4 + i * 3.6, h = 2.2 + Math.sin(time * 5 + i * 1.7) * .7 + hash(i, 4) * 1.6;
-        fill(t('#8aa3a8'), () => { ctx.moveTo(x - 1.4, -.4); ctx.quadraticCurveTo(x - .9, -h, x, -h - .4); ctx.quadraticCurveTo(x + .9, -h, x + 1.4, -.4); ctx.closePath(); });
-        fill(t('#b5cacd'), () => { ctx.moveTo(x - .7, -.6); ctx.quadraticCurveTo(x - .4, -h + .2, x, -h - .2); ctx.quadraticCurveTo(x + .2, -h + .6, x + .2, -.6); ctx.closePath(); });
-        E(x, -h - .45, .5, .25, t('#eef6f6'));
-      }
-      for (let i = 0; i < 8; i++) {
-        const u = cycle(time, .9, i / 8), x = -6 + hash(i, 9) * 12;
-        faded(1 - u, () => E(x + (hash(i, 10) - .5) * u * 6, -1 - Math.sin(u * Math.PI) * 4, .18, .18, t('#dcebed')));
-      }
-      [-11, 10.5].forEach((x, i) => {
-        const u = cycle(time, .6, i * .5);
-        faded(1 - u, () => line(t('#dcebed'), .08, () => ctx.ellipse(x, -.1, .4 + u * 2, .1 + u * .4, 0, 0, TAU)));
-      });
-    } },
-    /* M5: 빌라 반지하 창문. 방범창 너머 창이 손가락 하나만큼 열려 있고 안은 따뜻하다 */
-    'mouse:basementWindow': { w: 30, h: 26, d: (time, t) => {
-      const BR = planes(t, '#b8664f'), SILL = planes(t, '#c9c4c0'), GLASS = planes(t, '#5f7486'), BAR = planes(t, '#3a3842');
-      // 벽 한 덩어리(오른쪽 두께는 그늘), 벽돌은 몇 장만 비친다
-      P([[15, 0], [16.4, -.9], [16.4, -25.5], [15, -24.6]], BR.dark);
-      const wall = [[-15, 0], [-15, -24], [-8, -25.5], [2, -24.4], [10, -25.6], [15, -24.6], [15, 0]];
-      P(wall, BR.mid);
-      sheetIn(wall, () => [[-14, -12.4], [11.2, -21.4], [10.6, -1.8]].forEach(([x, y]) => RR(x, y, 5.4, 2.4, .3, t(mix('#b8664f', '#2a2240', .1)))));
-      // 창 구멍: 위·왼쪽 안벽은 그늘, 오른쪽·아래 안벽은 볕
-      P([[-10, -20], [10, -20], [10, -3.6], [-10, -3.6]], BR.deep);
-      P([[10, -20], [10, -3.6], [8.6, -4.8], [8.6, -18.6]], BR.lit);
-      P([[-10, -3.6], [10, -3.6], [8.6, -4.8], [-8.6, -4.8]], BR.lit);
-      P([[-8.6, -18.6], [-.6, -18.6], [-.6, -4.8], [-8.6, -4.8]], GLASS.mid);
-      P([[1, -18.6], [8.6, -18.6], [8.6, -4.8], [1, -4.8]], GLASS.dark);
-      R(-.6, -18.6, 1.6, 13.8, t('#f2c06a'));                                                             // 손가락 하나만큼 열린 틈
-      faded(.5, () => E(.2, -11.8, 3.2, 8, t('#ffd98a')));
-      faded(.35, () => P([[-7.6, -17.6], [-5.4, -17.6], [-8, -11], [-8.6, -11], [-8.6, -15]], t('#ffffff')));
-      slab(SILL, -11.4, 11, -1.2, 2.2, 1.2);                                                                // 창턱
-      faded(.6, () => E(0, -1, 9, .3, t('#7f9aa0')));
-      // 방범창: 살과 가로대를 한 장으로 오리고, 살마다 왼쪽 볕 한 줄
-      [-8, -4.6, -1.2, 2.2, 5.6, 9].forEach((x) => { RR(x - .35, -21, .7, 18.2, .3, BAR.mid); R(x - .35, -21, .22, 18.2, BAR.lit); });
-      [-21.4, -4.4].forEach((y) => { RR(-10.5, y, 21, .9, .3, BAR.mid); R(-10.5, y, 21, .25, BAR.lit); });
-      for (let i = 0; i < 5; i++) {
-        const u = cycle(time, .35, i / 5), x = -8 + hash(i, 31) * 16;
-        faded(.7, () => E(x, -19 + u * 14, .13, .22, t('#dcebf2')));
-      }
-    } },
 
     /* O1 빌라 주차장: 막 들어온 차의 뒷바퀴. 엔진 열기가 아른거린다 */
     'mouse:tire': { w: 64, h: 70, d: (time, t) => {
@@ -444,7 +431,7 @@
       }));
     } },
 
-    /* M6 싱크대 밑: 주름 배수 호스가 바닥 배수관으로 들어가는 자리. 고무 마개가 찢겨 틈이 생겼다 */
+    /* M3 싱크대 밑: 주름 배수 호스가 바닥 배수관으로 들어가는 자리. 고무 마개가 찢겨 틈이 생겼다 */
     'mouse:sinkPipe': { w: 24, h: 90, d: (time, t) => {
       const HOSE = '#a7aeb5';
       groundShadow(2, 11, .3);
@@ -472,7 +459,7 @@
       strip(t, -8.6, -.5, 2.2, .7, '#e86a5a', false);
       [[8.2, -.12], [9.4, -.1]].forEach(([x, y]) => E(x, y, .2, .09, t('#3a2c26')));
     } },
-    /* M6 쥐덫: 나무판에 스프링 쇠막대. 발판 위에 멸치 한 마리 */
+    /* M7 쥐덫: 나무판에 스프링 쇠막대. 발판 위에 멸치 한 마리 */
     'mouse:snapTrap': { w: 11, h: 3, d: (time, t) => {
       const Wd = planes(t, '#d9a96e'), S = planes(t, '#b9c2c8'), Y = planes(t, '#d9b13c');
       groundShadow(0, 5.6, .3);
@@ -490,42 +477,6 @@
       glint(t, -2.4, -1.15, .1, time, 4);
     } },
 
-    /* M7 수수 빗자루. 할머니가 쓸어 내리는 중 */
-    'mouse:broom': { w: 16, h: 42, d: (time, t) => {
-      const swing = Math.sin(time * 2.4) * .06;
-      groundShadow(0, 6, .25);
-      const S = planes(t, '#c9a25a'), Rd = planes(t, '#c8392f');
-      turn(0, -40, swing, () => {
-        // 수수 다발 하나: 묶은 목에서 아래로 퍼지고 끝이 삐죽삐죽하다. 왼쪽은 볕, 오른쪽은 그늘
-        const tips = Array.from({ length: 11 }, (_, i) => { const u = i / 10; return [7.2 - u * 14.4, 40 - (i % 2 ? 1.6 : 0) - hash(i, 5) * .6]; });
-        const fan = [[1.9, 14], [2.4, 26, 7.2, 34, 7.4, 40], ...tips, [-7.2, 34, -2.4, 26, -1.9, 14]];
-        sheet(fan, S.mid);
-        sheetIn(fan, () => { P([[-9, 14], [-.6, 14], [-2.4, 42], [-9, 42]], S.lit); P([[1.2, 14], [9, 14], [9, 42], [4.2, 42]], S.dark); });
-        [[-.4, 18, -1.2, 38], [1, 18, 2.6, 37]].forEach(([x0, y0, x1, y1]) => line(S.deep, .14, () => { ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); }));
-        RR(-1.9, 12, 3.8, 3.4, .6, S.mid);
-        [12.8, 14.7].forEach((y) => { R(-2, y, 4, .6, Rd.mid); R(-2, y, 1.4, .6, Rd.lit); });
-        RR(-1.1, 0, 2.2, 12.4, .8, S.dark); RR(-1.1, 0, 1.2, 12.4, .6, S.lit);
-      });
-    } },
-    /* M7 할머니 다리: 꽃무늬 몸빼 바지와 고무 슬리퍼. 생쥐 눈높이에선 이것만 보인다 */
-    'mouse:grandmaLegs': { w: 30, h: 44, d: (time, t) => {
-      const PANTS = '#7a5c8f', tap = Math.max(0, Math.sin(time * 6)) * .5;
-      groundShadow(0, 14, .3);
-      const leg = (x, dark, lift) => at(x, -lift, () => {
-        fill(t(dark ? shade(PANTS) : PANTS), () => { ctx.moveTo(-4.5, -46); ctx.lineTo(4.5, -46); ctx.lineTo(4.2, -9); ctx.quadraticCurveTo(0, -7.6, -4.4, -9); ctx.closePath(); });
-        for (let i = 0; i < 7; i++) {
-          const fx = -3 + hash(i, x + 5) * 6, fy = -42 + i * 4.8;
-          [0, 1, 2, 3, 4].forEach((k) => E(fx + Math.cos(k * 1.26) * .6, fy + Math.sin(k * 1.26) * .6, .45, .45, t(dark ? '#c98aa8' : '#f2b0c8')));
-          E(fx, fy, .3, .3, t('#f6d36a'));
-        }
-        RR(-4.3, -10.4, 8.6, 2.2, 1, t(shade(dark ? shade(PANTS) : PANTS)));
-        RR(-2.6, -9.2, 5.2, 7, 2.2, t(dark ? '#d9a888' : SKIN));
-        fill(t(dark ? '#3f6e9a' : '#4f86b8'), () => { ctx.moveTo(-5.6, 0); ctx.quadraticCurveTo(-6.4, -2.6, -2, -2.6); ctx.lineTo(7.2, -2.2); ctx.quadraticCurveTo(9.6, -1.2, 8.4, 0); ctx.closePath(); });
-        RR(-1.2, -4.6, 7, 2.6, 1.2, t(dark ? '#3f6e9a' : '#5f97c9'));
-        faded(.5, () => RR(-.8, -4.3, 4.6, .6, .3, t('#ffffff')));
-      });
-      leg(-5, true, 0); leg(5, false, tap);
-    } },
 
     /* M8 철수세미로 막힌 벽 구멍 */
     'mouse:steelWool': { w: 12, h: 14, d: (time, t) => {
@@ -553,7 +504,7 @@
       faded(.5, () => [[-14, -.2], [14, -.25]].forEach(([x, y]) => E(x, y, .35 + sweep * .1, .14, t('#c9c4b8'))));
     } },
 
-    /* M9 분홍 콩알들: 휴지 둥지 속 갓 태어난 새끼 일곱 */
+    /* M7 분홍 콩알들: 휴지 둥지 속 갓 태어난 새끼 일곱 */
     'mouse:pinkPups': { w: 11, h: 3.4, d: (time, t) => {
       groundShadow(0, 5.6, .3);
       const T = planes(t, '#efe8dc');
@@ -567,27 +518,8 @@
       sheet(lip, T.lit);
       sheetIn(lip, () => P([[2.8, 0], [3.4, -1.6], [7, -1.6], [7, 0]], T.mid));
     } },
-    /* M9 쌀 포대: 할머니 부엌 구석 20kg 쌀 포대. 모서리를 갉은 구멍으로 쌀이 샌다 */
-    'mouse:riceBag': { w: 30, h: 26, d: (time, t) => {
-      const B = planes(t, '#f1ece0');
-      groundShadow(0, 15, .3);
-      // 20kg 포대 하나: 위 두 귀퉁이가 뾰족하게 솟고 배가 불룩하다. 왼쪽 볕 · 앞 · 오른쪽으로 돌아가는 그늘
-      const bag = [[-14, 0], [-15.2, -10, -14.8, -18, -13, -22], [-15.2, -25.6], [-11, -23.6], [0, -24.8, 11, -24], [14.8, -26.2], [13, -22.2], [15, -18, 15.6, -10, 14, 0]];
-      sheet(bag, B.mid);
-      sheetIn(bag, () => {
-        sheet([[-16, 1], [-16, -27], [-9.6, -27], [-11.2, -12, -9.8, 1]], B.lit);
-        sheet([[9.4, 1], [11, -12, 10, -27], [17, -27], [17, 1]], B.dark);
-        sheet([[-16, -27], [17, -27], [17, -22.4], [0, -23.2, -16, -22.4]], B.lit);                       // 접어 꿰맨 윗단
-        RR(-8, -18, 16, 11, 1, t('#3f8f73')); RR(-7.2, -17.2, 14.4, 9.4, .8, t('#fbf7ee'));
-        ctx.fillStyle = t('#c8392f'); ctx.font = 'bold 6px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('쌀', 0, -10.4);
-        ctx.fillStyle = t('#3f8f73'); ctx.font = 'bold 1.6px sans-serif'; ctx.fillText('경기미 20kg', 0, -8.2);
-        R(-16, -4, 33, 1.4, t('#c8392f'));
-      });
-      fill(t('#3a2c26'), () => { ctx.moveTo(-13.9, -1); ctx.lineTo(-13.6, -3.4); ctx.lineTo(-12.2, -3.8); ctx.lineTo(-11, -2.6); ctx.lineTo(-11.6, -.4); ctx.closePath(); });
-      for (let i = 0; i < 16; i++) grain(t, -14 - hash(i, 41) * 6 + (i % 3), -.18 - (i % 4 === 0 ? .3 : 0) - hash(i, 43) * .25, hash(i, 42) * 3, .9);
-    } },
 
-    /* M10 철거 예정: 빨간 스프레이로 '철거' 쓴 빌라 담. 위엔 눈이 쌓였다 */
+    /* M11 철거 예정: 빨간 스프레이로 '철거' 쓴 빌라 담. 위엔 눈이 쌓였다 */
     'mouse:demolitionWall': { w: 40, h: 32, d: (time, t) => {
       const C = planes(t, '#b9b4ad'), N = planes(t, '#f6f2e8');
       // 블록 담: 볕 받는 윗면, 앞면, 오른쪽 두께는 그늘
@@ -610,15 +542,8 @@
       fill(t('#fbfdff'), () => { ctx.moveTo(-20.4, -29.6); for (let x = -20; x <= 20; x += 2) ctx.lineTo(x, -31 - hash(x, 51) * 1.2); ctx.lineTo(20.4, -29.6); ctx.closePath(); });
       fill(t('#fbfdff'), () => { ctx.moveTo(-22, 0); ctx.quadraticCurveTo(-12, -2.4, 0, -1.4); ctx.quadraticCurveTo(12, -2.6, 22, 0); ctx.closePath(); });
     } },
-    /* M10 다 큰 새끼들: 서로 엉겨 붙어 자는 셋 */
-    'mouse:grownKids': { w: 14, h: 4.4, d: (time, t) => {
-      groundShadow(0, 6.5, .3);
-      at(-3.4, 0, () => curledMouse(time, t, .82, 7));
-      at(3.6, 0, () => { ctx.scale(-1, 1); curledMouse(time, t, .78, 8); });
-      at(.2, -.2, () => curledMouse(time, t, .74, 9));
-    } },
 
-    /* D4 역류: 하수구에서 거꾸로 솟아 덮치는 흙탕물 */
+    /* D5 역류: 하수구에서 거꾸로 솟아 덮치는 흙탕물 */
     'mouse:floodSurge': { w: 22, h: 14, d: (time, t) => {
       const rise = Math.min(1, .55 + cycle(time, .15) * .9);
       const wave = (c, h, ph, dx) => fill(t(c), () => {
@@ -651,7 +576,7 @@
       faded(.5, () => E(1.9, -1, 1.4, 1.4, t('#fff3a8')));
       for (let i = 0; i < 3; i++) { const u = cycle(time, .5, i / 3); faded(.4 * (1 - u), () => E(1.6 + u * 1.5, -2 - u * 5, .6 + u, .5 + u * .8, t('#9a96a0'))); }
     } },
-    /* D10 굴삭기: 담을 부수며 내려오는 버킷 */
+    /* D9 굴삭기: 담을 부수며 내려오는 버킷 */
     'mouse:excavator': { w: 44, h: 60, d: (time, t) => {
       const drop = Math.sin(time * 2.5) * 1.2, ARM = '#f2b43c';
       for (let i = 0; i < 7; i++) { const u = cycle(time, .4, i / 7); faded(.5 * (1 - u), () => E(-14 + hash(i, 71) * 28, -2 - u * 6, 3 + u * 4, 1.6 + u * 2.4, t('#d8d0c4'))); }
@@ -673,6 +598,68 @@
         sheet(bucket, K.mid);
         sheetIn(bucket, () => { sheet([[-17, -26], [-4, -30, 17, -23], [16, -19], [-2, -23.4, -16, -19]], K.lit); sheet([[4, -2], [9, -14, 18, -18], [18, -2]], K.dark); });
       });
+    } },
+
+    /* M2: 철창 밑에 쌓인 해바라기씨 껍질. 알맹이 든 씨가 몇 개 섞여 있다 */
+    'mouse:seedHulls': { w: 10, h: 1.6, d: (time, t) => {
+      groundShadow(0, 5, .2);
+      for (let i = 0; i < 16; i++) {
+        const x = -4.4 + hash(i, 31) * 8.8, y = -.15 - Math.max(0, 1 - Math.abs(x) / 4.6) * hash(i, 32) * 1.1;
+        turn(x, y, hash(i, 33) * 3, () => { E(0, 0, .5, .2, t(i % 3 ? '#4a4448' : '#5c5458')); E(-.06, -.05, .38, .1, t('#8a8288')); });
+      }
+      [[-2.6, -.3, .4], [1.2, -.9, -.3], [3.4, -.25, .9]].forEach(([x, y, a]) => seedAt(t, x, y, a, 1.2));
+    } },
+    /* M2·M5 만두의 철창 집: 볼이 터지게 씨를 문 만두가 철창 틈으로 씨 하나를 밀어 낸다 */
+    'mouse:hamsterCage': { w: 46, h: 33, d: (time, t) => {
+      hamsterCage(time, t, { hamster: true });
+      const push = Math.sin(time * 1.4) * .3;
+      seedAt(t, -23.4 + push, -10.6, .3, 1.1);
+      [[-25.5, -.3, .5], [-27.2, -.25, 2.2]].forEach(([x, y, a]) => seedAt(t, x, y, a, 1.1));
+    } },
+    /* M5: 하수구에서 거꾸로 올라온 물이 장판 위에 얕게 찼다. 앞면은 비치는 물 한 겹, 위로 동그란 물결이 퍼진다 */
+    'mouse:floorPuddle': { w: 60, h: 3, d: (time, t) => {
+      const WA = planes(t, '#7f9a9c'), lap = (x) => -1.5 - Math.sin(time * 2 + x * .5) * .12;
+      const water = () => { ctx.moveTo(-30, 0); for (let x = -30; x <= 30; x += 2) ctx.lineTo(x, lap(x)); ctx.lineTo(30, 0); ctx.closePath(); };
+      faded(.55, () => fill(WA.mid, water));
+      faded(.5, () => fill(WA.lit, () => { ctx.moveTo(-30, lap(-30)); for (let x = -30; x <= 30; x += 2) ctx.lineTo(x, lap(x)); for (let x = 30; x >= -30; x -= 2) ctx.lineTo(x, lap(x) + .35); ctx.closePath(); }));
+      [[-12, 0], [6, .5]].forEach(([x, ph]) => { const u = cycle(time, .45, ph); faded(.7 * (1 - u), () => line(t('#e6f0ef'), .1, () => ctx.ellipse(x, -1.6, .8 + u * 5, .12 + u * .35, 0, 0, TAU))); });
+      turn(-20, -1.6, .2, () => { E(0, 0, .5, .2, t('#4a4448')); E(-.06, -.05, .38, .1, t('#8a8288')); });
+      seedAt(t, 14, -1.65, -.4, 1.1);
+    } },
+    /* M6: 꼬리 끝만 하얀 수컷 생쥐 */
+    'mouse:mate': { w: 18, h: 6, d: (time, t) => {
+      groundShadow(0, 4.5, .25);
+      drawMouse(time, t, { seed: 2 });
+      const sway = Math.sin(time * 1.7 + 2) * .45;
+      taper(t('#fbf6ee'), [[-7.8, -.15 + sway * .3], [-8.6, -.35 + sway * .5], [-9.3, -.8 + sway * .78], [-9.8, -1.3 + sway]], .2, .08);
+    } },
+    /* M9: 빌라 화분 틈에서 자란 강아지풀. 이삭이 영글어 고개를 숙였다 */
+    'mouse:foxtail': { w: 18, h: 30, d: (time, t) => {
+      const G = planes(t, '#8a9a4a'), H = planes(t, '#c9b46a');
+      groundShadow(0, 6, .25);
+      [[-4, 22, -.5, 0], [1, 28, .3, 1], [5, 18, .8, 2]].forEach(([x, h, lean, i]) => {
+        const sw = Math.sin(time * 1.1 + i * 1.7) * .6, tx = x + lean * 4 + sw, ty = -h;
+        taper(G.mid, [[x, 0], [x + lean, -h * .4], [x + lean * 3 + sw * .5, -h * .8], [tx, ty]], .35, .14);
+        turn(tx, ty, .9 + lean * .5 + sw * .1, () => {
+          ctx.scale(1.7, 1.5);                                                 // 이삭: 위로 뻗은 좁은 잎 모양을 기울여 단다
+          fill(H.dark, () => { ctx.moveTo(0, 0); ctx.bezierCurveTo(-1.4, -.3, -1.5, -4.8, 0, -6.2); ctx.bezierCurveTo(1.5, -4.8, 1.4, -.3, 0, 0); });
+          fill(H.mid, () => { ctx.moveTo(-.1, -.2); ctx.bezierCurveTo(-1.2, -.5, -1.25, -4.6, -.05, -5.8); ctx.bezierCurveTo(.7, -4.6, .6, -.5, -.1, -.2); });
+          fill(H.lit, () => { ctx.moveTo(-.4, -.8); ctx.bezierCurveTo(-1, -1.5, -1, -4, -.5, -5); ctx.bezierCurveTo(-.3, -4, -.2, -1.5, -.4, -.8); });
+        });
+      });
+      [[-1.5, -.2, .4], [2.8, -.15, 1.9], [7, -.2, .8]].forEach(([x, y, a]) => turn(x, y, a, () => E(0, 0, .3, .14, H.mid)));   // 떨어진 풀씨
+    } },
+    /* M10: 문이 열린 빈 철창 집. 쳇바퀴만 멈춰 있다 */
+    'mouse:emptyCage': { w: 46, h: 33, d: (time, t) => {
+      hamsterCage(time, t, { empty: true });
+      [[-16, -.3, .4], [-18.6, -.25, 1.9], [-14, -.2, 2.6]].forEach(([x, y, a]) => seedAt(t, x, y, a, 1.1));
+    } },
+    /* M11: 이삿짐 상자 옆, 눈 오는 골목 바닥에 내놓은 만두의 철창 집. 볼을 턴 씨가 철창 밖에 쌓인다 */
+    'mouse:movingBoxes': { w: 70, h: 34, d: (time, t) => {
+      at(18, 0, () => { const b = carton(0, 0, 1, 34, 26, 8, '#d9b27c', t); b.back(); b.front(); });   // 옆에 이삿짐 상자
+      at(-12, 0, () => hamsterCage(time, t, { hamster: true }));
+      const n = 3 + Math.floor(cycle(time, .25) * 4);
+      for (let i = 0; i < n; i++) seedAt(t, -36.5 - hash(i, 41) * 4, -.25 - (i > 3 ? .4 : 0), hash(i, 42) * 3, 1.1);
     } },
   };
   return { art, hero };

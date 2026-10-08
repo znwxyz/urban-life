@@ -8,6 +8,13 @@
   const BODY = '#2f2a2b', BODY_HI = '#4d4446', MARK = '#7fae6a', BELLY = '#e2cfa4', WING = '#eaf6ff', VEIN = '#56664a';
   const BARK = '#8a7564', BARK_PEEL = '#c98d5a', SAP = '#e0a03a', SHELL = '#b07a3e';
   const LEAF = '#6fa86a', LEAF_DK = '#4f8a55', SOIL = '#7a5a44', SOIL_DK = '#4f3a2e', SMOKE = '#f4f1ea';
+  const SHIRT = '#f0c64a';                                                                                  // 준호 반팔 티
+  /** 허물 통 바닥의 허물들 [x, y, 배율, 각도, 뒤집기]. 가운데(주인공 자리)는 비워 둔다 */
+  const SHELLS_IN_BOX = Object.freeze([[-5.2, -.5, .9, .1, 0], [-3.9, -.6, .85, -.2, 1], [-4.8, -1.6, .8, .5, 0], [3.4, -.5, .9, -.1, 1],
+    [4.4, -1.4, .8, .35, 0], [2.6, -1.5, .75, -.6, 0], [-5.6, -2.6, .7, -.3, 1], [4, -2.5, .7, .2, 1]]);
+  /** 플라타너스 얼룩 껍질 [x, y, 폭, 높이, 색] */
+  const PLANE_PATCHES = Object.freeze([[-9.5, -45, 6, 5, '#e6dfc2'], [-3, -41, 4, 6, '#8d9470'], [3, -36, 7, 4, '#e9e3c8'], [-8, -30, 4, 7, '#9a9a80'],
+    [-1.5, -25, 6, 4, '#e3dbbd'], [5, -21, 4, 5, '#8a916c'], [-9, -18, 8, 5, '#ece6cc'], [1, -12, 3, 5, '#9a9a80'], [4, -8, 6, 4, '#e6dfc2'], [-6, -6, 4, 3, '#8d9470']]);
 
   /** 투명도를 잠깐 바꿔 그린다 */
   function faded(alpha, draw) { ctx.save(); ctx.globalAlpha = Math.max(0, Math.min(1, alpha)); draw(); ctx.restore(); }
@@ -105,6 +112,19 @@
       const ph = (time * 1.6 + i / 3) % 1;
       faded((1 - ph) * .7, () => curve(t('#fff3c4'), .06, (c) => c.arc(-.4, -.75, .4 + ph * 1.6, Math.PI * .55, Math.PI * 1.05)));
     }
+  }
+
+  /** 어깨(sx, sy)에서 손목(hx, hy)까지 뻗은 맨팔. 살색 두 톤, 어깨 쪽에 반팔 소매 */
+  function sleeveArm(t, sx, sy, hx, hy, w, color) {
+    const dx = hx - sx, dy = hy - sy, len = Math.hypot(dx, dy), ux = -dy / len / 2, uy = dx / len / 2;
+    const at = (u, k, side) => [sx + dx * u + ux * w * k * side, sy + dy * u + uy * w * k * side];
+    const skin = planes(t, SKIN), shirt = planes(t, color);
+    const arm = [at(0, .8, 1), [...at(.5, .82, 1), ...at(1, .66, 1)], at(1, .66, -1), [...at(.5, .78, -1), ...at(0, .8, -1)]];
+    slab(skin.mid, arm);
+    inside(arm, () => slab(skin.dark, [at(-.1, 1.4, uy > 0 ? 1 : -1), at(1.1, 1.4, uy > 0 ? 1 : -1), at(1.1, .25, uy > 0 ? 1 : -1), at(-.1, .25, uy > 0 ? 1 : -1)]));
+    const sleeve = [at(-.05, 1.1, 1), at(.32, 1.12, 1), at(.36, 1.0, -1), at(-.05, 1.1, -1)];
+    slab(shirt.mid, sleeve);
+    inside(sleeve, () => slab(shirt.dark, [at(-.2, 1.4, uy > 0 ? 1 : -1), at(.5, 1.4, uy > 0 ? 1 : -1), at(.5, .2, uy > 0 ? 1 : -1), at(-.2, .2, uy > 0 ? 1 : -1)]));
   }
 
   /** 작은 매미를 위치·배율·각도로 놓는다 */
@@ -338,10 +358,12 @@
       ctx.restore();
     } },
 
-    /* C6·K1·D6 — 초록 뚜껑 투명 채집통. 숨구멍 뚫린 뚜껑과 노란 어깨끈 */
-    'cicada:bugBox': { w: 14, h: 10, d: (time, t) => {
+    /* C4·C6·K1·D6 — 준호의 허물 통. 초록 뚜껑 투명 채집통 바닥에 허물이 열 개쯤 굴러다닌다 */
+    'cicada:shellBox': { w: 14, h: 10, d: (time, t) => {
       const L0 = planes(t, '#4fae6a'), G = planes(t, '#bfe2f5');
       faded(.2, () => E(0, -.05, 7, .3, t(INK)));
+      faded(.25, () => slab(G.dark, [[-6.6, -8], [5.2, -8], [6.8, -8.9], [-5, -8.9]]));                         // 안쪽 뒷벽 그늘
+      SHELLS_IN_BOX.forEach(([x, y, k, rot, flip]) => placed(x, y, k, rot, () => { if (flip) ctx.scale(-1, 1); shellShape(t, false); }));
       faded(.38, () => {
         slab(G.mid, [[-6.6, 0], [-6.6, -8], [5.2, -8], [5.2, 0]]);                                                // 투명한 앞면
         slab(G.dark, [[5.2, 0], [5.2, -8], [6.8, -8.9], [6.8, -.9]]);                                             // 옆면
@@ -351,15 +373,56 @@
       slab(L0.mid, [[-7, -8], [-7, -9.2], [5.6, -9.2], [5.6, -8]]);                                             // 뚜껑 앞 테
       slab(L0.dark, [[5.6, -8], [5.6, -9.2], [7.2, -10.1], [7.2, -8.9]]);                                       // 뚜껑 옆
       slab(L0.lit, [[-7, -9.2], [5.6, -9.2], [7.2, -10.1], [-5.4, -10.1]]);                                     // 뚜껑 윗면
-      slab(L0.mid, [[-2.4, -9.35], [2.2, -9.35], [2.9, -9.85], [-1.7, -9.85]]);                                 // 먹이 넣는 쪽문
+      slab(L0.mid, [[-2.4, -9.35], [2.2, -9.35], [2.9, -9.85], [-1.7, -9.85]]);                                 // 쪽문
       for (let i = 0; i < 5; i++) E(-5.4 + i * 1.3 + (i > 1 ? 4.2 : 0), -9.6, .16, .08, L0.deep);                // 숨구멍
       curve(t('#ffd56b'), .3, (c) => { c.moveTo(-6.6, -8.6); c.bezierCurveTo(-8, -14, 8, -14, 6.6, -8.6); });
     } },
 
-    /* K1 — 아이가 넣어 준 시든 잎 한 장 */
-    'cicada:wiltLeaf': { w: 5, h: 1.2, d: (time, t) => {
-      placed(-2.4, -.2, 1, -.08, () => leaf(4.8, '#b98a4a', t, 8));
-      curve(t('#8a6232'), .08, (c) => { c.moveTo(1.8, -.4); c.quadraticCurveTo(2.4, -1, 2.2, -1.3); });
+    /* C3 — 준호가 쪼그려 앉아 비추는 손전등. 오른쪽 위에서 뻗은 팔, 쥔 손, 노란 불빛이 주인공 쪽으로 퍼진다 */
+    'cicada:flashlight': { w: 30, h: 36, d: (time, t) => {
+      ctx.save(); ctx.rotate(Math.sin(time * .9) * .015);
+      const shoulder = [21, -38], wrist = [10.5, -24], armAng = Math.atan2(wrist[1] - shoulder[1], wrist[0] - shoulder[0]), hs = 12;
+      const grip = [wrist[0] + Math.cos(armAng) * .66 * hs, wrist[1] + Math.sin(armAng) * .66 * hs];
+      const aim = Math.atan2(-6 - grip[1], -13 - grip[0]);
+      ctx.save(); ctx.translate(grip[0], grip[1]); ctx.rotate(aim);
+      faded(.3 + Math.sin(time * 1.3) * .03, () => slab(t('#fff1a8'), [[8.4, -2], [19, -7], [20.5, 0, 19, 7], [8.4, 2]]));     // 불빛
+      faded(.25, () => slab(t('#fffbe0'), [[8.4, -1.3], [17, -3.4], [18, 0, 17, 3.4], [8.4, 1.3]]));
+      const F = planes(t, '#3f6fb5'), body = [[-3, -1.15], [5.4, -1.15], [6.4, -1.9], [8.2, -1.95], [8.2, 1.95], [6.4, 1.9], [5.4, 1.15], [-3, 1.15], [-3.4, 0, -3, -1.15]];
+      slab(F.mid, body);
+      inside(body, () => { slab(F.lit, [[-4, -2.2], [9, -2.2], [9, -.5], [-4, -.4]]); slab(F.dark, [[-4, .6], [9, .7], [9, 2.2], [-4, 2.2]]); });
+      slab(t('#fff6c8'), [[8.2, -1.75], [8.7, -1.3, 8.7, 1.3], [8.2, 1.75]]);                                          // 렌즈
+      ctx.restore();
+      sleeveArm(t, ...shoulder, ...wrist, 5.4, SHIRT);
+      artHandOnArm(t, wrist[0], wrist[1], armAng, hs, { pose: 'grip' });
+      ctx.restore();
+    } },
+
+    /* C10 — 다 먹은 아이스크림 막대로 뒤집힌 나를 톡 바로 세우는 손. 막대 끝이 주인공 등 밑에 들어간다 */
+    'cicada:popsicle': { w: 24, h: 26, d: (time, t) => {
+      ctx.save(); ctx.translate(0, Math.sin(time * 1.2) * .25);
+      const shoulder = [17, -28], wrist = [8.6, -14.5], armAng = Math.atan2(wrist[1] - shoulder[1], wrist[0] - shoulder[0]), hs = 11;
+      const grip = [wrist[0] + Math.cos(armAng) * .66 * hs, wrist[1] + Math.sin(armAng) * .66 * hs];
+      const tip = [-3.6, -.4], len = Math.hypot(tip[0] - grip[0], tip[1] - grip[1]) + 1.6, ang = Math.atan2(tip[1] - grip[1], tip[0] - grip[0]);
+      ctx.save(); ctx.translate(grip[0], grip[1]); ctx.rotate(ang);
+      const Wd = planes(t, '#e8cf9a'), stick = [[-1.6, -.5], [len - .5, -.5], [len + .05, 0, len - .5, .5], [-1.6, .5], [-2.1, 0, -1.6, -.5]];
+      slab(Wd.mid, stick);
+      inside(stick, () => { slab(Wd.lit, [[-3, -1], [len + 1, -1], [len + 1, -.12], [-3, -.12]]); slab(Wd.dark, [[-3, .25], [len + 1, .25], [len + 1, 1], [-3, 1]]); });
+      ctx.restore();
+      sleeveArm(t, ...shoulder, ...wrist, 4.8, SHIRT);
+      artHandOnArm(t, wrist[0], wrist[1], armAng, hs, { pose: 'pinch' });
+      ctx.restore();
+    } },
+
+    /* K2 — 공원 플라타너스 줄기. 얼룩덜룩 벗겨진 껍질, 매미 둘이 붙어 운다 */
+    'cicada:planeBark': { w: 24, h: 46, d: (time, t) => {
+      const pts = [[-12, 0], [-10, -1.4, -9.6, -5, -9.6, -10], [-9, -48], [9.4, -48], [9.8, -10], [10, -4, 10.8, -1.4, 12.5, 0]];
+      roundTrunk(pts, -9.6, 9.8, -48, 0, '#a9a88c', t, 211, 0, 0);
+      inside(pts, () => PLANE_PATCHES.forEach(([x, y, w, h, c], i) => {
+        const j = hash(i, 212) * .6;
+        const k = hash(i, 213) * .5;
+        slab(t(c), [[x, y + h * k], [x + w * .1, y - h * .2 - j, x + w * .45, y], [x + w * .8, y - h * .1, x + w, y + h * (.25 + k)], [x + w * 1.1, y + h * .8, x + w * .5, y + h * (1 - k * .3)], [x - w * .1, y + h * 1.05, x, y + h * k]]);
+      }));
+      [[-3.5, -30, 0], [4.2, -19, 1.7]].forEach(([x, y, ph]) => placed(x, y, .95, -Math.PI / 2, () => cicadaBody(time + ph, t, { sing: true, noBlush: true })));
     } },
 
     /* C7 — 느티나무 가지에 빼곡히 붙어 우는 수컷들. 배를 떨 때마다 소리 물결이 퍼진다 */

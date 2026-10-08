@@ -116,18 +116,6 @@
     }
   }
 
-  /** 살충제 통 (모기 그림에 X 표시). 원점은 통 바닥 가운데 */
-  function drawCan(t, time) {
-    const G = planes(t, '#2f8f6a'), M = planes(t, '#d9dde3'), Y = planes(t, '#ffd23a');
-    upright(-3, 3, -18, 0, G, .8);                                                                                  // 원통 몸통
-    const dome = [[-3, -18], [-3, -20.4, 0, -20.6], [3, -20.4, 3, -18]];
-    slab(M.mid, dome); inside(dome, () => { slab(M.lit, [[-3.2, -17.8], [-3.2, -21], [-.6, -21], [-1.6, -19.4, -1.4, -17.8]]); slab(M.dark, [[1.6, -17.8], [1.8, -19.4, 1.4, -21], [3.4, -21], [3.4, -17.8]]); });   // 어깨
-    RR(-1.2, -22.6, 2.4, 2.2, .5, t('#f4f1ea')); R(.6, -22.6, .6, 2.2, t('#cfccc4')); RR(-.4, -22.2, 1.9, .7, .3, t(INK));   // 분사 꼭지
-    R(-3, -12.6, 6, 5.6, Y.mid); R(-3, -12.6, 1.3, 5.6, Y.lit); R(1.2, -12.6, 1.8, 5.6, Y.dark); R(-3, -12.6, 6, .5, t('#e8603a'));   // 상표 띠도 원통을 따라 휘어 보이게
-    at(-.1, -9.6, 0, 3.4, 3.4, () => drawMosquito(time, t, { flap: .2 }));
-    L(-1.4, -11.4, 1.4, -8, t('#e8403a'), .32); L(1.4, -11.4, -1.4, -8, t('#e8403a'), .32);
-  }
-
   const art = {
     /* M1 — 내가 빠져나온 번데기 껍질. 등이 갈라진 채 물 위에 떠 있다 */
     'mosquito:pupaSkin': { w: 1, h: .4, d: (time, t) => {
@@ -140,53 +128,21 @@
       [[-.02, -.26], [.06, -.25]].forEach(([x, y]) => strokePath(t('#8a6a44'), .02, () => { ctx.moveTo(x, y + bob); ctx.lineTo(x - .05, y - .07 + bob); }));
     } },
 
-    /* M1 — 주차장 웅덩이 단면. 기름 무지개가 뜬 수면에 장구벌레가 거꾸로 매달려 꼬물댄다 */
-    'mosquito:puddleLarvae': { w: 12, h: 1, d: (time, t) => {
-      const Wt = planes(t, WATER), pool = [[-6, 0], [-4, 1.6, 4, 1.7, 6, 0]];
-      faded(.75, () => { slab(Wt.mid, pool); inside(pool, () => slab(Wt.dark, [[-6, .5], [-2, 1.1, 2, 1.2, 6, .5], [6, 2], [-6, 2]])); });   // 물속은 아래로 갈수록 어둡게
+    /* M1 — 대야 물 밑에 거꾸로 매달린 장구벌레 동생들. 숨관 끝만 수면에 대고 꼬물댄다 */
+    'mosquito:wigglers': { w: 10, h: 1, d: (time, t) => {
+      const body = t('#6b5a46'), head = t('#4a3a2e');
       for (let i = 0; i < 6; i++) {
-        const x = -4.4 + i * 1.7 + hash(i, 3) * .5, wig = Math.sin(time * 4 + i * 1.9);
-        at(x, .02, .35 + wig * .25, 1, 1, () => {
-          strokePath(t('#6b5a46'), .03, () => { ctx.moveTo(0, 0); ctx.lineTo(.04, .12); });
-          strokePath(t('#8a7458'), .085, () => { ctx.moveTo(.04, .12); ctx.quadraticCurveTo(.1 + wig * .06, .35, .02, .55); });
-          E(.02, .6, .07, .06, t('#5a4a3a'));
-          [.25, .38].forEach((y) => L(-.05, y, .14, y + .02, t('#d8c8a8'), .015));
-        });
-      }
-      [[-1.6, .05], [3, .05]].forEach(([x, y], i) => at(x, y, Math.sin(time + i) * .1, 1, 1, () => {
-        E(0, .1, .14, .12, t('#4a3a2e')); strokePath(t('#4a3a2e'), .06, () => { ctx.moveTo(-.06, .18); ctx.quadraticCurveTo(-.16, .34, -.02, .4); });
-      }));
-      E(0, 0, 6, .14, Wt.lit); faded(.55, () => E(-1.5, -.03, 2.2, .05, WHITE));                                  // 볕 받는 수면
-      ['#ff9ac2', '#ffe08a', '#8fe0d0'].forEach((c, i) => faded(.35, () => strokePath(c, .07, () => ctx.ellipse(2.4, -.02, 1.6 - i * .25, .1, 0, Math.PI, TAU))));
-      ripples(-3, 0, 1, time, WHITE, 2);
-    } },
-
-    /* D1 — 웅덩이로 굴러 들어오는 자동차 바퀴. 원점은 바퀴가 땅에 닿는 곳, 물보라 벽이 왼쪽으로 솟는다 */
-    'mosquito:tireSplash': { w: 72, h: 60, d: (time, t) => {
-      const R0 = 30, spin = .2, T = planes(t, RUBBER), M = planes(t, '#b8bcc6');
-      litDisc(0, -R0, R0, T);                                                                                       // 타이어: 왼쪽 위 테만 볕
-      for (let k = 0; k < 20; k++) {                                                                                // 바깥 홈
-        const a = spin + k * TAU / 20;
-        at(Math.cos(a) * (R0 - .6), -R0 + Math.sin(a) * (R0 - .6), a, 1, 1, () => RR(-.9, -1.4, 1.8, 2.8, .4, T.deep));
-      }
-      E(0, -R0, R0 - 6.5, R0 - 6.5, T.dark);                                                                        // 옆벽 안쪽 그늘
-      litDisc(0, -R0, 19, M);                                                                                       // 휠
-      E(.6, -R0 + .6, 16.6, 16.6, M.dark);
-      for (let k = 0; k < 5; k++) at(0, -R0, spin + k * TAU / 5, 1, 1, () => {
-        slab(M.lit, [[-1.6, -3], [-2.6, -16.4], [2.6, -16.4], [1.6, -3]]);
-        slab(M.mid, [[0, -3], [.2, -16.4], [2.6, -16.4], [1.6, -3]]);                                               // 살의 한쪽 면은 그늘
-      });
-      litDisc(0, -R0, 4, M); E(0, -R0, 1.6, 1.6, M.deep);
-      const ph = (time * .9) % 1;
-      faded(.6, () => fillPath(t(WATER), () => { ctx.moveTo(-6, 0); ctx.bezierCurveTo(-12, -4, -24, -26 * (.6 + ph * .4), -34, -14); ctx.quadraticCurveTo(-22, -10, -14, 0); ctx.closePath(); }));
-      faded(.45, () => strokePath(WHITE, .5, () => { ctx.moveTo(-8, -1.5); ctx.bezierCurveTo(-14, -6, -22, -20, -30, -14); }));
-      for (let i = 0; i < 14; i++) {
-        const u = (ph + hash(i, 7)) % 1, vx = 14 + hash(i, 8) * 22, vy = 16 + hash(i, 9) * 12;
-        faded(1 - u, () => drop(-6 - vx * u, -vy * u + 22 * u * u, .35 + hash(i, 10) * .4, t(WATER)));
+        const x = -4.2 + i * 1.6 + hash(i, 3) * .5, wig = Math.sin(time * 4 + i * 1.9), deep = .45 + hash(i, 4) * .3;
+        ripples(x, 0, .5, time + i, t('#fff6ea'), 1);
+        faded(deep, () => at(x, 0, .3 + wig * .25, 1, 1, () => {
+          strokePath(body, .03, () => { ctx.moveTo(0, 0); ctx.lineTo(.04, .12); });                                  // 숨관
+          strokePath(body, .085, () => { ctx.moveTo(.04, .12); ctx.quadraticCurveTo(.1 + wig * .06, .35, .02, .55); });
+          E(.02, .6, .07, .06, head);
+        }));
       }
     } },
 
-    /* M2 — 화단의 비비추 꽃대. 보라색 나팔꽃 같은 종이 줄줄이 달리고, 아래엔 넓은 줄무늬 잎 */
+    /* M7 — 화단의 비비추 꽃대. 보라색 나팔꽃 같은 종이 줄줄이 달리고, 아래엔 넓은 줄무늬 잎 */
     'mosquito:hostaFlower': { w: 22, h: 30, d: (time, t) => {
       const sway = Math.sin(time * 1.1) * .03;
       [[-6, -.5, -.5], [5, -.3, .5], [0, 0, 0]].forEach(([x, y, lean], i) => at(x, y, lean, 1, 1, () => {
@@ -206,29 +162,6 @@
           E(len + 1.1, -.45, .1, .07, t('#ffd56b'));
         }));
         [[-25.5, .3], [-27, -.2], [-28.5, .1]].forEach(([y, a]) => at(.8, y, a, 1, 1, () => { E(.9, 0, 1, .35, t('#9a80cf')); E(.7, -.1, .5, .12, t('#c7b4ee')); }));
-      });
-    } },
-
-    /* M2 — 진딧물이 줄지어 붙은 잎. 단물 방울이 반짝이고, 개미 한 마리가 지킨다 */
-    'mosquito:aphidLeaf': { w: 10, h: 2.5, d: (time, t) => {
-      strokePath(t(LEAF_DK), .14, () => { ctx.moveTo(-4.6, -.6); ctx.quadraticCurveTo(-5.4, 1.4, -4.8, 3); });
-      fillPath(t(LEAF), () => { ctx.moveTo(-4.8, -.6); ctx.bezierCurveTo(-2.5, -2.6, 2.5, -2.4, 4.8, -1.3); ctx.bezierCurveTo(2.5, .2, -2.5, .6, -4.8, -.6); });
-      fillPath(t(LEAF_DK), () => { ctx.moveTo(-4.8, -.6); ctx.quadraticCurveTo(0, -.9, 4.8, -1.3); ctx.bezierCurveTo(2.5, .2, -2.5, .6, -4.8, -.6); });
-      strokePath(t('#cfe6b8'), .06, () => { ctx.moveTo(-4.6, -.62); ctx.quadraticCurveTo(0, -.95, 4.6, -1.3); });
-      [-3, -1.5, 0, 1.5, 3].forEach((x) => faded(.6, () => strokePath(t('#cfe6b8'), .04, () => { ctx.moveTo(x, -.8 - x * .05); ctx.lineTo(x + .8, -1.7 - x * .05); })));
-      for (let i = 0; i < 8; i++) {
-        const x = -3.4 + i * .8, y = -.95 - x * .05;
-        E(x, y - .08, .13, .09, t('#a8d878')); E(x - .03, y - .12, .05, .03, t('#e2f4c8'));
-        L(x - .1, y - .1, x - .2, y - .2, t(LEAF_DK), .02);
-        if (i % 3 === 1) { E(x - .2, y - .02, .06, .06, t('#e8f4ff')); glint(x - .2, y - .1, .08, .5 + Math.sin(time * 3 + i) * .5); }
-      }
-      const ax = 2.6, ay = -1.33;
-      at(ax, ay, -.05, 1, 1, () => {
-        const legs = 0;
-        [-.08, 0, .08].forEach((x, i) => L(x, -.05, x + (i - 1) * .12 + legs, .05, t(INK), .02));
-        E(-.2, -.14, .14, .1, t('#2a2430')); E(0, -.12, .07, .05, t('#2a2430')); E(.17, -.15, .09, .08, t('#2a2430'));
-        strokePath(t(INK), .02, () => { ctx.moveTo(.22, -.2); ctx.lineTo(.3, -.32); ctx.lineTo(.38, -.26 + Math.sin(time * 6) * .04); });
-        E(.2, -.17, .025, .025, WHITE);
       });
     } },
 
@@ -264,20 +197,7 @@
       }
     } },
 
-    /* M3 — 계단에 앉은 사람이 내쉬는 따뜻한 숨. 냄새 알갱이가 내 쪽으로 흘러온다 */
-    'mosquito:breathCloud': { w: 12, h: 7, d: (time, t) => {
-      for (let i = 0; i < 6; i++) {
-        const ph = (time * .25 + i / 6) % 1, x = 5 - ph * 10, y = -3.5 - Math.sin(ph * 3 + i) * 1.2, r = .8 + ph * 1.6;
-        faded(.22 * Math.sin(ph * Math.PI), () => { E(x, y, r, r * .7, t('#ffe2cc')); E(x + r * .4, y - r * .3, r * .6, r * .45, t('#fff1e4')); });
-        faded(.35 * Math.sin(ph * Math.PI), () => strokePath(t('#f0b8a0'), .06, () => ctx.arc(x, y, r * .55, Math.PI * .2, Math.PI * 1.5)));
-      }
-      for (let i = 0; i < 16; i++) {
-        const ph = (time * .4 + hash(i, 12)) % 1;
-        faded(.7 * Math.sin(ph * Math.PI), () => E(5 - ph * 11, -3.5 + (hash(i, 13) - .5) * 4 + Math.sin(time * 2 + i) * .3, .07, .07, t('#ff9aa8')));
-      }
-    } },
-
-    /* M3 — 계단에 앉아 통화하는 사람의 발: 회색 양말에 삼선 슬리퍼, 발끝을 까딱인다 */
+    /* M4·M10 — 경비실 의자에서 조는 할아버지 발: 바지를 걷어 올린 맨 정강이, 회색 양말에 삼선 슬리퍼. 발끝을 까딱인다 */
     'mosquito:slipperAnkle': { w: 25, h: 30, d: (time, t) => {
       const tap = Math.max(0, Math.sin(time * 2.4)) * .05;
       at(11, 0, tap, 1, 1, () => at(-11, 0, 0, 1, 1, () => {
@@ -298,7 +218,7 @@
       }));
     } },
 
-    /* D3 — 양쪽에서 짝! 하고 닫히는 두 손바닥 */
+    /* D4 — 양쪽에서 짝! 하고 닫히는 두 손바닥 */
     'mosquito:palmClap': { w: 26, h: 17, d: (time, t) => {
       const gap = 1.2 + (1 + Math.sin(time * 5)) * 2.2;
       faded(.5, () => [-1, 1].forEach((s) => [0, 1, 2].forEach((i) => L(s * (gap + 10.5), -6 - i * 2.2, s * (gap + 12.5 + i * .6), -6.6 - i * 2.2, WHITE, .18))));
@@ -307,28 +227,7 @@
       faded(.6, () => [0, 1, 2, 3].forEach((i) => { const a = -Math.PI / 2 + (i - 1.5) * .45; L(Math.cos(a) * 1, -8 + Math.sin(a) * 1, Math.cos(a) * 2, -8 + Math.sin(a) * 2, t('#ffe08a'), .15); }));
     } },
 
-    /* M4 — 파라솔 의자에 앉은 아저씨 종아리: 쪼리를 신고 다리를 달달 떤다. 털이 숭숭 */
-    'mosquito:hairyCalf': { w: 22, h: 34, d: (time, t) => {
-      upright(7, 8.6, -34, 0, planes(t, '#4fae7a'), .4);                                                              // 파라솔 의자 다리
-      const jig = Math.abs(Math.sin(time * 14)) * .35;
-      ctx.save(); ctx.translate(0, -jig);
-      fillPath(t(SKIN), () => { ctx.moveTo(-1.6, -9); ctx.bezierCurveTo(-1.8, -18, -2.6, -26, -2, -35); ctx.lineTo(5.6, -35); ctx.bezierCurveTo(6.8, -28, 6.6, -20, 4.6, -14); ctx.bezierCurveTo(4, -11.5, 4, -10, 4.2, -9); ctx.closePath(); });
-      fillPath(t(SKIN_SH), () => { ctx.moveTo(3.2, -9); ctx.bezierCurveTo(3.8, -14, 6.2, -20, 4.4, -35); ctx.lineTo(5.6, -35); ctx.bezierCurveTo(6.8, -28, 6.6, -20, 4.6, -14); ctx.bezierCurveTo(4, -11.5, 4, -10, 4.2, -9); ctx.closePath(); });
-      faded(.4, () => E(-1.2, -24, .3, 6, t(SKIN_HI)));
-      hairs(-1.6, 5.4, -12, -34, 26, 81, t);
-      fillPath(t(SKIN), () => { ctx.moveTo(-1.6, -9.5); ctx.bezierCurveTo(-3, -5, -8, -3.6, -11.2, -2.6); ctx.quadraticCurveTo(-12.2, -1.8, -11.4, -1.1); ctx.lineTo(4.4, -1.1); ctx.bezierCurveTo(5, -4, 4.6, -7, 4.2, -9.5); ctx.closePath(); });
-      fillPath(t(SKIN_SH), () => { ctx.moveTo(-11.4, -1.1); ctx.lineTo(4.4, -1.1); ctx.lineTo(4.5, -2); ctx.quadraticCurveTo(-4, -2.4, -11.6, -1.8); ctx.closePath(); });
-      [[-11, .55], [-9.8, .45], [-8.8, .4], [-7.9, .38], [-7.1, .34]].forEach(([x, r], i) => { E(x, -1.1 - r, r, r, t(i ? SKIN_SH : SKIN)); if (!i) E(x - .1, -1.4 - r, .3, .2, t(NAIL)); });
-      E(2.4, -8.6, .8, .6, t(SKIN_SH));
-      ctx.restore();
-      const Fp = planes(t, '#3a8ad0');
-      slab(Fp.mid, [[-12.2, 0], [-12.8, -.6, -12, -1.1], [4.4, -1.1], [5.2, -.6, 4.8, 0]]);                          // 쪼리 바닥
-      slab(Fp.dark, [[-12.4, -.4], [5, -.4], [4.8, 0], [-12.2, 0]]);
-      slab(Fp.lit, [[-12, -1.1], [4.4, -1.1], [4.8, -1.5], [-11.6, -1.5]]);
-      strokePath(t('#1f4f88'), .3, () => { ctx.moveTo(-8.8, -1.6); ctx.quadraticCurveTo(-6, -5, -2, -6.6 - jig); ctx.moveTo(-8.8, -1.6); ctx.quadraticCurveTo(-5, -2.8, 2.6, -2.2); });
-    } },
-
-    /* M4 — 쓰러진 사이다 캔과 바닥에 번진 단물. 기포가 톡톡 올라온다 */
+    /* M2 — 분리수거장에 쓰러진 사이다 캔과 바닥에 번진 단물. 기포가 톡톡 올라온다 */
     'mosquito:sodaSpill': { w: 16, h: 7, d: (time, t) => {
       faded(.7, () => fillPath(t('#e4f2c4'), () => { ctx.moveTo(-1, 0); ctx.bezierCurveTo(1, -.5, 7, -.6, 8.6, 0); ctx.bezierCurveTo(7, .4, 1, .3, -1, 0); }));
       faded(.5, () => E(5, -.12, 2, .1, WHITE));
@@ -347,42 +246,7 @@
       }
     } },
 
-    /* M4 — 창문을 내린 개인택시의 아랫도리: 주황색 문짝, 문턱, 뒷바퀴 */
-    'mosquito:taxiDoor': { w: 44, h: 40, d: (time, t) => {
-      const D = planes(t, '#ef9a3c'), T = planes(t, RUBBER), M = planes(t, '#b8bcc6');
-      faded(.25, () => E(0, -.2, 22, .6, t(INK)));
-      const door = [[-22, -40], [22, -40], [22, -19], [-22, -19]];
-      slab(D.mid, door);
-      inside(door, () => {
-        slab(D.lit, [[-23, -41], [23, -41], [23, -36.4], [-23, -37]]);                                               // 어깨선 위 (볕)
-        slab(D.dark, [[-23, -26.4], [0, -27.2, 23, -27], [23, -18], [-23, -18]]);                                    // 문 아랫단 그늘
-        E(20, -13.6, 15, 15, D.deep);                                                                                // 바퀴 홈
-      });
-      slab(t('#3a3445'), [[-22, -22.4], [5, -22.4], [5, -19], [-22, -19]]);                                         // 문턱 고무
-      slab(D.deep, [[-4.1, -40], [-3.9, -40], [-3.9, -22.4], [-4.1, -22.4]]);                                        // 문틈 한 줄
-      faded(.3, () => P([[-18, -38], [-10, -38], [-14, -30], [-20, -30]], WHITE));
-      ctx.save(); ctx.fillStyle = t('#3a3445'); ctx.font = 'bold 4.2px sans-serif'; ctx.fillText('개인', -16, -27.6); ctx.restore();
-      at(20, -13, 0, 1, 1, () => {
-        litDisc(0, 0, 13, T); litDisc(0, 0, 8.4, M); E(.4, .4, 7.4, 7.4, M.dark);
-        for (let k = 0; k < 5; k++) at(0, 0, k * TAU / 5, 1, 1, () => slab(M.lit, [[-.9, -2], [-1.1, -7.4], [1.1, -7.4], [.9, -2]]));
-        E(0, 0, 2, 2, M.deep);
-      });
-      slab(t('#ffb347'), [[-21.4, -20.6], [-18.6, -20.8], [-18.6, -19.6], [-21.4, -19.4]]);
-    } },
-
-    /* M5 — 소파에서 잠든 사람의 팔. 손등을 바닥에 대고 손가락을 살짝 오므린 손이 내 쪽으로 늘어졌다 */
-    'mosquito:sleepingArm': { w: 36, h: 32, d: (time, t) => {
-      const b = Math.sin(time * 1.2) * .25, sk = t(SKIN), sh = t(SKIN_SH);
-      faded(.25, () => E(-5, -.05, 10, .35, t(INK)));
-      artHandOnArm(t, .5, -3.2, Math.PI + .06, 16, { pose: 'offer' });   // 손목 끝은 팔 아래로 숨긴다
-      fillPath(sk, () => { ctx.moveTo(-1.5, -4.9); ctx.bezierCurveTo(3, -8, 9, -18 + b, 12, -32); ctx.lineTo(20, -32); ctx.bezierCurveTo(16, -18 + b, 8, -4, 2, -.2); ctx.lineTo(-1.5, -.2); ctx.quadraticCurveTo(-3.4, -2.55, -1.5, -4.9); ctx.closePath(); });
-      fillPath(sh, () => { ctx.moveTo(.6, -.2); ctx.bezierCurveTo(7, -4.2, 14.6, -17 + b, 18, -32); ctx.lineTo(20, -32); ctx.bezierCurveTo(16, -18 + b, 8, -4, 2, -.2); ctx.closePath(); });
-      faded(.45, () => strokePath(t('#8fa9d8'), .16, () => { ctx.moveTo(1, -3.2); ctx.bezierCurveTo(5, -6, 9, -12, 12.6, -22); ctx.moveTo(6.4, -8.4); ctx.quadraticCurveTo(9.6, -10, 11, -15); }));
-      faded(.35, () => E(5.5, -9, 1.2, 4, t(SKIN_HI)));
-      hairs(5, 15, -8, -28, 12, 91, t);
-    } },
-
-    /* M5·D6 — 초록 모기향. 받침 위 소용돌이 끝이 빨갛게 타고, 매운 연기가 감아 오른다 */
+    /* M4 — 경비실 발치의 초록 모기향. 받침 위 소용돌이 끝이 빨갛게 타고, 매운 연기가 감아 오른다 */
     'mosquito:mosquitoCoil': { w: 14, h: 18, d: (time, t) => {
       const St = planes(t, '#b4b8c2');
       E(0, -.55, 6.4, 1.15, St.dark); E(-.25, -.85, 6.1, .95, St.lit); E(.3, -.75, 5.2, .7, St.mid);                 // 받침 접시: 테는 볕, 바닥은 가운데 톤
@@ -399,64 +263,13 @@
       wisps([ex + .4], ey - .8, 11, time + 1.7, t('#d8d4de'), .35);
     } },
 
-    /* M5 — 거실 선풍기의 받침과 기둥. 위에서 바람 줄기가 쓸고 지나간다 */
-    'mosquito:electricFan': { w: 28, h: 34, d: (time, t) => {
-      const F = planes(t, '#e6ebf2');
-      upright(-1.3, 1.3, -34, -2, F, 1);                                                                             // 기둥
-      const base = [[-12, -1.2], [-11.6, -3.4, -6, -4.6, 0, -4.6], [6, -4.6, 11.6, -3.4, 12, -1.2], [12, 0, 0, .2, -12, -1.2]];
-      slab(F.mid, base);
-      inside(base, () => { slab(F.lit, [[-13, -5], [3, -5], [-2, -2.6, -13, -1.6]]); slab(F.dark, [[-13, -1.5], [0, -1.2, 13, -1.6], [13, 1], [-13, 1]]); });   // 둥근 받침: 위는 볕, 앞 테는 그늘
-      ['#5fa8ff', '#6fcf8a', '#ffb347', '#ff6b7a'].forEach((c, i) => { const B = planes(t, c); RR(-4.8 + i * 2.4, -1.9, 2, .9, .3, B.mid); RR(-4.8 + i * 2.4, -1.9, 2, .3, .15, B.lit); });
-      strokePath(t('#8d929e'), .3, () => { ctx.moveTo(11, -1); ctx.quadraticCurveTo(14, 0, 18, -.2); });
-      const sweep = Math.sin(time * .8);
-      for (let i = 0; i < 6; i++) {
-        const ph = (time * 1.4 + i / 6) % 1, y = -10 - i * 3.6 - sweep * 2;
-        faded(.5 * Math.sin(ph * Math.PI), () => strokePath(WHITE, .14, () => { ctx.moveTo(-2 - ph * 16, y); ctx.quadraticCurveTo(-6 - ph * 16, y - 1.2, -10 - ph * 16, y + .2); }));
-      }
-    } },
-
-    /* M6 — 주차장 구석에 누운 폐타이어. 안쪽 고인 빗물이 초록빛으로 썩어 간다 */
-    'mosquito:oldTire': { w: 40, h: 18, d: (time, t) => {
-      const T = planes(t, '#4a4550');
-      faded(.25, () => E(0, 0, 20, 1.2, t(INK)));
-      const band = () => { ctx.beginPath(); ctx.ellipse(0, -3, 19, 3, 0, 0, Math.PI); ctx.lineTo(-19, -13); ctx.ellipse(0, -13, 19, 4.6, 0, Math.PI, 0, true); ctx.closePath(); };
-      band(); ctx.fillStyle = T.dark; ctx.fill();                                                                   // 바퀴 옆 띠
-      ctx.save(); band(); ctx.clip();
-      R(-20, -20, 9, 22, T.mid); R(-20, -20, 3.4, 22, T.lit);                                                       // 왼쪽으로 돌아 나오는 볕
-      for (let i = 0; i < 9; i++) { const x = -15 + i * 3.8; slab(T.deep, [[x, -12], [x + 1.1, -8], [x, -4], [x + .6, -4], [x + 1.7, -8], [x + .6, -12]]); }   // 트레드 홈
-      ctx.restore();
-      E(0, -13, 19, 4.6, T.lit); E(.6, -12.8, 15.4, 3.6, T.mid);                                                    // 윗면 고리
-      E(0, -13, 11, 2.6, T.deep);
-      fillPath(t('#5e7a52'), () => { ctx.ellipse(0, -12.6, 10.2, 2.1, 0, 0, TAU); });
-      faded(.5, () => E(-3, -12.9, 4, .5, t('#9fc48a')));
-      P([[4.4, -12.4], [6.6, -13.2], [6.2, -12.2]], t('#c98d5a'));
-      ripples(-4, -12.6, 2.4, time, t('#cfe6b8'), 2);
-      [[-15, 0], [-12.5, -.5], [16, 0]].forEach(([x, y], i) => strokePath(t(LEAF), .25, () => { ctx.moveTo(x, y); ctx.quadraticCurveTo(x - 1 + i, y - 3, x - .5 + Math.sin(time + i) * .3, y - 4.4); }));
-    } },
-
-    /* M6 — 물 위에 띄운 알 뗏목. 알 200개를 세워서 배 모양으로 붙였다 (길이 0.4cm) */
+    /* M11 — 물 위에 띄운 알 뗏목. 알 200개를 세워서 배 모양으로 붙였다 (길이 0.4cm) */
     'mosquito:eggRaft': { w: .6, h: .25, d: (time, t) => {
       ripples(0, 0, .5, time, t('#cfe6b8'), 2);
       const bob = Math.sin(time * 1.5) * .01;
       fillPath(t('#3a2e28'), () => { ctx.moveTo(-.26, -.04 + bob); ctx.quadraticCurveTo(0, .06 + bob, .26, -.06 + bob); ctx.lineTo(.22, -.16 + bob); ctx.quadraticCurveTo(0, -.12 + bob, -.22, -.14 + bob); ctx.closePath(); });
       for (let i = 0; i < 11; i++) { const x = -.2 + i * .04; E(x, -.15 + bob - Math.abs(x) * .1, .016, .02, t('#6b5a4a')); }
       glint(.1, -.22, .05, .5 + Math.sin(time * 2.2) * .5);
-    } },
-
-    /* M6 — 화분 받침에 고인 물. 테라코타 화분 밑동이 잠겨 있다 */
-    'mosquito:saucerWater': { w: 24, h: 16, d: (time, t) => {
-      const C = planes(t, '#d9825f');
-      slab(C.dark, [[-11.5, -3], [-10.4, 0], [10.4, 0], [11.5, -3]]);                                                // 받침 앞 테
-      E(0, -3, 11.5, 1.8, C.lit); E(0, -3, 10.6, 1.4, t('#6f9a9a'));
-      faded(.5, () => E(-5, -3.1, 3, .3, WHITE));
-      ripples(6.5, -3, 2, time, t('#cfe6f0'), 2);
-      const pot = [[-6.4, -3], [-7.6, -15], [7.6, -15], [6.4, -3]];
-      slab(C.mid, pot);
-      inside(pot, () => { slab(C.lit, [[-8, -3], [-8, -15], [-4, -15], [-3.6, -3]]); slab(C.dark, [[3.2, -3], [3.8, -15], [8, -15], [8, -3]]); });   // 원뿔 화분: 왼쪽 볕, 오른쪽 그늘
-      slab(C.mid, [[-8.4, -14.6], [8.4, -14.6], [8.4, -16.4], [-8.4, -16.4]]);                                       // 화분 테
-      slab(C.lit, [[-8.4, -14.6], [-5, -14.6], [-5, -16.4], [-8.4, -16.4]]); slab(C.dark, [[5.6, -14.6], [8.4, -14.6], [8.4, -16.4], [5.6, -16.4]]);
-      faded(.35, () => slab(C.deep, [[-7.6, -14.6], [7.6, -14.6], [7.5, -13.9], [-7.5, -13.9]]));                     // 테 밑 그림자
-      faded(.5, () => fillPath(t('#6a4a3a'), () => ctx.ellipse(0, -3.4, 6.4, .5, 0, 0, Math.PI)));
     } },
 
     /* M7·D7 — 방역 연무기 분사구. 하얀 연기가 뭉게뭉게 밀려 나온다 */
@@ -474,7 +287,7 @@
       slab(G.mid, grip); inside(grip, () => { slab(G.lit, [[5, -4], [10.5, -4], [10.5, -2.8], [5, -2.6]]); slab(G.dark, [[5, -1.2], [10.5, -1.4], [10.5, 0], [5, 0]]); });   // 손잡이
     } },
 
-    /* M7 — 연석 밑 빗물받이. 쇠창살 사이로 어둡고 축축한 틈이 열려 있다 */
+    /* M6 — 연석 밑 빗물받이. 쇠창살 사이로 어둡고 축축한 틈이 열려 있다 */
     'mosquito:drainGrate': { w: 22, h: 16, d: (time, t) => {
       const C = planes(t, '#b8b4bc'), I = planes(t, '#4a4652');
       slab(C.mid, [[-11, 0], [-11, -14], [11, -14], [11, 0]]);                                                      // 연석 앞면
@@ -490,24 +303,7 @@
       glint(-6, -6, .3, .5 + Math.sin(time * 2) * .5);
     } },
 
-    /* M8 — 싱크대 밑 배수관. 이음새 너트에서 물방울이 똑똑 맺혀 떨어진다 */
-    'mosquito:faucetDrip': { w: 14, h: 32, d: (time, t) => {
-      const Pp = planes(t, '#ece8e0'), N = planes(t, '#c9c4d4');
-      upright(-4.4, -1.8, -34, -12, Pp, 1);                                                                          // 내려오는 관
-      strokePath(Pp.dark, 2.6, () => { ctx.moveTo(-3.1, -12.4); ctx.quadraticCurveTo(-3.1, -7, 1, -7); ctx.quadraticCurveTo(4.6, -7, 4.6, -11); ctx.lineTo(4.6, -13); ctx.lineTo(8, -13); });   // U자 트랩
-      strokePath(Pp.mid, 1.8, () => { ctx.moveTo(-3.5, -12.4); ctx.quadraticCurveTo(-3.5, -7.6, 1, -7.6); ctx.quadraticCurveTo(4.1, -7.6, 4.1, -11); ctx.lineTo(4.1, -13.4); ctx.lineTo(8, -13.4); });
-      strokePath(Pp.lit, .6, () => { ctx.moveTo(-3.9, -12.4); ctx.quadraticCurveTo(-3.9, -8.2, 1, -8.2); });
-      [[-4.8, -14.4, 3.4, 1.8], [3.2, -14.4, 3, 2.6]].forEach(([x, y, w, h]) => {                                    // 이음새 너트
-        RR(x, y, w, h, .4, N.mid); R(x + .2, y, w * .28, h, N.lit); R(x + w * .72, y, w * .24, h, N.dark);
-      });
-      const ph = (time * .5) % 1, swell = Math.min(1, ph * 1.6);
-      E(-3.1, -12.4 + swell * .3, .16 + swell * .08, .2 + swell * .14, t(WATER));
-      if (ph > .62) { const u = (ph - .62) / .38; drop(-3.1, -12 + u * u * 11.6, .14, t(WATER)); }
-      faded(.7, () => E(-3.1, -.06, 1.6, .12, t(WATER)));
-      ripples(-3.1, 0, 1.2, time, WHITE, 1);
-    } },
-
-    /* M8·D8 — 전기 모기채. 노란 테 안 그물에서 파란 불꽃이 지지직 */
+    /* M10·D11 — 할아버지가 새로 산 전기 모기채. 노란 테 안 그물에서 파란 불꽃이 지지직 */
     'mosquito:racketZap': { w: 30, h: 22, d: (time, t) => {
       const swing = Math.sin(time * 2.5) * .06, H = planes(t, '#3a3445'), Y = planes(t, '#ffd23a');
       at(14, 0, swing, 1, 1, () => at(-14, 0, 0, 1, 1, () => {
@@ -533,7 +329,7 @@
       }));
     } },
 
-    /* M9·D9 — 내 몸무게의 쉰 배짜리 빗방울(지름 0.4cm). 웅덩이에 왕관처럼 튄다 */
+    /* M9·D10 — 내 몸무게의 쉰 배짜리 빗방울(지름 0.4cm). 웅덩이에 왕관처럼 튄다 */
     'mosquito:bigRaindrop': { w: 10, h: 14, d: (time, t) => {
       const water = t('#bfe0f5');
       faded(.6, () => E(0, -.05, 4.4, .2, t(WATER)));
@@ -590,70 +386,195 @@
       faded(.5, () => E(1, -.05, 14, .25, t(WATER)));
     } },
 
-    /* M10 — 베란다 방충망. 그물 너머는 여름밤, 아래 귀퉁이가 찢어져 철사가 삐죽 */
-    'mosquito:windowScreen': { w: 18, h: 34, d: (time, t) => {
-      const F = planes(t, '#d8d4de');
-      RR(-8, -34, 16, 34, 0, t('#2a3050'));
-      faded(.5, () => { E(4, -26, 1.6, 1.6, '#fff4c8'); E(-3, -12, 3, 1.2, t('#ffd88a')); });
-      faded(.25, () => E(4, -26, 3.6, 3.6, '#fff4c8'));
-      ctx.save(); ctx.strokeStyle = t('#8d8a9c'); ctx.globalAlpha = .45; ctx.lineWidth = .04; ctx.beginPath();
-      for (let x = -8; x <= 8; x += .35) { ctx.moveTo(x, -34); ctx.lineTo(x, x > 1.5 && x < 4.4 ? -4.4 : 0); }
-      for (let y = -34; y <= 0; y += .35) { ctx.moveTo(-8, y); ctx.lineTo(y > -4.4 ? 1.5 : 8, y); if (y > -4.4) { ctx.moveTo(4.4, y); ctx.lineTo(8, y); } }
-      ctx.stroke(); ctx.restore();
-      [[1.6, -4.4, 1, -3.4], [4.3, -4.2, 5.2, -3], [2.6, -4.4, 2.4, -2.8]].forEach(([x1, y1, x2, y2]) => L(x1, y1, x2, y2, t('#b8b4c4'), .06));
-      slab(F.lit, [[-9, -34], [-7.6, -34], [-7.6, -.9], [-9, -.9]]);                                                  // 왼쪽 틀 (볕)
-      slab(F.dark, [[7.6, -34], [9, -34], [9, -.9], [7.6, -.9]]);                                                     // 오른쪽 틀 (그늘)
-      faded(.3, () => slab(t('#141830'), [[-7.6, -34], [7.6, -34], [7.6, -33.2], [-7.6, -32.6]]));                   // 윗틀 그림자
-      slab(F.mid, [[-9, 0], [-9, -.9], [9, -.9], [9, 0]]); slab(F.lit, [[-9, -.9], [9, -.9], [8.6, -1.3], [-8.6, -1.3]]);   // 아랫틀
-      faded(.4, () => strokePath(t('#b8c8e8'), .08, () => { for (let i = 0; i < 3; i++) { const y = -20 + i * 4 + Math.sin(time + i) * .5; ctx.moveTo(-6, y); ctx.quadraticCurveTo(-2, y - .8, 2, y); } }));
+    /* M1·D1 — 대야를 비우러 온 경비 할아버지 손. 위에서 내려와 저 건너편 대야 테두리에 손끝을 건다 */
+    'mosquito:rimHand': { w: 10, h: 16, d: (time, t) => {
+      const Sl = planes(t, '#5a6a88'), pull = Math.sin(time * .8) * .12;
+      at(0, pull, 0, 1, 1, () => {
+        const arm = [[-1.6, -18], [2.8, -18], [2.6, -13, 2.2, -10.2], [-1.4, -10.2], [-1.6, -13, -1.6, -18]];
+        slab(Sl.mid, arm); inside(arm, () => slab(Sl.lit, [[-2.2, -19], [-.2, -19], [-.2, -9], [-2.2, -9]]));        // 경비복 소매
+        faded(.5, () => slab(Sl.deep, [[-1.4, -10.6], [2.2, -10.6], [2.2, -10.2], [-1.4, -10.2]]));
+        artHandOnArm(t, .4, -10.4, Math.PI / 2 + .12, 7.6, { pose: 'flat' });                                          // 손끝이 아래로, 테두리에 걸린다
+      });
+      for (let i = 0; i < 3; i++) {
+        const ph = (time * .9 + i / 3) % 1;
+        faded(.7 * (1 - ph), () => drop(-.6 + i * .9, -3 + ph * 3, .12, t(WATER)));                                     // 손끝에서 떨어지는 물방울
+      }
+      ripples(.4, 0, 1.6, time, t('#fff6ea'), 2);
     } },
 
-    /* M10·D11 — 스탠드 에어컨 아랫단. 차가운 바람이 바닥으로 흘러내리고 서리가 반짝인다 */
-    'mosquito:acVent': { w: 22, h: 34, d: (time, t) => {
-      const A = planes(t, '#eef1f6'), G = planes(t, '#c9d2de');
-      const body = [[-8, 0], [-8, -32.6], [-7.2, -34], [5.4, -34], [5.4, 0]];
-      slab(A.mid, body);
-      slab(A.lit, [[-8, -1], [-8, -32.6], [-7.2, -34], [-5.6, -34], [-6.2, -32.6], [-6.2, -1]]);                       // 둥근 왼쪽 모서리 (볕)
-      slab(A.dark, [[5.4, 0], [5.4, -34], [8, -33], [8, 0]]);                                                         // 옆면
-      slab(G.dark, [[-6.6, -4], [-6.6, -16], [4.4, -16], [4.4, -4]]);                                                 // 바람 나오는 칸
-      for (let y = -15.2; y < -4.5; y += 1.5) { slab(G.lit, [[-6.2, y], [4, y], [4, y + .5], [-6.2, y + .7]]); }       // 날개살: 윗면만 볕
-      slab(G.mid, [[-8, 0], [-8, -2], [5.4, -2], [5.4, 0]]); slab(G.dark, [[5.4, 0], [5.4, -2], [8, -1.6], [8, 0]]);   // 받침
-      for (let i = 0; i < 7; i++) {
-        const ph = (time * .6 + i / 7) % 1, x0 = -8 - ph * 4;
-        faded(.55 * Math.sin(ph * Math.PI), () => strokePath(t('#a8d8ff'), .12, () => { ctx.moveTo(x0, -30 + i * 3); ctx.quadraticCurveTo(x0 - 3, -26 + i * 3 + ph * 8, x0 - 5, -20 + i * 3 + ph * 12); }));
-      }
-      for (let i = 0; i < 6; i++) glint(-10 - hash(i, 33) * 4, -4 - hash(i, 34) * 20, .25, Math.sin(time * 3 + i * 1.7));
+    /* M2 — 음식물 통 옆에 떨어진 수박 껍질. 빨간 살에 까만 씨, 하얀 속껍질, 줄무늬 초록 겉껍질 */
+    'mosquito:melonRind': { w: 16, h: 6, d: (time, t) => {
+      const G = planes(t, '#3f8f4a'), Rd = planes(t, '#e8505a');
+      faded(.25, () => E(0, -.1, 7.6, .4, t(INK)));
+      const rind = [[-7.6, -2.6], [-6, .2, 6, .2, 7.6, -2.6], [6.8, -2.4], [5, -.9, -5, -.9, -6.8, -2.4]];
+      slab(G.mid, rind); inside(rind, () => slab(G.dark, [[-8, -1], [0, 0, 8, -1], [8, 1], [-8, 1]]));                 // 겉껍질: 아래로 돌아가는 면은 그늘
+      inside(rind, () => [-4.2, -1.4, 1.4, 4.2].forEach((x) => faded(.45, () => slab(G.deep, [[x - .3, 1], [x + .3, 1], [x * 1.3 + .3, -3], [x * 1.3 - .3, -3]]))));   // 겉껍질 줄무늬
+      slab(t('#f4f0d8'), [[-6.8, -2.4], [-5, -.9, 5, -.9, 6.8, -2.4], [6.4, -3], [4.6, -1.7, -4.6, -1.7, -6.4, -3]]);   // 하얀 속껍질
+      const flesh = [[-6.4, -3], [-4.6, -1.7, 4.6, -1.7, 6.4, -3], [4, -5.6, -4, -5.6, -6.4, -3]];
+      slab(Rd.mid, flesh); inside(flesh, () => { slab(Rd.lit, [[-7, -6], [7, -6], [7, -4.6], [-7, -4.2]]); slab(Rd.dark, [[3, -1], [3.6, -3.6, 7, -4], [7, -1]]); });   // 베어 낸 윗면은 볕, 오른쪽 끝은 그늘
+      [[-3.4, -3.4], [-1.2, -4.4], [1.4, -3.2], [3.2, -4.2], [-.2, -2.6]].forEach(([x, y], i) => at(x, y, .4 + i * .3, 1, 1, () => fillPath(t('#2a2026'), () => { ctx.moveTo(0, -.32); ctx.quadraticCurveTo(.2, 0, 0, .2); ctx.quadraticCurveTo(-.2, 0, 0, -.32); })));
+      const ph = (time * .4) % 1;
+      faded(.8 * (1 - ph), () => drop(6.2, -2.4 + ph * 2.2, .18, t('#f79aa0')));                                       // 단물 한 방울
+      faded(.6, () => E(6.6, -.05, 1.2, .1, t('#f0b0b0')));
     } },
 
-    /* M10 — 침대 옆 탁자에 세워 둔 모기약 스프레이 */
-    'mosquito:sprayIdle': { w: 7, h: 23, d: (time, t) => drawCan(t, time) },
-
-    /* D10 — 칙! 기울어진 스프레이에서 하얀 안개가 뿜어져 나온다 */
-    'mosquito:sprayMist': { w: 20, h: 26, d: (time, t) => {
-      for (let i = 0; i < 26; i++) {
-        const ph = (time * .9 + hash(i, 41)) % 1, a = Math.PI + (hash(i, 42) - .5) * .7;
-        faded(.6 * (1 - ph), () => E(4 + Math.cos(a) * ph * 12, -22 + Math.sin(a) * ph * 12 + ph * 3, .2 + ph * .9, .2 + ph * .9, t(SMOKE)));
-      }
-      at(6, 0, .25, 1, 1, () => drawCan(t, time));
-      at(6, 0, .25, 1, 1, () => artHandAt(t, 0, -14, Math.PI, 12, { pose: 'grip', sleeve: '#7a9cc6' }));
+    /* M3·D3 — 가로등 둘레를 도는 집박쥐. 손가락 뼈를 따라 접힌 날개막이 제자리에서 퍼덕인다 */
+    'mosquito:bat': { w: 14, h: 6, d: (time, t) => {
+      const B = planes(t, '#4a3a40'), flap = Math.sin(time * 9), y = -3 + flap * .3;
+      [-1, 1].forEach((side) => at(side * .5, y - .4, 0, side, 1 - flap * .15 * side * 0, () => {
+        const lift = flap * 1.6;
+        const wing = [[0, 0], [1.6, -1.4 - lift * .4, 3.6, -2.2 - lift], [6.6, -1.4 - lift * .8], [5.8, -.4 - lift * .3, 5.2, .6 - lift * .2], [4.4, .2, 3.6, .9], [2.6, .6, 1.8, 1.2], [.8, .8, 0, .8]];
+        slab(side > 0 ? B.mid : B.dark, wing);
+        faded(.5, () => strokePath(B.deep, .08, () => { ctx.moveTo(.4, 0); ctx.lineTo(3.6, -2 - lift); ctx.moveTo(.4, .1); ctx.lineTo(4.6, .3); ctx.moveTo(.4, .2); ctx.lineTo(2.4, .8); }));
+      }));
+      E(0, y, .8, 1.1, B.mid); faded(.6, () => E(-.2, y - .3, .45, .6, B.lit));                                            // 털 난 몸통
+      E(0, y - 1.3, .62, .55, B.mid);
+      [-1, 1].forEach((s) => fillPath(B.mid, () => { ctx.moveTo(s * .2, y - 1.6); ctx.lineTo(s * .55, y - 2.4); ctx.lineTo(s * .62, y - 1.5); ctx.closePath(); }));   // 귀
+      E(.28, y - 1.35, .1, .1, t('#fff6dc'));
+      fillPath(t('#e88a9a'), () => { ctx.moveTo(.3, y - 1.05); ctx.lineTo(.62, y - 1.1); ctx.lineTo(.42, y - .9); ctx.closePath(); });
     } },
 
-    /* D5 — 달리는 차 안에서 본 앞유리. 바깥 가로등이 줄이 되어 지나간다 */
-    'mosquito:windshield': { w: 26, h: 24, d: (time, t) => {
-      const D = planes(t, '#3a3445');
-      fillPath(t('#1f2440'), () => { ctx.moveTo(-12, -3); ctx.lineTo(8, -24); ctx.lineTo(14, -24); ctx.lineTo(14, -3); ctx.closePath(); });
-      ctx.save(); ctx.beginPath(); ctx.moveTo(-12, -3); ctx.lineTo(8, -24); ctx.lineTo(14, -24); ctx.lineTo(14, -3); ctx.closePath(); ctx.clip();
-      for (let i = 0; i < 8; i++) {
-        const ph = (time * 1.8 + hash(i, 51)) % 1, y = -6 - hash(i, 52) * 16;
-        faded(.8, () => L(16 - ph * 34, y, 16 - ph * 34 + 4, y, i % 2 ? '#ffd88a' : '#ff8a6a', .4));
-      }
-      faded(.2, () => P([[-4, -6], [4, -18], [6, -18], [-2, -6]], WHITE));
+    /* M4·M10 — 경비실 바닥에 세워 둔 물파스. 초록 몸통에 하얀 띠, 스펀지 머리에 투명 뚜껑 */
+    'mosquito:mulpas': { w: 4, h: 11, d: (time, t) => {
+      const G = planes(t, '#3a9a6a'), Wt = planes(t, '#f4f1ea');
+      faded(.25, () => E(0, -.05, 2.2, .25, t(INK)));
+      upright(-1.6, 1.6, -7.6, 0, G, .4);                                                                            // 몸통
+      upright(-1.6, 1.6, -5.4, -3.4, Wt, 0);                                                                          // 상표 띠
+      faded(.8, () => strokePath(t('#e8503a'), .22, () => { ctx.moveTo(-.9, -4.4); ctx.lineTo(.9, -4.4); }));
+      upright(-1.2, 1.2, -8.6, -7.6, Wt, .2);                                                                         // 어깨
+      upright(-.9, .9, -9.6, -8.6, planes(t, '#f0e2b0'), .3);                                                         // 스펀지 머리
+      faded(.35, () => { RR(-1.3, -11, 2.6, 3, .8, t('#d6eef8')); R(-1.1, -10.8, .5, 2.6, t('#ffffff')); });         // 투명 뚜껑
+    } },
+
+    /* M5 — 지하 주차장 바닥에 박힌 주차 턱. 노랑·검정 줄무늬 고무가 낮게 엎드려 있다 */
+    'mosquito:parkingStop': { w: 30, h: 9, d: (time, t) => {
+      const Y = planes(t, '#e8c84a'), K = planes(t, '#2f2c34');
+      faded(.3, () => E(0, -.1, 15.6, .6, t(INK)));
+      const front = [[-15, 0], [-13.6, -8], [13.6, -8], [15, 0]];
+      slab(Y.mid, front);
+      inside(front, () => {
+        for (let x = -16; x < 16; x += 7) slab(K.mid, [[x, 0], [x + 3.5, 0], [x + 5, -9], [x + 1.5, -9]]);           // 비스듬한 검은 줄
+        faded(.3, () => slab(t('#fffaf0'), [[-16, -8.4], [16, -8.4], [16, -6.8], [-16, -6.8]]));                       // 위 모서리 볕
+        slab(Y.dark, [[11, 0], [12.6, -9], [16, -9], [16, 0]]);
+      });
+      slab(Y.lit, [[-13.6, -8], [13.6, -8], [12.8, -9], [-12.8, -9]]);                                                 // 윗면 (형광등 빛)
+      [-8, 8].forEach((x) => { E(x, -8.5, .9, .35, K.dark); E(x - .15, -8.6, .45, .16, K.lit); });                     // 고정 볼트
+    } },
+
+    /* M6 — 화단 턱에 버려진 테이크아웃 컵. 빗물이 반쯤 차서 수면이 반짝인다 */
+    'mosquito:iceCup': { w: 10, h: 17, d: (time, t) => {
+      const C = planes(t, '#e6eef2'), Gs = planes(t, '#4fa86a');
+      faded(.25, () => E(0, -.1, 4.4, .35, t(INK)));
+      const cup = [[-3.4, 0], [-4.6, -13], [4.6, -13], [3.4, 0]];
+      faded(.45, () => slab(C.mid, cup));
+      inside(cup, () => {
+        faded(.7, () => slab(t('#8fb8b0'), [[-5, 0], [-5, -6.6], [5, -6.6], [5, 0]]));                               // 고인 빗물
+        faded(.5, () => slab(C.lit, [[-5, -13], [-3, -13], [-2.4, 0], [-4, 0]]));                                     // 볕 받는 컵 벽
+      });
+      E(0, -6.6, 4.1, .55, t('#a9d0c8')); faded(.7, () => E(-1.2, -6.7, 1.6, .16, t('#ffffff')));
+      ripples(1.4, -6.6, 1.6, time, t('#ffffff'), 2);
+      slab(C.dark, [[-4.9, -13], [4.9, -13], [4.9, -13.8], [-4.9, -13.8]]);                                             // 컵 테두리
+      strokePath(Gs.mid, .5, () => { ctx.moveTo(1.2, -6); ctx.lineTo(3.4, -16.6); });                                  // 빨대
+      strokePath(Gs.lit, .18, () => { ctx.moveTo(1.05, -6.4); ctx.lineTo(3.2, -16.6); });
+    } },
+
+    /* M6·D6 — 웅덩이 위의 소금쟁이. 긴 다리 끝이 수면을 오목하게 누른다 */
+    'mosquito:waterStrider': { w: 9, h: 1.5, d: (time, t) => {
+      const B = planes(t, '#3a3440'), sway = Math.sin(time * 1.4) * .08;
+      faded(.6, () => E(0, 0, 4.6, .22, t(WATER)));
+      [[-3.6, .1], [-2.2, .05], [2.6, .05], [3.8, .1]].forEach(([x], i) => {
+        faded(.6, () => strokePath(t(WATER_DK), .04, () => ctx.ellipse(x + sway, .02, .35, .08, 0, 0, Math.PI)));    // 다리 끝이 만든 오목한 자국
+        strokePath(B.dark, .06, () => { ctx.moveTo(i < 2 ? -.4 : .4, -.55); ctx.quadraticCurveTo((i < 2 ? -1.6 : 1.6) + sway, -1.1, x + sway, 0); });
+      });
+      strokePath(B.dark, .06, () => { ctx.moveTo(.8, -.55); ctx.lineTo(1.5, -.7); });                                  // 짧은 앞다리
+      E(0, -.55, 1.1, .16, B.mid); faded(.6, () => E(-.2, -.63, .7, .06, B.lit));
+      E(1.2, -.6, .2, .14, B.mid); E(1.3, -.65, .05, .05, t('#fff6dc'));
+    } },
+
+    /* M8·D8 — 바닥 멀티탭에 꽂힌 전자 모기향. 약병이 매달리고, 초록 불이 깜빡이며 옅은 김이 오른다 */
+    'mosquito:liquidVape': { w: 15, h: 9, d: (time, t) => {
+      const Wt = planes(t, '#eceae4'), Lq = planes(t, '#7fb8e0');
+      faded(.25, () => E(0, -.1, 7.6, .45, t(INK)));
+      const strip = [[-7.4, 0], [-7.4, -2.2], [-6.8, -2.6], [7.4, -2.6], [7.4, 0]];
+      slab(Wt.mid, strip); slab(Wt.lit, [[-7.4, -2.2], [-6.8, -2.6], [7.4, -2.6], [7.4, -2.1], [-7, -2.1]]);              // 멀티탭
+      [-4, -.4].forEach((x) => { RR(x, -2.5, 1.6, .3, .1, Wt.dark); });
+      const body = [[1, -2.6], [1.2, -6.6, 2, -7.4], [5.6, -7.4], [6.4, -6.6, 6.6, -2.6]];
+      slab(Wt.mid, body); inside(body, () => { slab(Wt.lit, [[0, -8], [2.6, -8], [2.2, -2.6], [0, -2.6]]); slab(Wt.dark, [[5.2, -8], [7, -8], [7, -2.6], [5.4, -2.6]]); });   // 본체
+      faded(.6, () => slab(Lq.mid, [[2.4, -2.6], [2.4, -5], [5.2, -5], [5.2, -2.6]]));                                  // 약병
+      faded(.5, () => R(2.6, -4.8, .5, 2, t('#ffffff')));
+      const blink = .5 + Math.sin(time * 3) * .5;
+      faded(.4 + blink * .6, () => E(3.8, -6.4, .3, .3, t('#7fff9f')));
+      wisps([3.8], -7.6, 5, time, t('#e6f2ec'), .25);
+      strokePath(Wt.dark, .3, () => { ctx.moveTo(-7.4, -1.2); ctx.quadraticCurveTo(-9, -1, -9.6, 0); });                // 전선
+    } },
+
+    /* M8·K1 — 아이 방 모기장. 하얀 그물이 바닥까지 드리웠고 왼쪽 아래 귀퉁이가 살짝 들렸다 */
+    'mosquito:kidNet': { w: 24, h: 34, d: (time, t) => {
+      const Hm = planes(t, '#dfe8f2'), lift = 2.6 + Math.sin(time * .9) * .3;
+      const edge = [[-11, -lift], [-6, -lift, -3, -.2], [11, 0]];
+      const net = [[-11, -36], [11, -36], [11, 0], [-3, -.2], [-6, -lift, -11, -lift]];
+      faded(.12, () => slab(t('#f4f8fc'), net));
+      inside(net, () => {
+        ctx.save(); ctx.strokeStyle = t('#aab8c8'); ctx.globalAlpha = .22; ctx.lineWidth = .05; ctx.beginPath();
+        for (let x = -11; x <= 11; x += .6) { ctx.moveTo(x, -36); ctx.lineTo(x + Math.sin(x + time * .5) * .2, 0); }
+        for (let y = -36; y <= 0; y += .6) { ctx.moveTo(-11, y); ctx.lineTo(11, y); }
+        ctx.stroke(); ctx.restore();
+        [-7, 1, 8].forEach((x) => faded(.1, () => slab(t('#ffffff'), [[x, -36], [x + 2.4, -36], [x + 2, 0], [x - .4, 0]])));   // 주름 빛
+      });
+      const hem = [...edge, [11, -1], [-3, -1.2], [-6, -lift - 1, -11, -lift - 1]];
+      slab(Hm.mid, hem); faded(.8, () => slab(Hm.lit, [[-11, -lift - 1], [-6, -lift - 1, -3, -1.2], [11, -1], [11, -1.3], [-3, -1.5], [-6, -lift - 1.3, -11, -lift - 1.3]]));   // 밑단 천
+    } },
+
+    /* K1 — 모기장 안, 이불 밖으로 나온 아이 발. 뒤꿈치를 요에 대고 발가락이 위를 보며 꼼지락댄다 */
+    'mosquito:kidFoot': { w: 16, h: 12, d: (time, t) => {
+      const Bl = planes(t, '#f2d27a'), wig = Math.sin(time * 2.2) * .1;
+      const blanket = [[-8, 0], [-8.6, -6, -7, -9.4], [-3.4, -11.4, -.6, -10], [1.4, -7, .8, 0]];
+      slab(Bl.mid, blanket); inside(blanket, () => { slab(Bl.lit, [[-9, -11], [0, -11], [-1, -9], [-9, -8]]); slab(Bl.dark, [[-.6, 0], [0, -6, .6, -11], [2, -11], [2, 0]]); });   // 이불 끝자락
+      const foot = [[.4, -7.4], [2.2, -8.2, 3.6, -10.4], [4.4, -11.8, 5.8, -11.6], [6.9, -11.3, 6.7, -9.8], [6.2, -6, 6.5, -3], [6.6, -.6, 4.4, 0], [2, .2, .4, -.6]];
+      slab(t(SKIN), foot); inside(foot, () => slab(t(SKIN_SH), [[5.2, 1], [5, -6, 5.8, -12], [8, -12], [8, 1]]));         // 발바닥 쪽은 그늘
+      [[5.4, -11.7, .62], [6.2, -11.1, .5], [6.7, -10.3, .42]].forEach(([x, y, r], i) => at(x, y, wig * (i % 2 ? -1 : 1), 1, 1, () => E(0, 0, r, r * .85, t(i ? SKIN_SH : SKIN))));   // 발가락
+    } },
+
+    /* M11 — 대야 옆에서 조는 할아버지 손. 부채를 쥔 채 대야 위로 축 늘어져 살랑 흔들린다 */
+    'mosquito:fanHand': { w: 14, h: 22, d: (time, t) => {
+      const Sl = planes(t, '#5a6a88'), Fn = planes(t, '#7cc4d8'), Bm = planes(t, '#f1efe8'), sway = Math.sin(time * .7) * .05;
+      at(-1, -24, sway, 1, 1, () => {
+        const arm = [[-2, 0], [2.6, 0], [2.4, 6, 2.2, 9], [-1.4, 9], [-1.6, 6, -2, 0]];
+        slab(Sl.mid, arm); inside(arm, () => slab(Sl.lit, [[-2.6, 0], [-.4, 0], [-.4, 10], [-2.6, 10]]));              // 경비복 소매
+        strokePath(Bm.mid, .5, () => { ctx.moveTo(.6, 12); ctx.lineTo(2.3, 16.8); });                                   // 플라스틱 자루
+        artHandOnArm(t, .4, 8.6, Math.PI / 2 - .15, 5, { pose: 'grip' });                                               // 손끝이 아래로
+        at(3.6, 20, -.35 + sway * 2, 1, .82, () => {
+          E(0, 0, 3.4, 3.6, Fn.mid); inDisc(0, 0, 3.4, () => { E(-1.2, -1.2, 3, 3, Fn.lit); E(1.8, 1.8, 2.4, 2.4, Fn.dark); });   // 둥근 부채: 왼쪽 위 볕
+          E(-.9, -1, .9, .9, t('#fff6ea')); faded(.8, () => E(1, .8, .7, .7, t('#e8786a')));                             // 찍힌 꽃 두 송이
+        });
+      });
+    } },
+
+    /* D12 — 경비실 앞 벽에 달린 해충퇴치기의 아랫도리. 철망 너머 파란 등이 윙윙 빛나고 가끔 타닥 불꽃이 튄다 */
+    'mosquito:zapperLamp': { w: 24, h: 14, d: (time, t) => {
+      const Bx = planes(t, '#e9e4ec');
+      const body = [[-12, -14], [12, -14], [12, -3], [11, -2, 10, -2], [-10, -2], [-11, -2, -12, -3]];
+      slab(Bx.mid, body); inside(body, () => { slab(Bx.lit, [[-13, -15], [-9, -15], [-9, -1], [-13, -1]]); slab(Bx.dark, [[9, -15], [13, -15], [13, -1], [9, -1]]); });   // 몸통: 왼쪽 볕, 오른쪽 그늘
+      slab(t('#2a3050'), [[-9, -13], [9, -13], [9, -4], [-9, -4]]);
+      ctx.save(); ctx.shadowColor = '#5fa8ff'; ctx.shadowBlur = 16 + Math.sin(time * 5) * 4;
+      [-11, -7.4].forEach((y) => RR(-8, y, 16, 1.6, .8, t('#9fd0ff')));
       ctx.restore();
-      slab(D.mid, [[-12.6, -2.4], [7.6, -24.4], [8.8, -24.4], [-11.2, -2.6]]); slab(D.lit, [[-12.6, -2.4], [7.6, -24.4], [8, -24.4], [-12, -2.4]]);   // 앞 기둥
-      slab(D.mid, [[-13, 0], [-13, -2.6], [14, -2.6], [14, 0]]);                                                      // 대시보드 앞면
-      slab(D.lit, [[-13, -2.6], [14, -2.6], [13.4, -3.6], [-12.2, -3.6]]);                                            // 대시보드 윗면 (볕)
-      faded(.6, () => slab(D.deep, [[-6, -3.6], [8, -3.9], [8, -4.4], [-6, -4.1]]));                                  // 와이퍼 그림자
-      [[-3, -9], [0, -12], [3, -8]].forEach(([x, y]) => faded(.45, () => E(x, y, .08, .06, t('#8a8494'))));
+      ctx.save(); ctx.strokeStyle = t('#8d8a9c'); ctx.lineWidth = .3; ctx.beginPath();
+      for (let x = -8; x <= 8; x += 1.6) { ctx.moveTo(x, -13); ctx.lineTo(x, -4); }
+      ctx.stroke(); ctx.restore();
+      const tick = Math.floor(time * 4);
+      if (hash(tick, 5) > .55) { const sx = -6 + hash(tick, 6) * 12; strokePath(t('#e6f6ff'), .2, () => { ctx.moveTo(sx, -6); ctx.lineTo(sx + .5, -5); ctx.lineTo(sx - .2, -4.4); }); }
+    } },
+
+    /* D9 — 모기장 안 모기를 집으려는 아이 엄마 손. 접은 휴지를 쥐고 다가온다 */
+    'mosquito:tissuePinch': { w: 18, h: 14, d: (time, t) => {
+      const near = Math.sin(time * 2) * .6, Ts = planes(t, '#f8f6f0');
+      at(near, 0, 0, 1, 1, () => {
+        artHandAt(t, 0, -6, Math.PI - .25, 12, { pose: 'pinch', sleeve: '#c97a8a', held: () => {
+          const tissue = [[-.18, -.2], [.1, -.32], [.32, -.16], [.3, .2], [.04, .3], [-.2, .14]];
+          slab(Ts.mid, tissue); slab(Ts.lit, [[-.18, -.2], [.1, -.32], [.32, -.16], [.04, -.04]]); slab(Ts.dark, [[.3, .2], [.04, .3], [.1, .06]]);
+        } });
+      });
     } },
   };
 

@@ -194,7 +194,8 @@ function drawProp(f) {
 /** 사물 하나를 그림자째 구워 두고 찍는다 (사물은 시간에 따라 변하지 않는다) */
 function itemSprite(f, name, it, x, r, strength) {
   const { s, g, t } = f, padX = 24 + it.w * s * .3, padT = 24 + it.h * s * .3;
-  const box = [padX, padT, it.w * s + padX * 2, it.h * s + padT + 24];
+  // 사물은 땅(y)에서 위로 그려지므로, 구운 그림 안에서 땅은 사물 높이와 여백만큼 내려온 자리에 둔다
+  const box = [padX, it.h * s + padT, it.w * s + padX * 2, it.h * s + padT + 24];
   spriteDraw(`${name}|${r}|${s}|${palKeyOf(f)}|${strength}`, x, g, box, (ox, oy) => paper(() => it.d(ox, oy, s, r, t), strength));
 }
 

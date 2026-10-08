@@ -147,6 +147,63 @@
     ctx.restore();
   }
 
+  /* ── 백구: 마당에 묶인 열두 살 흰 진돗개. 파리 눈높이에선 머리 하나가 화면을 채운다 (머리 길이 약 19cm) ──
+     왼쪽(나 쪽)을 보고 땅에 턱을 댄 옆얼굴. 원점은 코끝 밑 땅(코끝이 x=0), 뒤로 목과 엎드린 어깨가 이어진다 */
+  const FUR = '#f4efe6', NOSE = '#2e2a33', DOG_EYE = '#3a2a24', EAR_IN = '#e7aca3', MOUTH = '#6b3440', TONGUE = '#ee8f98', TIRE = '#38333a';
+  const DOG_HINGE = [8.6, -2.6];
+  const DOG_BODY = [[12, 0], [12.4, -6, 14.6, -9.6, 18.6, -12.4], [22, -14.4, 27, -15.4, 36, -15.4], [36, 0]];
+  const DOG_UPPER = [[.2, -1.9], [-.2, -2.6, -.2, -3.9, .4, -4.4], [3, -4.9, 5.6, -5.4, 7.4, -6.6], [8.6, -7.6, 9, -9.6, 10.8, -10.6],
+    [12.6, -11.6, 15, -12, 17, -11.4], [18.6, -10.8, 19.2, -8.6, 18.8, -6], [18.4, -3.6, 17, -2.4, 15.6, -2.2], [7.6, -2.2], [5.5, -1.5, 2, -1.6, .2, -1.9]];
+  const DOG_JAW = [[.9, -1.7], [7.6, -2.2], [15.6, -2.3], [18, -1.6, 19, 0], [2.6, 0], [1.2, -.4, .8, -1, .9, -1.7]];
+  const DOG_NOSE = [[-.05, -3.1], [-.1, -4.3, 1.3, -4.75, 1.95, -4.1], [2.4, -3.4, 1.9, -2.5, 1.1, -2.4], [.3, -2.35, 0, -2.6, -.05, -3.1]];
+
+  /** 한 점을 경첩(h) 둘레로 a만큼 돌린다 (캔버스 rotate(-a)와 같은 방향: 양수면 턱이 아래로 벌어진다) */
+  function swing(pt, h, a) {
+    const dx = pt[0] - h[0], dy = pt[1] - h[1];
+    return [h[0] + dx * Math.cos(a) + dy * Math.sin(a), h[1] - dx * Math.sin(a) + dy * Math.cos(a)];
+  }
+
+  /** 백구 옆얼굴과 엎드린 어깨. o: { eye: 'open'|'shut', jaw 벌린 각도, ear 귀 움찔 각도 } */
+  function dogHead(t, o = {}) {
+    const f = tone(t, FUR), a = o.jaw || 0;
+    rim(DOG_BODY, f, .18, .24, [[12, -5], [20, -9, 28, -10.5, 37, -11], [37, 1], [12, 1]]);
+    ctx.save(); ctx.translate(14.4, -11.6); ctx.rotate(.18 + (o.ear || 0));
+    const ear = [[-2.2, .5], [-1.5, -2.6, -.6, -4.4, .3, -5.4], [1.1, -4.2, 1.9, -2.2, 2.2, .4]];
+    form(ear, f, [[.7, 1], [1, -3, .7, -5.8], [3, -5.8], [3, 1]], null);
+    curvy([[-1.4, -.1], [-.8, -2.1, -.2, -3.4, .25, -4.1], [.6, -2.9, 1, -1.6, 1.2, -.1]], t(EAR_IN));
+    ctx.restore();
+    if (a) {
+      const jf = swing([.9, -1.7], DOG_HINGE, a);
+      P([DOG_HINGE, [.2, -1.95], jf], t(MOUTH));
+      if (a > .2) P([[1.4, -2], [1.7, -1.05], [2, -2]], t('#f6f0de'));                                // 위 송곳니 하나
+    }
+    ctx.save(); ctx.translate(DOG_HINGE[0], DOG_HINGE[1]); ctx.rotate(-a); ctx.translate(-DOG_HINGE[0], -DOG_HINGE[1]);
+    form(DOG_JAW, f, [[0, -.5], [6, -.7], [10.5, -1], [11.5, -3], [20, -3], [20, 1], [0, 1]], null);
+    if (a) {
+      curvy([[1.6, -1.8], [4, -2.6, 7, -2.4], [6, -1.9, 3, -1.6]], t(TONGUE));
+      if (a > .2) P([[2.2, -1.75], [2.5, -2.55], [2.8, -1.75]], t('#f6f0de'));                        // 아래 송곳니 하나
+    }
+    ctx.restore();
+    rim(DOG_UPPER, f, .18, .24, [[10.5, -1.5], [12.8, -4.6, 15.6, -6.2, 19.5, -7], [19.5, -1.5]]);
+    within(DOG_UPPER, () => curvy([[.4, -1.95], [3, -2.7, 6, -2.8, 7.8, -2.3], [5.5, -1.5, 2, -1.6, .4, -1.95]], f.dark));   // 윗입술 그늘
+    curvy([[6.6, -2.3], [7.4, -2.9, 8.2, -2.6], [7.4, -2.15, 6.6, -2.3]], f.deep);                   // 입꼬리
+    form(DOG_NOSE, tone(t, NOSE), [[1.1, -2], [1.4, -3.6, 2.4, -4], [2.6, -2]], null);
+    curvy([[.1, -3.2], [.5, -3.5, .9, -3.2], [.6, -2.9, .1, -3.2]], t(shade(shade(NOSE))));          // 콧구멍
+    faded(.55, () => E(.8, -4.05, .35, .13, t(WHITE)));
+    if (o.eye === 'shut') curvy([[8.7, -7.5], [9.4, -7, 10.3, -7.1, 10.7, -7.5], [10.1, -7.25, 9.3, -7.2, 8.7, -7.5]], t(DOG_EYE));
+    else {
+      curvy([[8.7, -7.6], [9.3, -8.3, 10.2, -8.25, 10.7, -7.55], [10.1, -7.15, 9.3, -7.15, 8.7, -7.6]], t(DOG_EYE));
+      E(9.45, -7.85, .15, .12, t(WHITE));
+    }
+  }
+
+  /** 턱 밑에 괸 백구 앞발 (발가락 사이 홈 두 줄) */
+  function dogPaw(t) {
+    const f = tone(t, FUR), paw = [[-.8, 0], [-1.2, -.9, -.5, -1.9, .8, -1.9], [7, -1.9], [9.6, -1.7, 10.8, -.9, 11, 0]];
+    form(paw, f, [[-2, -.5], [12, -.5], [12, .2], [-2, .2]], [[-1.4, -1.95], [12, -1.95], [12, -1.55], [-1.4, -1.55]]);
+    [.4, 1.4].forEach((x) => L(x, -.2, x + .15, -1.1, f.dark, .1));
+  }
+
   return {
     /* F1 — 내가 찢고 나온 번데기 껍질: 마디진 술통 모양, 찢긴 앞쪽 구멍. 뚜껑이 톡 떨어져 있다 */
     'fly:pupaCase': { w: 1.3, h: .4, d: (time, t) => {
@@ -162,179 +219,220 @@
       ctx.restore();
     } },
 
-    /* F1 — 수거통 가장자리의 시큼한 국물 웅덩이 (배춧잎, 밥알, 고춧가루, 거품) */
-    'fly:sourPuddle': { w: 8, h: 3.5, d: (time, t) => {
-      faded(.85, () => E(0, -.06, 3.8, .32, t(BROTH)));
-      E(-.6, -.1, 2.6, .18, t('#e8c46a'));
-      faded(.6, () => E(-1.4, -.14, 1, .06, t(WHITE)));
-      const leaf = [[1.3, -.1], [1.6, -.55, 2.3, -.78, 2.85, -.66], [3.2, -.6, 3.15, -.44, 3, -.4], [3.2, -.32, 3.12, -.14, 2.9, -.1]];
-      form(leaf, tone(t, '#a8cf7a'), [[2.6, 0], [2.7, -.4, 2.9, -.8], [3.4, -.8], [3.4, 0]], [[1.2, -.3], [1.7, -.7, 2.4, -.85, 2.8, -.75], [2.2, -.6, 1.8, -.48, 1.4, -.24]]);
-      curvy([[1.3, -.1], [2, -.3, 2.9, -.22], [2.9, -.1]], t('#eef4dc'));            // 하얀 배추 줄기
-      grain(-2.4, -.17, .15, .3, t);
-      curvy([[.38, -.12], [.55, -.3, .8, -.26], [.7, -.16, .48, -.1]], t(SAUCE));
-      for (let i = 0; i < 4; i++) {
-        const ph = (time * .5 + hash(i, 5)) % 1, r = .08 + ph * .08;
-        faded(1 - ph, () => E(-2.6 + i * 1.5, -.15 - ph * .15, r, r, t('#f6e3a8')));
-      }
-      wisps([-2, -.4, 1.4], -.4, 2.6, time, t('#d9c27a'));
+    /* F1 — 내 앞에 내려온 백구 코. 엎드린 늙은 백구가 고개를 낮추고 킁킁, 콧구멍이 벌름거린다 */
+    'fly:dogNose': { w: 36, h: 18, d: (time, t) => {
+      const sniff = Math.max(0, Math.sin(time * 5)) * .12;
+      faded(.2, () => E(16, -.05, 17, .45, t(INK)));
+      ctx.save(); ctx.translate(-sniff, 0); dogHead(t, { eye: 'open' }); ctx.restore();
+      faded(.35 * Math.max(0, Math.sin(time * 5 + 1.2)), () => E(-.8 - sniff, -2.9, .5, .25, t(WHITE)));
     } },
 
-    /* F2 — 반코팅 작업 장갑이 들어 올리는 음식물 통 뚜껑: 둥근 지붕, 두툼한 테, 가운데 손잡이. 테두리 아래로 국물이 뚝뚝 */
-    'fly:liftedLid': { w: 14.5, h: 12, d: (time, t) => {
-      const p = tone(t, '#f2b33d'), lift = Math.sin(time * 1.1) * .3;
-      ctx.save(); ctx.translate(-1.5, -2.2 - lift); ctx.rotate(-.16 + Math.sin(time * .7) * .03);
-      for (let i = 0; i < 3; i++) {
-        const ph = (time * .7 + i * .33) % 1;
-        faded(1 - ph, () => drop(-4 + i * 2.6, .5 + ph * 3.4, .14, t(BROTH)));
-      }
-      faded(.85, () => { [-3.6, -1, 1.8].forEach((x, i) => E(x, .28, .22 + i * .04, .3, t(BROTH))); });
-      const dome = [[-5.1, -.3], [-5, -1.1], [-3.6, -2.7, 3.6, -2.7, 5, -1.1], [5.1, -.3]];
-      rim(dome, p, .25, .45, [[2.4, .2], [3.6, -1.2, 3.2, -2.2, 2, -3], [6, -3], [6, .2]]);
-      const lip = [[-5.5, .35], [-5.75, -.05, -5.5, -.45], [5.5, -.45], [5.75, -.05, 5.5, .35]];
-      form(lip, p, [[4.6, .5], [4.6, -.6], [6, -.6], [6, .5]], [[-6, -.6], [6, -.6], [6, -.25], [-6, -.25]]);
-      const grip = [[-1.3, -2.35], [-1.25, -3, 1.25, -3, 1.3, -2.35]];
-      form(grip, tone(t, '#d99a2b'), [[.5, -2.2], [.6, -3.1], [1.5, -3.1], [1.5, -2.2]], [[-1.4, -3.1], [.4, -3.1], [.2, -2.8], [-1.4, -2.7]]);
-      artHandAt(t, 4.6, -1.9, 2.15, 7.4, { pose: 'flat', curl: .42, spread: .55, skin: '#f4f1ea', coat: '#e6765f', nails: false, sleeve: '#4a5d7a' });
+    /* D2 — 허공을 덥석 무는 백구 입. 이가 몇 개 없는 늙은 개의 송곳니 두 개 */
+    'fly:dogJaw': { w: 36, h: 18, d: (time, t) => {
+      const snap = Math.pow(Math.abs(Math.sin(time * 3.4)), 3) * .42;
+      faded(.2, () => E(16, -.05, 17, .45, t(INK)));
+      ctx.save(); ctx.translate(0, -4); dogHead(t, { eye: 'open', jaw: snap }); ctx.restore();
+    } },
+
+    /* F4·F12 — 앞발에 턱을 괴고 자는 백구. 눈을 감고 숨 쉴 때마다 머리가 오르내리고, 가끔 귀가 움찔한다 */
+    'fly:sleepyEar': { w: 36, h: 20, d: (time, t) => {
+      const breath = Math.sin(time * 1.1) * .1, beat = time * .8, ph = beat % 1;
+      const twitch = hash(Math.floor(beat), 7) > .55 ? Math.sin(ph * Math.PI * 4) * .14 * (1 - ph) : 0;
+      faded(.2, () => E(16, -.05, 17, .45, t(INK)));
+      ctx.save(); ctx.translate(0, -1.7 + breath); dogHead(t, { eye: 'shut', ear: twitch }); ctx.restore();
+      dogPaw(t);
+    } },
+
+    /* F3·D3 — 물그릇에 고개를 숙인 백구. 분홍 혀가 국자처럼 말려 물을 할짝할짝 퍼 올린다 */
+    'fly:dogTongue': { w: 18, h: 24, d: (time, t) => {
+      const lap = (Math.sin(time * 4) + 1) * .5, mx = .7, my = -6.3, len = 3.4 + lap * .9, p = tone(t, TONGUE);
+      const tongue = [[mx - .6, my], [mx - .9, my + len * .5, mx - 1.5, my + len * .85, mx - .8, my + len], [mx + .1, my + len + .35, mx + 1.1, my + len * .85, mx + .9, my + len * .45], [mx + .8, my]];
+      form(tongue, p, [[mx + .2, my], [mx + .3, my + len], [mx + 1.5, my + len], [mx + 1.5, my]], [[mx - 1.6, my], [mx - .4, my], [mx - .6, my + len * .6], [mx - 1.6, my + len * .7]]);
+      faded(.7 * lap, () => drop(mx - 1.2, my + len + .5 + (1 - lap) * .6, .12, t('#cfe8f5')));
+      ctx.save(); ctx.translate(-1, -5.5); ctx.rotate(-1.2); ctx.translate(0, 3.2);
+      dogHead(t, { eye: 'open', jaw: .14 });
       ctx.restore();
     } },
 
-    /* F2 — 수거차 꽁무니 모서리: 둥근 모서리 차체, 반사띠, 발판 범퍼와 바퀴. 후진등이 깜빡이고 범퍼에서 국물이 흐른다 */
-    'fly:reverseLight': { w: 33, h: 31, d: (time, t) => {
-      const lit = Math.sin(time * 7) > 0, body = tone(t, '#6fae7f'), ink = tone(t, '#3a3445'), hub = tone(t, '#cfcad8');
-      const tire = [[6.5, -4.5], [6.5, -7, 8.5, -9, 11, -9], [13.5, -9, 15.5, -7, 15.5, -4.5], [15.5, -2, 13.5, 0, 11, 0], [8.5, 0, 6.5, -2, 6.5, -4.5]];
-      form(tire, ink, [[12.4, .2], [14.4, -3, 14, -7, 12, -9.4], [16, -9.4], [16, .2]], null);
-      form([[9.2, -4.5], [9.2, -5.5, 10, -6.3, 11, -6.3], [12, -6.3, 12.8, -5.5, 12.8, -4.5], [12.8, -3.5, 12, -2.7, 11, -2.7], [10, -2.7, 9.2, -3.5, 9.2, -4.5]], hub,
-        [[11.3, -2.4], [11.6, -6.6], [13, -6.6], [13, -2.4]], null);
-      const panel = [[-2, -5], [-2, -28.4], [-2, -30, -.4, -30], [16, -30], [16, -5]];
-      form(panel, body, [[13.6, -4], [13.6, -31], [17, -31], [17, -4]], [[-3, -4], [-3, -31], [-.9, -31], [-.9, -4]]);
-      form([[-2, -13], [16, -13], [16, -12], [-2, -12]], tone(t, '#f4f1ea'), [[13.6, -11.8], [13.6, -13.2], [16.2, -13.2], [16.2, -11.8]], null);   // 반사띠
-      const bump = [[-3, -3.2], [-3.2, -4.4, -2.8, -5.5], [16, -5.5], [16.2, -3.2]];
-      form(bump, ink, [[13.8, -3], [13.8, -5.7], [16.4, -5.7], [16.4, -3]], [[-3.4, -5.7], [16.4, -5.7], [16.4, -5.1], [-3.4, -5.1]]);
-      [0, 2, 4, 6].forEach((x) => RR(x, -4.6, 1.2, .4, .2, ink.deep));
-      form(roundBox(-.8, -10, 3, 3.2, .6), ink, [[1.6, -6.6], [1.6, -10.2], [2.4, -10.2], [2.4, -6.6]], null);
-      if (lit) {
-        ctx.save(); ctx.shadowColor = '#ffb347'; ctx.shadowBlur = 24; RR(-.4, -9.6, 2.2, 2.4, .4, '#ffb347'); ctx.restore();
-        ctx.save(); ctx.strokeStyle = '#ffe1a8'; ctx.lineWidth = .18; ctx.lineCap = 'round'; ctx.globalAlpha = .8;
-        [1.6, 2.6, 3.6].forEach((r) => { ctx.beginPath(); ctx.arc(-.6, -8.4, r, Math.PI * .75, Math.PI * 1.25); ctx.stroke(); });
-        ctx.restore();
-      } else RR(-.4, -9.6, 2.2, 2.4, .4, t('#8a5a2a'));
-      const ph = (time * .6) % 1;
-      faded(1 - ph, () => drop(-2.2, -3 + ph * 3, .14, t(BROTH)));
-    } },
-
-    /* F3 — 골목 환기구: 두꺼운 테두리와 비스듬히 누운 날개살. 기름이 맺혔다가 뚝 떨어지고, 따뜻한 냄새가 올라온다 */
-    'fly:ventDrip': { w: 8.5, h: 9, d: (time, t) => {
-      const fr = tone(t, '#b9b4c2'), slat = tone(t, '#cfcad8');
-      form(roundBox(-4, -5, 8, 5, .5), fr, [[3.3, .2], [3.3, -5.2], [4.2, -5.2], [4.2, .2]], [[-4.2, -5.2], [4.2, -5.2], [4.2, -4.65], [-4.2, -4.65]]);
-      RR(-3.4, -4.5, 6.8, 3.9, .2, t('#6f6a7c'));
-      for (let y = -4.3; y < -.9; y += .8) {
-        curvy([[-3.4, y], [3.4, y], [3.4, y + .28], [-3.4, y + .32]], slat.lit);                // 날개살 윗면 (볕)
-        curvy([[-3.4, y + .32], [3.4, y + .28], [3.4, y + .5], [-3.4, y + .56]], slat.mid);
-      }
-      faded(.75, () => P([[-1, 0], [1.2, 0], [.7, 1.1], [.3, 1.9], [-.4, 1.1]], t('#c9a14a')));
-      const swell = (time * .5) % 1;
-      E(.25, 1.95 + swell * .3, .12 + swell * .08, .16 + swell * .12, t('#e8c25a'));
-      E(.2, 1.9 + swell * .25, .04, .06, t(WHITE));
-      const fall = (time * .5 + .5) % 1, fy = 2.4 + fall * fall * 4;
-      faded(1 - fall * .6, () => drop(.25, fy, .14, t('#e8c25a')));
-      wisps([-2.5, 0, 2.5], -5.2, 3.5, time, t('#f4f1ea'), .3);
-    } },
-
-    /* F3 — 처마 귀퉁이 거미줄. 기와 끝 막새가 줄지어 있고, 이슬이 반짝이며, 지름길 쪽으로 실 한 가닥이 늘어져 있다 */
-    'fly:eavesWeb': { w: 14.5, h: 13.5, d: (time, t) => {
-      const beam = tone(t, '#8b8fa3'), tile = tone(t, '#6f7388'), post = tone(t, '#9aa3bb');
-      form([[-7, -11.2], [7, -11.2], [7, -12.9], [-7, -12.9]], beam, [[-7.2, -11], [7.2, -11], [7.2, -11.5], [-7.2, -11.5]], [[-7.2, -13], [7.2, -13], [7.2, -12.5], [-7.2, -12.5]]);
-      for (let x = -6.5; x <= 6.5; x += 1) {
-        const m = [[x - .48, -11.25], [x - .48, -10.5, x + .48, -10.5, x + .48, -11.25]];
-        form(m, tile, [[x + .1, -10], [x + .1, -11.4], [x + .6, -11.4], [x + .6, -10]], null);
-      }
-      form([[4.4, -10.7], [5.4, -10.7], [5.4, 0], [4.4, 0]], post, [[5, .2], [5, -11], [5.6, -11], [5.6, .2]], [[4.2, .2], [4.2, -11], [4.65, -11], [4.65, .2]]);
-      const c = [0, -8], anchors = [[-4.5, -11], [-1.5, -11], [1.5, -11], [4.4, -10.4], [4.4, -7.5], [4.4, -4.6], [1.2, -4], [-2.2, -4.8], [-4.4, -7.6]];
-      ctx.save(); ctx.strokeStyle = t('#f4f1ea'); ctx.lineWidth = .04; ctx.globalAlpha = .85; ctx.beginPath();
-      anchors.forEach(([x, y]) => { ctx.moveTo(c[0], c[1]); ctx.lineTo(x, y); });
-      [.25, .45, .65, .85].forEach((f) => anchors.forEach(([x, y], i) => {
-        const px = c[0] + (x - c[0]) * f, py = c[1] + (y - c[1]) * f;
-        if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py);
-      }));
-      ctx.stroke();
-      const sway = Math.sin(time * 1.4) * .4;
-      ctx.beginPath(); ctx.moveTo(-4.5, -11); ctx.quadraticCurveTo(-5.5 + sway, -7, -6 + sway, -3.5); ctx.stroke();
+    /* F3 — 스테인리스 물그릇. 테두리 너머 물 위에 내가 떠 있고, 내 둘레로 물결이 번진다. 안쪽 벽이 반짝인다 */
+    'fly:waterBowl': { w: 22, h: 5, d: (time, t) => {
+      const st = tone(t, '#c3c9d0'), water = t('#bfe0f0'), RIM_Y = -3.1, WATER_Y = -2.5;
+      faded(.22, () => E(0, -.05, 9.6, .35, t(INK)));
+      ctx.save(); ctx.beginPath(); ctx.ellipse(0, RIM_Y, 10, 1.5, 0, Math.PI, TAU); ctx.ellipse(0, WATER_Y, 9.2, 1.15, 0, TAU, Math.PI, true); ctx.closePath();
+      ctx.fillStyle = st.dark; ctx.fill(); ctx.clip();
+      faded(.8, () => P([[-6.4, 0], [-5.8, -5], [-4.9, -5], [-5.5, 0]], st.lit)); faded(.5, () => P([[2.6, 0], [2.9, -5], [3.3, -5], [3, 0]], st.lit));
       ctx.restore();
-      anchors.forEach(([x, y], i) => glint(c[0] + (x - c[0]) * .65, c[1] + (y - c[1]) * .65, .18, Math.sin(time * 3 + i * 1.7)));
-      glint(-6 + sway, -3.5, .22, .5 + Math.sin(time * 2) * .5);
-    } },
-
-    /* F4 — 반쯤 열린 주방 창문: 홈 파인 알루미늄 레일, 미닫이 유리와 창틀 기둥, 레일에 말라붙은 소스 자국 */
-    'fly:windowFrame': { w: 16.5, h: 16, d: (time, t) => {
-      const al = tone(t, '#c9c4cc'), st = tone(t, '#d8d4de');
-      form([[-6.2, 0], [6, 0], [6, -.8], [-6.2, -.8]], al, [[5.4, .2], [5.4, -1], [6.2, -1], [6.2, .2]], [[-6.4, -1], [6.2, -1], [6.2, -.62], [-6.4, -.62]]);
-      L(-6, -.38, 5.4, -.38, al.deep, .1);
-      faded(.6, () => { E(-3, -.85, .6, .12, t('#c0503a')); E(-2.2, -.82, .2, .07, t('#c0503a')); });
-      faded(.35, () => RR(3, -15, 5, 14.2, 0, t('#bfe3f5')));
-      faded(.5, () => { P([[3.4, -10], [4.4, -12], [5.4, -6], [4.4, -4]], t(WHITE)); P([[5.8, -13], [6.3, -14], [7.2, -9], [6.7, -8]], t(WHITE)); });
-      form([[2, -.8], [3, -.8], [3, -15.2], [2, -15.2]], st, [[2.62, 0], [2.62, -15.4], [3.2, -15.4], [3.2, 0]], [[1.8, 0], [1.8, -15.4], [2.25, -15.4], [2.25, 0]]);
-    } },
-
-    /* F4 — 조리대 위 떡볶이 접시: 윤기 도는 빨간 떡, 접힌 어묵, 삶은 달걀 반쪽, 파, 깨. 접시 가장자리에 소스 방울 */
-    'fly:tteokbokki': { w: 9, h: 5, d: (time, t) => {
-      const plate = tone(t, '#fbfaf6'), sauce = tone(t, SAUCE), cake = tone(t, '#ec6446'), fish = tone(t, '#e8b878');
-      E(0, -.32, 4.3, .5, plate.dark); E(0, -.55, 4.1, .6, plate.lit); E(0, -.62, 3.5, .44, plate.mid);
-      E(0, -.66, 3.3, .38, sauce.dark); E(-.2, -.72, 3, .3, sauce.mid);
-      const mound = [[-2.9, -.72], [-2.2, -1.75, 2.2, -1.85, 2.9, -.72]];
-      rim(mound, sauce, .2, .22, [[1.2, -.6], [1.8, -1.2, 2, -1.6], [3.2, -1.6], [3.2, -.6]]);
-      const sheet = (pts, dark) => form(pts, fish, dark, null);
-      sheet([[1.1, -.85], [1.6, -1.6, 2.4, -1.85, 2.6, -1.7], [2.9, -.85], [2, -1.05, 1.1, -.85]], [[2.3, -.7], [2.5, -1.7], [3, -1.7], [3, -.7]]);
-      sheet([[-2.95, -.82], [-2.5, -1.5, -2, -1.65, -1.9, -1.55], [-1.55, -.88], [-2.3, -1.02, -2.95, -.82]], [[-2.05, -.7], [-1.95, -1.7], [-1.4, -1.7], [-1.4, -.7]]);
-      const tteok = (x, y, a) => {
-        ctx.save(); ctx.translate(x, y); ctx.rotate(a);
-        const body = [[-.72, -.27], [.72, -.27], [.8, 0, .72, .27], [-.72, .27], [-.8, 0, -.72, -.27]];
-        rim(body, cake, 0, .16, [[-.9, .1], [.9, .1], [.9, .4], [-.9, .4]]);
-        E(.72, 0, .19, .28, t('#fff3e6')); E(.75, .04, .11, .18, t('#f4e2d0'));                 // 잘린 단면: 하얀 떡살
-        faded(.8, () => E(-.25, -.17, .3, .045, t(WHITE)));
-        ctx.restore();
-      };
-      [[-1.9, -.95, .1], [-.5, -1.02, -.15], [.9, -.98, .2], [-1.2, -1.42, -.3], [.25, -1.52, .1], [1.6, -1.35, -.1]].forEach(([x, y, a]) => tteok(x, y, a));
-      const egg = [[-.72, -1.82], [-.7, -2.32, .3, -2.4, .32, -1.86], [.3, -1.5, -.7, -1.46, -.72, -1.82]];
-      form(egg, tone(t, '#fbfaf6'), [[-.1, -1.4], [.1, -1.9, .35, -2.1], [.6, -2.1], [.6, -1.4]], null);
-      E(-.14, -1.92, .26, .2, t('#ffc93a')); E(-.22, -1.98, .11, .07, t('#fff2b0'));
-      [[-2.4, -.9], [.4, -1.15], [1.9, -1.0], [-.9, -1.75]].forEach(([x, y]) => { E(x, y, .17, .11, t('#5fa35a')); E(x, y, .08, .05, t('#d8f0b8')); });
-      [[-1.5, -1.1], [.9, -1.35], [-.3, -1.3], [1.3, -.85]].forEach(([x, y]) => E(x, y, .05, .03, t('#fff3d8')));
-      E(3.9, -.4, .13, .17, sauce.dark); E(3.86, -.45, .04, .05, t(WHITE));
-      wisps([-1.5, .5, 2], -2.2, 2.6, time, t(WHITE), .35);
-    } },
-
-    /* D12 — 가스레인지 위 찌개 냄비: 배가 살짝 부른 냄비, 귀 손잡이, 보글보글 끓는 빨간 국물, 두부와 파, 푸른 불꽃, 뜨거운 김 */
-    'fly:stewPot': { w: 24.5, h: 21, d: (time, t) => {
-      const pot = tone(t, '#a8adb8'), ink = tone(t, '#3a3445'), tofu = tone(t, '#fbf7ee');
-      form([[-10, 0], [10, 0], [10, -.6], [-10, -.6]], ink, null, [[-10.2, -.75], [10.2, -.75], [10.2, -.5], [-10.2, -.5]]);
-      for (let x = -6; x <= 6; x += 2) {
-        const h = 1 + Math.sin(time * 12 + x) * .25;
-        faded(.85, () => { ctx.fillStyle = '#6fb7ff'; ctx.beginPath(); ctx.moveTo(x - .5, -.6); ctx.quadraticCurveTo(x - .4, -h * .7, x, -h - .6); ctx.quadraticCurveTo(x + .4, -h * .7, x + .5, -.6); ctx.fill(); });
-        faded(.9, () => E(x, -.9, .18, .3, '#d8efff'));
+      faded(.85, () => E(0, WATER_Y, 9.2, 1.15, water));
+      faded(.5, () => [[-7, -2.9], [-1, -3.1], [4.5, -2.7]].forEach(([x, y], i) => L(x, y, x + 1.4 + i * .3, y, t(WHITE), .06)));
+      ctx.save(); ctx.strokeStyle = t(WHITE); ctx.lineWidth = .05;
+      for (let k = 0; k < 3; k++) {
+        const ph = (time * .45 + k / 3) % 1;
+        ctx.globalAlpha = .7 * (1 - ph); ctx.beginPath(); ctx.ellipse(-4, -2.35, .6 + ph * 2.6, .15 + ph * .45, 0, 0, TAU); ctx.stroke();
       }
-      ctx.save(); ctx.translate(0, -1.6);
-      [-1, 1].forEach((d) => {
-        const ear = [[d * 8.8, -8.8], [d * 11.4, -9.2, d * 11.8, -7.4], [d * 11.6, -6.4, d * 8.8, -6.6]];
-        curvy(ear, d < 0 ? ink.lit : ink.mid); curvy([[d * 9, -8.1], [d * 10.6, -8.2, d * 10.7, -7.5], [d * 10.4, -7.1, d * 9, -7.2]], ink.deep);
+      ctx.restore();
+      const front = [[-10, RIM_Y], [-9.6, -2.2, -7, -1.6, 0, -1.6], [7, -1.6, 9.6, -2.2, 10, RIM_Y], [9.4, -1.2, 8.8, -.3, 8.4, 0], [-8.4, 0], [-8.8, -.3, -9.4, -1.2, -10, RIM_Y]];
+      form(front, st, [[4, .2], [6.5, -1.4, 8.4, -2.6, 9.8, -3.4], [10.4, -3.4], [10.4, .2]], [[-10.4, .2], [-10.4, -3.4], [-7.2, -1.8], [-6.8, -.6, -6.6, 0]]);
+      ctx.save(); ctx.strokeStyle = st.lit; ctx.lineWidth = .22; ctx.beginPath(); ctx.ellipse(0, RIM_Y, 10, 1.5, 0, 0, TAU); ctx.stroke(); ctx.restore();
+    } },
+
+    /* F2·D12 — 찌그러진 양은 냄비 밥그릇. 사료와 찬밥이 소복하고, 테두리로 된장국이 흘러내렸다 */
+    'fly:dogBowl': { w: 25, h: 11, d: (time, t) => {
+      const pot = tone(t, '#d8b45e'), food = tone(t, '#a9693c'), soup = t('#b7863f');
+      ctx.save(); ctx.translate(12.2, 0);
+      faded(.22, () => E(1, -.05, 11.5, .35, t(INK)));
+      const mound = [[-8, -7.9], [-6, -10.4, -2, -10.9, 1, -10.6], [5, -10.3, 8, -9.6, 9.6, -7.9]];
+      form(mound, food, [[3, -7.5], [4, -9, 6, -10.5, 10, -10.6], [10, -7.5]], [[-8.4, -7.5], [-6.4, -10.2, -2, -11, 0, -11], [-.5, -10, -5, -9.4, -8.4, -7.5]]);
+      [[-5.5, -9.2, .3], [-2, -10.1, -.4], [1.6, -9.9, .8], [4.8, -9.3, .2], [-3.8, -8.5, 1.2]].forEach(([x, y, a]) => grain(x, y, a, .38, t));
+      [[-1, -9.6], [3, -9.1], [6.8, -8.6], [-6.4, -8.4]].forEach(([x, y], i) => { ctx.save(); ctx.translate(0, y + .2); crumb(x, .3, i, t, '#8a5530'); ctx.restore(); });
+      const body = [[-10, -7.9], [-10.3, -6.2], [-9.6, -4.9], [-9.9, -3.2], [-9.5, 0], [8.9, 0], [10.6, -4, 10.4, -7.9]];
+      form(body, pot, [[5.6, .3], [6.8, -4, 6.6, -8.2], [11, -8.2], [11, .3]], [[-10.6, .3], [-10.6, -8.2], [-8.2, -8.2], [-8.6, -4, -8, .3]]);
+      within(body, () => {
+        faded(.45, () => curvy([[-10.4, -6.6], [-7.6, -6.4, -6.2, -5.4], [-7.4, -4.6, -9.6, -4.9]], pot.dark));   // 찌그러져 들어간 자리
+        faded(.6, () => curvy([[-9.6, -4.9], [-7.4, -4.6, -6.2, -5.4], [-6.6, -4, -8.4, -3.4, -10, -3.4]], pot.lit));
       });
-      const belly = [[-9, -9.4], [9, -9.4], [9.3, -4.4, 8.8, -1.8], [8.4, -.6, 7, -.6], [-7, -.6], [-8.4, -.6, -8.8, -1.8], [-9.3, -4.4, -9, -9.4]];
-      form(belly, pot, [[4.8, 0], [5.2, -5, 5, -10], [10, -10], [10, 0]], [[-10, 0], [-10, -10], [-7, -10], [-7.4, -5, -7, 0]]);
-      faded(.5, () => RR(-6.4, -8.6, .35, 7.2, .2, t(WHITE)));
-      E(0, -9.6, 9.4, 1.3, pot.lit); E(0, -9.75, 8.8, 1, pot.deep);
-      E(0, -9.5, 8.7, .85, t('#c8402a')); E(-.6, -9.6, 7.6, .62, t('#e2683a'));
-      [[-4, -9.8], [1.5, -9.6], [4.5, -9.9]].forEach(([x, y]) => {
-        curvy([[x - .7, y], [x + .5, y], [x + .5, y + .5], [x - .7, y + .5]], tofu.mid);
-        curvy([[x - .7, y], [x + .5, y], [x + .75, y - .3], [x - .45, y - .3]], tofu.lit);
-        curvy([[x + .5, y], [x + .75, y - .3], [x + .75, y + .25], [x + .5, y + .5]], tofu.dark);
+      form([[-10.6, -7.6], [10.8, -7.6], [10.8, -8.5], [-10.6, -8.5]], pot, null, [[-11, -8.6], [11, -8.6], [11, -8.2], [-11, -8.2]]);
+      [[-12.2, -8], [11.2, -8]].forEach(([x, y], i) => {
+        ctx.save(); ctx.strokeStyle = i ? pot.dark : pot.lit; ctx.lineWidth = .35; ctx.beginPath(); ctx.ellipse(x + .5, y + .5, 1, .55, 0, Math.PI * .9, Math.PI * 2.1); ctx.stroke(); ctx.restore();
       });
-      [[-2, -9.5], [3, -10], [-6, -9.6]].forEach(([x, y]) => { E(x, y, .32, .2, t('#5fa35a')); E(x, y, .14, .09, t('#d8f0b8')); });
-      for (let i = 0; i < 4; i++) {
-        const ph = (time * .8 + hash(i, 9)) % 1, x = -6 + i * 4, r = .15 + ph * .45;
-        faded(1 - ph, () => { E(x, -9.7 - r * .4, r, r * .6, t('#ff9a7a')); E(x - r * .3, -9.8 - r * .7, r * .3, r * .2, t(WHITE)); });
-      }
-      wisps([-5, -1.5, 2, 5.5], -10.6, 8, time, t(WHITE), .4);
+      faded(.85, () => curvy([[-3, -7.6], [-2.6, -6.2, -2.8, -4.4], [-2.2, -4, -2, -4.6], [-1.9, -6.2, -1.6, -7.6]], soup));
+      const ph = (time * .4) % 1;
+      faded(1 - ph, () => drop(-2.4, -3.8 + ph * 3.4, .14, soup));
+      faded(.6, () => E(-2.6, -.08, 1.4, .12, soup));
+      grain(-13.4, -.15, .4, .32, t);
       ctx.restore();
-      [-8, 8].forEach((x) => form([[x - .3, -.6], [x + .3, -.6], [x + .3, -2.2], [x - .3, -2.2]], ink, [[x + .05, 0], [x + .05, -2.4], [x + .5, -2.4], [x + .5, 0]], null));
+    } },
+
+    /* F2 — 마당 흙에 늘어진 백구 쇠사슬. 볕에 데워진 녹슨 고리가 누웠다 섰다 이어지고, 백구가 움직이면 철렁 흔들린다 */
+    'fly:chain': { w: 18, h: 3, d: (time, t) => {
+      const rust = tone(t, '#94705a'), jerk = hash(Math.floor(time * .6), 9) > .6 ? Math.sin(time * 26) * .08 * (1 - (time * .6) % 1) : 0;
+      ctx.save(); ctx.translate(jerk, 0);
+      for (let i = 0; i < 8; i++) {
+        const x = -8 + i * 2.1, lift = i > 5 ? (i - 5) * .7 : 0, y = -.35 - lift;
+        if (i % 2) {
+          form(roundBox(x - 1.2, y - .2, 2.4, .42, .2), rust, [[x - 1.3, y + .05], [x + 1.3, y + .05], [x + 1.3, y + .3], [x - 1.3, y + .3]], [[x - 1.3, y - .25], [x + 1.3, y - .25], [x + 1.3, y - .1], [x - 1.3, y - .1]]);
+        } else {
+          ctx.save(); ctx.strokeStyle = rust.mid; ctx.lineWidth = .36; ctx.beginPath(); ctx.ellipse(x, y, 1.15, .5, -lift * .15, 0, TAU); ctx.stroke();
+          ctx.strokeStyle = rust.lit; ctx.lineWidth = .14; ctx.beginPath(); ctx.ellipse(x, y - .06, 1.15, .5, -lift * .15, Math.PI * 1.05, Math.PI * 1.7); ctx.stroke(); ctx.restore();
+        }
+      }
+      ctx.restore();
+      faded(.18, () => E(-.5, -.03, 8.5, .2, t(INK)));
+    } },
+
+    /* F4 — 할아버지 의자 밑 양은 막걸리 사발. 바깥으로 막걸리가 흘렀고, 테두리엔 날 따라온 수컷이 앉았다 */
+    'fly:makgeolli': { w: 13, h: 5.5, d: (time, t) => {
+      const bowl = tone(t, '#dcb55e'), milk = t('#f1ece0');
+      faded(.2, () => E(-2, -.05, 5, .3, t(INK)));
+      const b = [[-8.2, -4.6], [-7.6, -2, -5, -.9, -3.1, -.7], [-3.2, 0], [-.8, 0], [-.9, -.7], [1.2, -.9, 3.6, -2, 4.2, -4.6]];
+      form(b, bowl, [[.6, .2], [2.6, -2, 3.4, -4, 3.4, -4.9], [4.6, -4.9], [4.6, .2]], [[-8.6, .2], [-8.6, -4.9], [-6.6, -4.9], [-6, -2.6, -4.6, -1.4, -3.4, .2]]);
+      form([[-8.4, -4.4], [4.4, -4.4], [4.4, -4.9], [-8.4, -4.9]], bowl, null, [[-8.6, -5], [4.6, -5], [4.6, -4.75], [-8.6, -4.75]]);
+      faded(.9, () => curvy([[-5.8, -4.4], [-5.5, -3.2, -5.1, -2.2], [-4.6, -2.1, -4.5, -2.6], [-4.7, -3.6, -4.9, -4.4]], milk));
+      faded(.7, () => E(-4.2, -.08, 1.6, .14, milk));
+      miniFly(1.6, -4.95, 1, time, t, {});
+    } },
+
+    /* F5·F10 — 할아버지 1톤 트럭 뒷바퀴와 흙받이. 실제로는 지름 60cm라 파리 눈엔 벽처럼만 보여서, 바퀴로 읽히게 지름 24cm로 줄였다.
+       무늬 블록이 땅에 닿고, 흰 휠에 너트 다섯 개. 시동이 걸려 있으면 살짝 떤다 */
+    'fly:truckBed': { w: 28, h: 26, d: (time, t) => {
+      const shake = Math.sin(time * 31) * .02, tire = tone(t, TIRE), wheel = tone(t, '#d6d3da'), CX = 15, CY = -12, R0 = 12;
+      faded(.35, () => E(CX, -.05, 10, .45, t(INK)));
+      ctx.save(); ctx.translate(0, shake);
+      const pts = [];
+      for (let k = 0; k <= 72; k++) { const a = k / 72 * TAU, r = R0 - (k % 2) * .28; pts.push([CX + Math.cos(a) * r, CY + Math.sin(a) * r]); }
+      form(pts, tire, [[CX + 3, .5], [CX + 9, -4, CX + 10.5, -12, CX + 8, -20], [CX + 13, -20], [CX + 13, .5]], [[CX - 12.5, -9], [CX - 11, -17, CX - 6, -22, CX - 1, -24.4], [CX - 12.5, -24.4]]);
+      ctx.save(); ctx.strokeStyle = tire.deep; ctx.lineWidth = .18; ctx.beginPath(); ctx.arc(CX, CY, R0 - 1.4, 0, TAU); ctx.stroke(); ctx.restore();
+      E(CX, CY, 7.4, 7.4, tire.deep);
+      form([[CX, CY - 6.8], [CX + 3.8, CY - 6.8, CX + 6.8, CY - 3.8, CX + 6.8, CY], [CX + 6.8, CY + 3.8, CX + 3.8, CY + 6.8, CX, CY + 6.8],
+        [CX - 3.8, CY + 6.8, CX - 6.8, CY + 3.8, CX - 6.8, CY], [CX - 6.8, CY - 3.8, CX - 3.8, CY - 6.8, CX, CY - 6.8]], wheel,
+        [[CX + 2.4, CY + 7.2], [CX + 6.2, CY + 2, CX + 6.2, CY - 3, CX + 3.6, CY - 7.2], [CX + 7.4, CY - 7.2], [CX + 7.4, CY + 7.2]], null);
+      E(CX, CY, 2.4, 2.4, wheel.dark); E(CX - .2, CY - .2, 1.6, 1.6, wheel.lit);
+      for (let k = 0; k < 5; k++) { const a = k / 5 * TAU - Math.PI / 2; E(CX + Math.cos(a) * 4, CY + Math.sin(a) * 4, .45, .45, wheel.dark); }
+      form([[0, -26], [5.4, -26], [5.6, -4.4], [.2, -4]], tone(t, '#2f2b33'), [[4, -3.6], [4, -26.4], [5.8, -26.4], [5.8, -3.6]], [[-.4, -26.4], [5.8, -26.4], [5.8, -25], [-.4, -25]]);
+      ctx.restore();
+    } },
+
+    /* F10 — 트럭 바퀴 옆에 떨어진 상자 조각. 하얀 개털 몇 가닥이 붙어 바람에 나풀거린다 */
+    'fly:furTuft': { w: 11, h: 3, d: (time, t) => {
+      const card = tone(t, '#d9b27c');
+      faded(.2, () => E(0, -.04, 5.6, .2, t(INK)));
+      form([[-5.2, 0], [4.6, 0], [5.4, -.55], [-4.4, -.55]], card, [[4.4, .2], [4.6, -.7], [5.6, -.7], [5.6, .2]], [[-5.4, -.7], [5.6, -.7], [5.6, -.45], [-5.4, -.45]]);
+      ctx.save(); ctx.strokeStyle = t('#fbf7ee'); ctx.lineCap = 'round';
+      for (let i = 0; i < 7; i++) {
+        const x = -3.4 + i * 1.05 + hash(i, 3) * .4, len = 1.2 + hash(i, 4) * 1.4, a = -1.2 - hash(i, 5) * .7 + Math.sin(time * 1.6 + i) * .14;
+        ctx.lineWidth = .05 + hash(i, 6) * .04; ctx.beginPath(); ctx.moveTo(x, -.55);
+        ctx.quadraticCurveTo(x + Math.cos(a + .5) * len * .5, -.55 + Math.sin(a + .5) * len * .5, x + Math.cos(a) * len, -.55 + Math.sin(a) * len); ctx.stroke();
+      }
+      ctx.restore();
+    } },
+
+    /* F6·K1 — 시장 생선 가게 뒷문. 뒤에 쌓인 스티로폼 상자, 앞에 뒤집어 놓은 뚜껑 쟁반엔 녹는 얼음과 고등어 머리 */
+    'fly:fishCrate': { w: 26, h: 15, d: (time, t) => {
+      const sty = tone(t, '#f1efe8'), ice = tone(t, '#dcedf5'), back = tone(t, '#5f8aa5'), belly = tone(t, '#dfe3e8');
+      ctx.save(); ctx.translate(11, 0);
+      form(roundBox(3, -15, 13, 15, .6), sty, [[13.2, .2], [13.2, -15.2], [16.2, -15.2], [16.2, .2]], [[2.8, .2], [2.8, -15.2], [4.2, -15.2], [4.2, .2]]);
+      faded(.5, () => R(3, -10.6, 13, .9, t('#6f9ccf')));
+      [[-6, -2.7, .9], [-1.5, -2.9, 1.1], [5.5, -2.8, 1], [8.6, -2.6, .7]].forEach(([x, y, r]) => form([[x - r, y + .5], [x - r * .8, y - r * .5], [x, y - r * .8], [x + r, y - r * .2], [x + r * .9, y + .5]], ice, [[x + .1, y + .6], [x + .2, y - r], [x + r * 1.2, y - r], [x + r * 1.2, y + .6]], null));
+      ctx.save(); ctx.translate(-.5, -3.1);
+      const head = [[-5.2, -.6], [-4.6, -2, -3, -3.2, -.6, -3.6], [2.4, -3.8], [2.6, -2.6, 2.7, -.8, 2.4, .3], [-1, .4, -3.8, .3, -5.2, -.6]];
+      form(head, back, [[-6, -1.2], [-3, -1.8, 0, -1.6, 3, -1.2], [3, .6], [-6, .6]], null);
+      within(head, () => {
+        curvy([[-6, -1.25], [-3, -1.85, 0, -1.65, 3, -1.25], [3, .6], [-6, .6]], belly.mid);
+        curvy([[-6, -.2], [3, -.4], [3, .6], [-6, .6]], belly.dark);
+        [[-.4, 0], [.9, .2]].forEach(([x]) => L(x, -3.7, x + .7, -2.3, back.deep, .22));
+      });
+      curvy([[2.4, -3.8], [3, -2.4, 3, -.8, 2.4, .3], [2.9, -.6, 2.9, -2.6, 2.4, -3.8]], t('#c4505a'));
+      L(-1.4, -3, -1.9, -.3, back.deep, .12);
+      E(-3.4, -1.9, .55, .55, t('#f4e9c0')); E(-3.35, -1.9, .3, .3, t(INK)); E(-3.5, -2.05, .1, .1, t(WHITE));
+      ctx.restore();
+      form([[-9.4, 0], [-9.6, -2.6], [11, -2.6], [10.8, 0]], sty, [[9.4, .2], [9.4, -2.8], [11.2, -2.8], [11.2, .2]], [[-9.8, -2.8], [11.2, -2.8], [11.2, -2.3], [-9.8, -2.3]]);
+      const ph = (time * .5) % 1;
+      faded(1 - ph, () => drop(-9.7, -2 + ph * 1.9, .13, ice.mid));
+      faded(.5, () => E(-10.6, -.06, 1.3, .12, ice.mid));
+      ctx.restore();
+    } },
+
+    /* K1 — 생선 쟁반 테두리에서 꼬물거리는 내 새끼 구더기들 */
+    'fly:maggots': { w: 3.4, h: .6, d: (time, t) => {
+      const p = tone(t, '#f3ead2');
+      for (let i = 0; i < 5; i++) {
+        const x = -1.4 + i * .7, w = Math.sin(time * 3 + i * 1.7);
+        ctx.save(); ctx.translate(x, -.16); ctx.rotate(w * .12 + (i % 2 ? .2 : -.15)); ctx.scale(1 + w * .1, 1 - w * .06);
+        form([[-.36, 0], [-.3, -.17, .2, -.2, .36, -.06], [.38, .06, .2, .14, -.3, .12]], p, [[-.4, .03], [.4, .03], [.4, .2], [-.4, .2]], null);
+        L(-.08, -.15, -.1, .1, p.dark, .025); L(.12, -.16, .1, .1, p.dark, .025);
+        ctx.restore();
+      }
+    } },
+
+    /* F11 — 비 오는 밤의 나무 개집 입구. 문턱에 턱을 괸 백구가 자고, 따뜻한 숨이 입구 밖으로 흘러나온다 */
+    'fly:doghouse': { w: 24, h: 26, d: (time, t) => {
+      const wood = tone(t, '#c48f5e'), roof = tone(t, '#4f6b5a'), door = [[0, -2], [0, -12], [0, -16, 6, -18, 12, -16], [12, -12], [12, -2]];
+      ctx.save(); ctx.translate(6.4, 0);
+      form([[-6, 0], [-6, -24], [18, -24], [18, 0]], wood, [[14, .2], [14, -24.2], [18.2, -24.2], [18.2, .2]], [[-6.2, .2], [-6.2, -24.2], [-4.8, -24.2], [-4.8, .2]]);
+      [-2.8, 15].forEach((x) => L(x, -1, x, -23.6, wood.dark, .1));
+      curvy(door, t('#2c2430'));
+      within(door, () => {
+        faded(.35, () => E(6, -6, 7, 5, t('#5a4650')));
+        ctx.save(); ctx.translate(1.4, -3 + Math.sin(time * 1.1) * .06); ctx.scale(.6, .6); dogHead(t, { eye: 'shut' }); ctx.restore();
+        ctx.save(); ctx.translate(1.4, -2); ctx.scale(.6, .6); dogPaw(t); ctx.restore();
+      });
+      form([[-6.4, -2], [12.4, -2], [12.4, -.8], [-6.4, -.8]], wood, null, [[-6.6, -2.1], [12.6, -2.1], [12.6, -1.7], [-6.6, -1.7]]);
+      form([[-8, -24], [20, -24], [21, -27], [-9, -27]], roof, [[17, -23.8], [17, -27.2], [21.2, -27.2], [21.2, -23.8]], null);
+      const ph = (time * .35) % 1;
+      faded(.4 * Math.sin(ph * Math.PI), () => wisps([.6], -3.6, 3.2, time, t('#fff3e0'), .8));
+      ctx.restore();
+    } },
+
+    /* F12 — 내가 태어난 마당 구석. 백구가 아침에 눈 똥 무더기와, 그 밑에 낳아 둔 하얀 알 몇 알 */
+    'fly:dungPile': { w: 5.5, h: 2.8, d: (time, t) => {
+      const p = tone(t, '#6e4b30');
+      faded(.22, () => E(0, -.04, 2.6, .16, t(INK)));
+      [[0, -.55, 2.3, .6], [-.2, -1.35, 1.7, .5], [.1, -2, 1.05, .42]].forEach(([x, y, rx, ry]) => {
+        const lump = [[x - rx, y + ry * .6], [x - rx * 1.05, y - ry * .5, x - rx * .4, y - ry * 1.1, x, y - ry], [x + rx * .6, y - ry * 1.1, x + rx * 1.05, y - ry * .3, x + rx, y + ry * .6]];
+        form(lump, p, [[x + rx * .35, y + ry], [x + rx * .5, y - ry * 1.2], [x + rx * 1.2, y - ry * 1.2], [x + rx * 1.2, y + ry]], [[x - rx * 1.1, y - ry * .2], [x - rx * .6, y - ry * 1.2], [x, y - ry * 1.2], [x - rx * .5, y - ry * .6]]);
+      });
+      faded(.6, () => E(-.5, -2.25, .2, .07, t(WHITE)));
+      [[-2.1, -.1], [-1.9, -.18], [-1.7, -.08], [-1.95, -.02]].forEach(([x, y], i) => E(x, y, .1, .045, t(i % 2 ? '#f6f1e2' : WHITE)));
+      wisps([-.6, .6], -2.4, 1.6, time, t('#e8dcc8'), .25);
     } },
 
     /* F5 — 천장에서 내려온 꿀 냄새 끈끈이 리본의 끝자락. 반 바퀴 비틀려 앞뒤 면이 번갈아 보이고, 먼저 붙은 친구들이 발버둥 친다 */
@@ -383,85 +481,6 @@
       for (let i = 0; i < 6; i++) crumb(-1.8 + hash(i, 31) * 3.6, .14 + hash(i, 32) * .14, i, t, '#e0a24a');
     } },
 
-    /* F6 — 앞이 찢어진 골목 음식물 봉투. 묶은 귀가 쫑긋하고, 찢긴 틈으로 김치·달걀 껍데기·생선 가시가 쏟아졌다 */
-    'fly:tornBag': { w: 12.5, h: 9, d: (time, t) => {
-      const bag = tone(t, '#eef0e6');
-      faded(.6, () => E(.6, -.06, 5.4, .32, t(BROTH)));
-      curvy([[-4.4, 0], [-5.4, -2.4, -4.6, -5.6, -2, -6.4], [0, -7, 1.8, -6.2], [4.6, -5.4, 5.2, -2.4, 4.6, 0]], bag.dark);   // 뒤로 돌아가는 봉투 옆구리
-      const front = [[-4.4, -.2], [-5.2, -2.4, -4.4, -5.5, -2, -6.3], [0, -6.9, 1.6, -6.2], [3.6, -5.4, 3.6, -2.6, 3, -.2]];
-      form(front, bag, null, [[-5.4, -1], [-5.2, -4, -3.6, -6, -1.4, -6.8], [-1.6, -6], [-3, -5.2, -4, -3.6, -4.2, -1]]);
-      P([[-.8, -6.4], [-1.9, -8.4], [-1, -8], [-.2, -6.6]], bag.dark); P([[-.2, -6.5], [.7, -8.6], [1.3, -8], [.4, -6.4]], bag.lit);
-      E(-.4, -6.5, .55, .32, bag.dark);
-      faded(.12, () => E(-1.2, -2.4, 2.2, 1.6, t(BROTH)));
-      ctx.strokeStyle = bag.dark; ctx.lineWidth = .07; ctx.lineCap = 'round'; ctx.beginPath();
-      ctx.moveTo(1.2, -5.6); ctx.quadraticCurveTo(2.2, -4, 1.8, -2.6); ctx.moveTo(-1, -5.4); ctx.lineTo(-.4, -4.4); ctx.stroke();
-      ctx.fillStyle = t('#8a7462'); ctx.beginPath(); ctx.moveTo(-1.6, -.1); ctx.lineTo(-1.2, -1.8); ctx.lineTo(-.7, -1.3); ctx.lineTo(-.2, -2.9);
-      ctx.lineTo(.4, -1.7); ctx.lineTo(1, -2.4); ctx.lineTo(1.5, -1.1); ctx.lineTo(1.9, -.1); ctx.closePath(); ctx.fill();
-      const kimchi = tone(t, SAUCE);
-      [[-1.1, -.55, .3], [.2, -.9, -.4], [1.1, -.5, .8]].forEach(([x, y, a]) => {
-        ctx.save(); ctx.translate(x, y); ctx.rotate(a);
-        const leaf = [[-.7, .2], [-.6, -.45, 0, -.3], [.5, -.55, .75, .15], [0, .02, -.7, .2]];
-        form(leaf, kimchi, [[.2, .3], [.3, -.6], [.9, -.6], [.9, .3]], [[-.8, .3], [-.7, -.55, 0, -.4], [-.2, -.2, -.5, .1]]);
-        L(-.5, .08, .55, -.05, t('#f7e2c0'), .12);
-        ctx.restore();
-      });
-      ctx.save(); ctx.translate(2.6, -.35); ctx.rotate(-.3);
-      ctx.fillStyle = t('#f6efe2'); ctx.beginPath(); ctx.arc(0, 0, .55, Math.PI, 0); ctx.lineTo(.3, -.1); ctx.lineTo(.1, .05); ctx.lineTo(-.2, -.12); ctx.closePath(); ctx.fill();
-      E(0, -.1, .38, .2, t('#e8d4b0')); ctx.restore();
-      L(3.4, -.12, 5.4, -.16, t('#e9e4ec'), .07);
-      [3.8, 4.25, 4.7, 5.1].forEach((x, i) => { L(x, -.14, x - .2, -.55 + i * .05, t('#e9e4ec'), .04); L(x, -.14, x - .2, .22, t('#e9e4ec'), .04); });
-      P([[5.4, -.16], [5.9, -.5], [5.9, .2]], t('#d8d4de'));
-      grain(-3, -.15, .1, .3, t); grain(-2.4, -.1, -.3, .24, t);
-      wisps([-.4, 1.2], -2.8, 2.4, time, t('#d9c27a'), .3);
-    } },
-
-    /* F6 — 봉투 찢어진 틈에 낳은 하얀 알 무더기 (알 하나 1mm) */
-    'fly:eggCluster': { w: .7, h: .5, d: (time, t) => {
-      for (let i = 0; i < 18; i++) {
-        const x = (hash(i, 41) - .5) * .6, y = -.05 - hash(i, 42) * .2;
-        ctx.save(); ctx.translate(x, y); ctx.rotate((hash(i, 43) - .5) * 1.4);
-        E(0, 0, .055, .022, t(RICE)); E(-.015, -.008, .02, .006, WHITE);
-        ctx.restore();
-      }
-      glint(.15, -.3, .06, .5 + Math.sin(time * 2.5) * .5);
-    } },
-
-    /* F6 — 봉투를 킁킁대는 길고양이. 파리 눈높이에선 옆얼굴 하나가 언덕만 하다 */
-    'fly:catNose': { w: 42, h: 16.5, d: (time, t) => {
-      const fur = '#a3a9b5', sniff = Math.sin(time * 9) * .05, ear = Math.sin(time * 1.3) > .96 ? .12 : 0;
-      ctx.save(); ctx.translate(4, -1);
-      P([[3.2, -9.5], [5.6, -14.4 - ear * 4], [8.4, -9.2]], t(shade(fur)));
-      P([[4.2, -9.7], [5.7, -12.9 - ear * 4], [7.4, -9.6]], t('#f2b6c0'));
-      ctx.fillStyle = t(shade(fur)); ctx.beginPath(); ctx.moveTo(17, 2.6); ctx.bezierCurveTo(15, -4, 12, -8, 9.6, -9.6);
-      ctx.bezierCurveTo(7.6, -11.2, 2.5, -11.4, -.2, -9.3); ctx.bezierCurveTo(-2.4, -7.6, -4.6, -6.6, -5.6, -5.2);
-      ctx.quadraticCurveTo(-6.1, -3.8, -5, -3.2); ctx.quadraticCurveTo(-3.6, -1.6, -1, -1.4); ctx.quadraticCurveTo(3, -.6, 5, 0); ctx.quadraticCurveTo(6.4, 1, 6.6, 2.6); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = t(fur); ctx.beginPath(); ctx.moveTo(16, 2.6); ctx.bezierCurveTo(14.4, -4, 11.6, -8, 9.4, -9.8);
-      ctx.bezierCurveTo(7.6, -11.4, 2.5, -11.6, -.2, -9.5); ctx.bezierCurveTo(-2.4, -7.8, -4.6, -6.8, -5.4, -5.4);
-      ctx.quadraticCurveTo(-4, -4.6, -1.6, -4.4); ctx.quadraticCurveTo(4, -3.6, 8, -2); ctx.quadraticCurveTo(10.6, -.4, 11.4, 2.6); ctx.closePath(); ctx.fill();
-      [[9.4, -6.6], [10.2, -4.6], [8.6, -3.6]].forEach(([x, y]) => L(x, y, x + 1.4, y + .5, t(shade(fur)), .28));
-      [1.5, 3.2, 4.9].forEach((x, i) => L(x, -10.7 + i * .15, x + .8, -9.1, t(shade(fur)), .32));
-      faded(.4, () => E(2, -9.6, 2.6, .5, t(mix(fur, '#ffffff', .5))));
-      ctx.fillStyle = t('#eef0f4'); ctx.beginPath(); ctx.moveTo(-5.4, -5.4); ctx.quadraticCurveTo(-4.4, -3, -1.4, -2.2);
-      ctx.quadraticCurveTo(1.6, -2, 2.4, -3.9); ctx.quadraticCurveTo(-1.4, -4.2, -5.4, -5.4); ctx.fill();
-      E(-2, -4.9, 1.5, .95, t('#f4f5f8'));
-      [[-2.6, -4.9], [-1.5, -4.5], [-.4, -4.9], [-2, -5.6], [-.8, -5.5]].forEach(([x, y]) => E(x, y, .1, .1, t('#8d93a3')));
-      ctx.save(); ctx.translate(-5.4, -5.6); ctx.scale(1.5 + sniff, 1.5 + sniff);
-      P([[0, -.5], [.9, -.9], [.9, .4], [-.2, .3]], t('#ff9aa8')); E(.15, -.1, .22, .14, t(INK)); E(.55, -.6, .3, .1, t('#ffd0d8'));
-      ctx.restore();
-      L(-4.8, -4.3, -4.1, -3.4, t(INK), .12);
-      ctx.fillStyle = t(INK); ctx.beginPath(); ctx.moveTo(.6, -7.6); ctx.quadraticCurveTo(2, -8.9, 3.4, -7.8); ctx.quadraticCurveTo(2, -7.2, .6, -7.6); ctx.fill();
-      E(2.3, -8, .25, .2, t('#c8f08a'));
-      ctx.strokeStyle = t('#f4f1ea'); ctx.lineWidth = .07; ctx.lineCap = 'round'; ctx.beginPath();
-      [-.7, 0, .7].forEach((dy, i) => {
-        const wig = Math.sin(time * 3 + i) * .35;
-        ctx.moveTo(-1.6, -4.9 + dy * .4); ctx.quadraticCurveTo(-6, -5.5 + dy, -10.5, -4.6 + dy * 1.8 + wig);
-      });
-      ctx.stroke();
-      ctx.restore();
-      const ph = (time * 1.5) % 1;
-      faded(.6 * (1 - ph), () => [-.3, .3].forEach((dy) => L(-1.8 - ph * 1.6, -4.6 + dy, -2.8 - ph * 1.6, -4.6 + dy * 1.4, t(WHITE), .08)));
-    } },
-
     /* F7 — 내 몸보다 무거운 빗방울 (지름 0.4cm)이 쏟아지고, 땅에 왕관처럼 튄다 */
     'fly:raindrops': { w: 13, h: 16.5, d: (time, t) => {
       const water = t('#bfe0f5');
@@ -476,25 +495,6 @@
           ctx.beginPath(); ctx.arc(x, 0, .2 + s * .5, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke(); ctx.restore();
         }
       }
-    } },
-
-    /* F7 — 숨어든 벤치 밑. 볕 받는 판자 윗면과 그늘진 앞 모서리, 무쇠 다리. 가장자리로 빗물이 떨어진다 */
-    'fly:benchUnderside': { w: 18, h: 10.5, d: (time, t) => {
-      const wood = tone(t, '#c98d5a'), iron = tone(t, '#5f5a6c');
-      faded(.18, () => E(0, -.05, 7, .25, t(INK)));
-      [-7.6, 6.6].forEach((lx) => {
-        const leg = [[lx, -8.6], [lx + 1, -8.6], [lx + .9, -1.2], [lx + 1.5, 0], [lx - .5, 0], [lx + .1, -1.2]];
-        form(leg, iron, [[lx + .55, .2], [lx + .55, -8.8], [lx + 1.6, -8.8], [lx + 1.6, .2]], null);
-      });
-      form([[-8, -8.8], [8, -8.8], [8, -8.3], [-8, -8.3]], iron, [[-8.2, -8.2], [8.2, -8.2], [8.2, -8.45], [-8.2, -8.45]], null);
-      form([[-8.4, -10.7], [8.4, -10.7], [8.4, -10.15], [-8.4, -10.15]], tone(t, shade('#c98d5a')), null, null);   // 뒤 판자
-      form([[-8.6, -8.8], [8.6, -8.8], [8.6, -9.9], [-8.6, -9.9]], wood, [[7.6, -8.6], [7.6, -10], [8.8, -10], [8.8, -8.6]], null);
-      curvy([[-8.6, -9.9], [8.6, -9.9], [8.9, -10.25], [-8.3, -10.25]], wood.lit);
-      R(-8.6, -9.05, 17.2, .25, wood.dark);
-      [-8.4, 8.4].forEach((x, i) => {
-        const ph = (time * 1.2 + i * .5) % 1;
-        faded(1 - ph * .7, () => drop(x, -9 + ph * 9, .12, t('#bfe0f5')));
-      });
     } },
 
     /* F8 — 벤치 밑에 떨어진 밥알 두 개, 참깨 한 톨, 단무지 부스러기, 김 조각 */
@@ -592,46 +592,6 @@
       const cp = [[-1.6, -19.1], [-1.6, -21], [-1.4, -21.7, -.6, -21.8], [.6, -21.8], [1.4, -21.7, 1.6, -21], [1.6, -19.1]];
       form(cp, cap, [[.7, -19], [.7, -22], [1.8, -22], [1.8, -19]], [[-1.8, -19], [-1.8, -22], [-1, -22], [-1, -19]]);
       RR(.8, -21.2, 1.4, .7, .3, t(INK));
-    } },
-
-    /* F10 — 햇볕 드는 창틀. 앞으로 튀어나온 턱, 빛줄기 속에 먼지가 떠다니고, 말라붙은 양념 자국이 남아 있다 */
-    'fly:sunnySill': { w: 22.5, h: 16.5, d: (time, t) => {
-      const sill = tone(t, '#f4ead8');
-      faded(.16 + Math.sin(time * .8) * .03, () => {
-        P([[-11, -16], [-6, -16], [4, 0], [-1, 0]], '#fff3b8'); P([[-4, -16], [-2, -16], [8, 0], [6, 0]], '#fff3b8');
-      });
-      form([[-8.4, 0], [8, 0], [8, -.55], [-8.4, -.55]], sill, [[7.4, .2], [7.4, -.7], [8.2, -.7], [8.2, .2]], [[-8.6, -.7], [8.2, -.7], [8.2, -.42], [-8.6, -.42]]);
-      R(-8.4, -.12, 16.4, .12, sill.dark);
-      faded(.4, () => P([[-1, -.55], [4, -.55], [4.3, 0], [-.7, 0]], '#fff3b8'));
-      faded(.55, () => { E(-3, -.55, .7, .1, t('#c0503a')); E(-4.1, -.53, .2, .06, t('#c0503a')); });
-      for (let i = 0; i < 7; i++) {
-        const ph = (time * .08 + hash(i, 61)) % 1, x = -8 + hash(i, 62) * 10 + ph * 3, y = -2 - hash(i, 63) * 11 + Math.sin(time + i) * .4;
-        faded(.7 * Math.sin(ph * Math.PI), () => E(x, y, .06, .06, t(WHITE)));
-      }
-    } },
-
-    /* F10 — 창틀에서 같이 볕을 쬐는 늙은 이웃 파리. 날개 끝이 해져 있고 꾸벅꾸벅 존다 */
-    'fly:oldFriend': { w: 1.9, h: 1.9, d: (time, t) => {
-      miniFly(0, -.42 + Math.sin(time * 1.2) * .02, 1, time, t, { frayed: true, old: true, sleep: true });
-      ctx.save(); ctx.fillStyle = t(INK); ctx.font = '0.32px sans-serif';
-      for (let i = 0; i < 2; i++) {
-        const ph = (time * .4 + i * .5) % 1;
-        ctx.globalAlpha = Math.sin(ph * Math.PI); ctx.fillText('z', .35 + ph * .5, -.9 - ph * .9);
-      }
-      ctx.restore();
-    } },
-
-    /* F10·D11 — 닫힌 창문 유리. 볕 받는 창틀 기둥과 아래 레일, 바깥 나무와 하늘이 비치고, 부딪힌 자국이 점점이 남았다 */
-    'fly:windowGlass': { w: 14.5, h: 17, d: (time, t) => {
-      const fr = tone(t, '#d8d4de'), rail = tone(t, '#c9c4cc');
-      faded(.3, () => RR(-2.2, -16, 8.2, 15.4, 0, t('#bfe3f5')));
-      faded(.22, () => { E(2, -5, 3, 2.4, t('#7fb08a')); E(3.5, -11, 3.5, 2, t(WHITE)); });
-      faded(.5 + Math.sin(time * .7) * .1, () => {
-        P([[-1.6, -12], [-.6, -14], [2.4, -6], [1.4, -4]], t(WHITE)); P([[2.8, -14.5], [3.3, -15.5], [5.2, -11], [4.7, -10]], t(WHITE));
-      });
-      [[0, -3.2], [.4, -3.6], [-.3, -4.1], [.8, -2.9]].forEach(([x, y]) => faded(.45, () => E(x, y, .07, .05, t('#8a8494'))));
-      form([[-3, 0], [-3, -16.4], [-2.1, -16.4], [-2.1, 0]], fr, [[-2.45, .2], [-2.45, -16.6], [-2, -16.6], [-2, .2]], [[-3.2, .2], [-3.2, -16.6], [-2.8, -16.6], [-2.8, .2]]);
-      form([[-3, 0], [6.6, 0], [6.6, -.7], [-3, -.7]], rail, [[6, .2], [6, -.9], [6.8, -.9], [6.8, .2]], [[-3.2, -.9], [6.8, -.9], [6.8, -.52], [-3.2, -.52]]);
     } },
   };
 })());

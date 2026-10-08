@@ -10,7 +10,7 @@
     beak: '#3b3049', leg: '#c9937a', tail: '#7a5a3e' });
   const JUV = Object.freeze({ ...SP, cap: '#a98262', capDark: '#8a6a52', spot: '#8a7a70', beak: '#e8c24a' });
   const STRAW = ['#d9b26a', '#c49a5a', '#e8cf94', '#b98a5e'];
-  const RICE = '#fbf7ee', GAPE = '#ffd56b', MOUTH = '#ff7a6b', LEAF = ['#5f8f68', '#6fa275', '#86b98a'];
+  const YELLOW_STRING = '#f2c230', RICE = '#fbf7ee', GAPE = '#ffd56b', MOUTH = '#ff7a6b', LEAF = ['#5f8f68', '#6fa275', '#86b98a'];
   const HERO_SCALE = 1.35;
 
   /* ── 종이 오리기 도구 ── */
@@ -71,7 +71,7 @@
     R(x, y, w, h, p.mid); R(x, y, w, h * .22, p.lit); R(x, y + h * .7, w, h * .3, p.dark);
   }
 
-  /* ── 참새 한 마리 (실제 크기 14cm). o: { x, y, s, flip, pose: stand|peck|puff|dust|fly, c 깃털색, seed, worm, sleepy } ── */
+  /* ── 참새 한 마리 (실제 크기 14cm). o: { x, y, s, flip, pose: stand|peck|puff|dust|fly, c 깃털색, seed, worm, sleepy, gape, white 하얀 깃털 } ── */
   const BODY = 'M3.2 -6.2 C5.3 -4.6 4.3 -1.3 1 -1.1 C-1.7 -.9 -3.7 -2.4 -4.3 -4.4 C-3 -6.7 0 -7.4 3.2 -6.2 Z';
   const BELLY = 'M3.7 -5 C4.4 -3 3 -1.3 .8 -1.2 C-1.4 -1.1 -2.9 -2 -3.3 -3.2 C-1 -3.4 2 -4 3.7 -5 Z';
   const TAIL = 'M-3.2 -3.4 L-7.4 -2.5 Q-7.9 -3.5 -7.3 -4.4 L-3 -5.3 Z';
@@ -80,6 +80,9 @@
   const CAP = 'M1 -7.5 C.9 -10 5.4 -10.4 5.9 -7.9 C4.6 -8.6 2.6 -8.4 1 -7.5 Z';
   const BIB = 'M4.9 -6.3 Q5.8 -5.3 4.7 -4.6 Q4.1 -5.4 4.9 -6.3 Z';
   const FLAP = 'M.6 -.1 C-1 -2.7 -3.5 -6.2 -6.2 -7.3 C-5.8 -4.8 -4.5 -1.7 -2.4 .3 Z';
+  /** 엄마(와 막내) 왼쪽 날개에 섞인 하얀 깃털 한 장 */
+  const WHITE_QUILL = 'M1.2 -5.3 C-.6 -5.5 -2.6 -5 -4.6 -4.1 C-2.6 -4.3 -.6 -4.6 1.2 -4.8 Z';
+  const WHITE_FEATHER = '#fbfaf4';
 
   function head(time, t, c, o) {
     E(3.4, -7.3, 2.5, 2.4, t(c.breast));
@@ -92,10 +95,11 @@
     if (o.worm) sp('M6 -7.1 q1 1.2 2.3 .4 q1 -.8 2 .2', t('#93c26a'), .5);
   }
 
-  function wingFolded(t, c) {
+  function wingFolded(t, c, white) {
     fp(WING, t(c.wing)); fp(WING_TIP, t(c.wingTip));
     sp('M1.6 -5.8 C.2 -5.9 -1.8 -5.4 -3.4 -4.6', t(c.streak), .22); sp('M2 -5 C.4 -4.8 -1.2 -4.4 -2.6 -3.9', t(c.streak), .22);
     sp('M1.8 -6.2 Q.2 -6.5 -1.5 -6', t(c.bar), .3);
+    if (white) fp(WHITE_QUILL, t(WHITE_FEATHER));
   }
 
   function wingOpen(time, t, c, o) {
@@ -103,6 +107,7 @@
     at(1, -6.2, 0, [1, .25 + .75 * f], () => {
       fp(FLAP, t(c.wing)); fp('M-6.2 -7.3 C-5.4 -6 -5 -4.6 -4.6 -3.2 L-3.4 -5.8 Z', t(c.wingTip));
       sp('M-.8 -1.6 Q-2.6 -3.4 -4 -5.6', t(c.bar), .3);
+      if (o.white) sp('M-1.8 -1 Q-3.6 -3.2 -5 -6', t(WHITE_FEATHER), .6);
     });
   }
 
@@ -119,8 +124,8 @@
     at(0, 0, pose === 'fly' ? 0 : -.08 + Math.sin(time * 2 + seed) * .05, null, () => fp(TAIL, t(c.tail)));
     fp(BODY, t(c.back)); fp(BELLY, t(c.belly));
     sp('M-1 -6.4 L-2 -5.8 M.6 -6.7 L-.4 -6.1', t(c.streak), .25);
-    if (pose === 'fly' || pose === 'dust') wingOpen(time, t, c, { seed, flap: pose === 'dust' ? .1 + Math.abs(Math.sin(time * 9 + seed)) * .3 : o.flap });
-    else wingFolded(t, c);
+    if (pose === 'fly' || pose === 'dust') wingOpen(time, t, c, { seed, white: o.white, flap: pose === 'dust' ? .1 + Math.abs(Math.sin(time * 9 + seed)) * .3 : o.flap });
+    else wingFolded(t, c, o.white);
     head(time, t, c, o);
     ctx.restore();
   }
@@ -154,7 +159,7 @@
       E(cx + w * .26, y + h * .1, w * .46, h * .62, p.dark);                               // 오른쪽 아래로 도는 그늘
       curvy([[x0 - 3, top - 4], [x1 + 3, top - 4], [x1 + 3, top + h * .34], [cx, top + h * .58, x0 - 3, top + h * .34]], p.lit);   // 볕 받는 테두리
     });
-    [[0, '#5fa8d8'], [1, '#e6765f'], [2, STRAW[3]], [3, STRAW[1]]].forEach(([i, col]) => {   // 엮인 비닐 끈 두 가닥과 지푸라기 두 올
+    [[0, YELLOW_STRING], [1, YELLOW_STRING], [2, STRAW[3]], [3, STRAW[1]]].forEach(([i, col]) => {   // 엮인 노란 비닐끈 두 가닥과 지푸라기 두 올
       const x = x0 + w * (.18 + i * .2), yy = y - h * (.3 + hash(i, seed) * .3), a = (hash(i, seed + 2) - .5) * 1.4, l = 4 + hash(i, seed + 3) * 4;
       ctx.strokeStyle = t(col); ctx.lineWidth = .5; ctx.lineCap = 'round'; ctx.beginPath();
       ctx.moveTo(x - Math.cos(a) * l / 2, yy - Math.sin(a) * l / 2); ctx.quadraticCurveTo(x, yy - 1, x + Math.cos(a) * l / 2, yy + Math.sin(a) * l / 2); ctx.stroke();
@@ -174,19 +179,6 @@
     clump(blobs.map(([x, y, r]) => [x + 1.4, y + 1.6, r, r * .8]), leaf.dark);
     clump(blobs.filter((b) => b[3]).map(([x, y, r]) => [x - .6, y - .8, r * .94, r * .74]), leaf.mid);
     clump(blobs.filter(([x, , , layer]) => layer === 2 && x < cx).map(([x, y, r]) => [x - r * .2, y - r * .24, r * .6, r * .42]), leaf.lit);
-  }
-
-  /** 새우과자 봉지 (가운데 x, 바닥 y): 톱니로 눌러 붙인 윗단, 볕 받는 왼쪽 · 그늘진 오른쪽, 과자 그림 한 점 */
-  function snackBag(t, cx, y, w, h) {
-    const p = planes(t, '#e6453a'), x0 = cx - w / 2, x1 = cx + w / 2, top = y - h, k = w / 6;
-    const bag = [[x0 + .4, y], [x1 - .4, y], [x1 + .8, y - h * .5, x1, top + 1.6],
-      ...[5, 4, 3, 2, 1, 0].flatMap((i) => [[x0 + (i + 1) * k - k * .5, top], [x0 + i * k, top + 1.4]]), [x0 - .8, y - h * .5, x0 + .4, y]];
-    curvy(bag, p.mid);
-    inside(bag, () => {
-      R(x0 - 1, top, w * .26, h + 1, p.lit); R(x1 - w * .28, top, w * .3, h + 1, p.dark);
-      R(x0 - 1, top + 1.4, w + 2, h * .16, t('#f6eedc'));                                                         // 윗단 흰 띠
-    });
-    E(cx, y - h * .4, w * .28, h * .13, t('#ffb08a'));
   }
 
   /** 하얗게 피어오르는 연기·김 덩어리 */
@@ -308,7 +300,7 @@
       R(-62, -46, 112, 6, t('#e6765f')); R(-62, -8, 112, 6, t('#5f8fb0'));
       label('행복 세탁', -6, -19, '800 17px sans-serif', t('#3b3049'), 'center');
       at(-46, -28, 0, null, () => { RR(-5, -8, 10, 12, 2, t('#5f8fb0')); fp('M-6 -8 L0 -12 L6 -8 Z', t('#5f8fb0')); E(0, -3, 2.4, 2.4, t('#f6eedc')); });
-      sparrow(time, t, { x: 8, y: -48, flip: true, worm: true, seed: 2 });
+      sparrow(time, t, { x: 8, y: -48, flip: true, worm: true, white: true, seed: 2 });
     } },
     /* S2 덤불 속 엄마: 쥐똥나무 덤불 사이로 애벌레를 문 엄마와 꼬리 짧은 동생 */
     'sparrow:bushParent': { w: 100, h: 60, d: (time, t) => {
@@ -384,44 +376,6 @@
     'sparrow:kestrelDive': { w: 56, h: 44, d: (time, t) => {
       faded(.5, () => [-6, 0, 6].forEach((d) => L(-34 + d, -40 - d, -18 + d, -24 - d, WHITE, 1.2)));
       at(0, -18, .55, null, () => kestrelDive(time, t));
-    } },
-
-    /* S4 파라솔 아저씨: 플라스틱 의자에 앉아 새우과자를 부숴 던진다 */
-    'sparrow:snackMan': { w: 80, h: 135, d: (time, t) => {
-      const ch = planes(t, '#3f9f7f');                                                                            // 통짜 플라스틱 의자
-      fp('M-36 -46 L-30 -46 L-27 0 L-33 0 Z', ch.mid); fp('M-35 -46 L-33 -46 L-31 0 L-32.4 0 Z', ch.lit);         // 벌어진 다리
-      fp('M16 -46 L22 -46 L26 0 L20 0 Z', ch.dark);
-      fp('M-34 -50 L-38 -98 Q-35 -100 -31 -98 L-28 -50 Z', ch.mid); fp('M-34 -50 L-38 -98 Q-37 -99 -36 -99 L-32 -50 Z', ch.lit);
-      curvy([[-36, -48], [-31, -52], [27, -52], [24, -48]], ch.lit); RR(-36, -48, 61, 4, 2, ch.mid);
-      fp('M-28 -58 C-22 -64 6 -64 10 -54 L12 -46 L-28 -46 Z', t('#5f6f86'));
-      fp('M6 -60 C14 -60 18 -54 18 -46 L18 -6 L10 -6 L10 -48 Z', t(shade('#5f6f86')));
-      RR(8, -6, 16, 6, 3, t(INK));
-      fp('M-30 -54 C-34 -80 -26 -104 -8 -106 C6 -106 12 -96 12 -84 C14 -72 8 -58 -2 -54 Z', t('#e9e4ec'));
-      fp('M-4 -104 C4 -98 10 -84 6 -64 C2 -76 -2 -90 -10 -100 Z', t('#d2ccd8'));
-      E(-4, -118, 11, 12, t(SKIN));
-      fp('M-16 -122 C-16 -134 8 -136 10 -122 C4 -126 -8 -126 -16 -122 Z', t('#e6765f')); RR(4, -124, 13, 3, 1.5, t('#e6765f'));
-      cuteEye(4, -117, 1.2, 1.5, time, t); blush(5, -111, 2.4, 1.3); sp('M-4 -109 Q2 -106 6 -109', t('#8a6a52'), 1.6);
-      at(-10, -70, -.4, null, () => snackBag(t, 1, 10, 14, 20));
-      const toss = Math.sin(time * 3);
-      ctx.strokeStyle = t('#e9e4ec'); ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(6, -94); ctx.quadraticCurveTo(24, -88, 28, -76 + toss * 3); ctx.stroke();
-      artHandOnArm(t, 28, -76 + toss * 3, .5 + toss * .3, 14, { pose: 'flat' });
-      for (let i = 0; i < 5; i++) {
-        const ph = (time * .6 + i / 5) % 1;
-        at(34 + ph * 8 + hash(i, 3) * 6, -72 + ph * 72, ph * 8, null, () => fp('M-2 0 Q0 -1.4 2 0 Q0 -.4 -2 0 Z', t('#f2b36a')));
-      }
-    } },
-    /* S4 바닥의 새우과자 조각과 찢긴 봉지 */
-    'sparrow:snackBits': { w: 60, h: 8, d: (time, t) => {
-      at(-20, 0, 0, null, () => {                                                                                  // 찢겨 납작해진 봉지
-        const p = planes(t, '#e6453a'), torn = [[-8, 0], [8, 0], [6, -6], [3, -5], [1, -8.6], [-1.6, -6.4], [-4, -9], [-6, -7]];
-        curvy(torn, p.mid); inside(torn, () => { P([[-9, 1], [-5, 1], [-3, -10], [-7, -10]], p.lit); P([[3, 1], [9, 1], [7, -10], [2, -10]], p.dark); });
-        E(0, -3, 3, 1.8, t('#ffb08a'));
-      });
-      [[-4, .2], [6, -.4], [14, .8], [22, -.2], [30, .5]].forEach(([x, r], i) => at(x, -.6, r, null, () => {
-        fp('M-3 0 Q0 -1.8 3 0 Q0 -.6 -3 0 Z', t('#f2b36a'));
-        [-1.4, 0, 1.4].forEach((k) => L(k, -1, k + .2, -.3, t('#d9893e'), .2));
-        if (i === 2) E(0, -.8, 2.8, .5, t('#f9d29a'));
-      }));
     } },
 
     /* S5 카페 통유리: 은행나무와 하늘이 그대로 비친다 (D5 가해자이기도 하다) */
@@ -500,7 +454,7 @@
       for (let x = -58; x < 58; x += 8) { fp(`M${x} -30 q4 4 8 0 Z`, roof.dark); fp(`M${x} -30 q2 2.6 4 2.6 L${x + 4} -30 Z`, roof.mid); }   // 기와 끝: 왼쪽 반은 볕
       fp('M-60 -40 C-40 -46 40 -46 60 -40 L58 -38 C30 -42 -30 -42 -58 -38 Z', t(WHITE));
       [-40, 8, 44].forEach((x, i) => fp(`M${x} -30 L${x + 1.2} ${-24 - i} L${x + 2.4} -30 Z`, t('#e3f2fa')));
-      [-36, -22, -8, 6, 20].forEach((x, i) => sparrow(time, t, { x, y: -2, pose: 'puff', sleepy: i !== 2, flip: i > 2, seed: i }));
+      [-46, -18, -4, 10, 24].forEach((x, i) => sparrow(time, t, { x, y: -2, pose: 'puff', sleepy: i > 0, white: i === 0, flip: i > 2, seed: i }));   // 맨 끝이 엄마, 그 옆자리는 비어 있다
       faded(.6, () => [[-30, 2], [10, 1]].forEach(([x, k]) => E(x + Math.sin(time * 2 + k) * 2, -14 - ((time * .4 + k * .5) % 1) * 6, .8, .8, WHITE)));
     } },
     /* S7 보일러 연통: 그을린 벽에서 따뜻한 김이 나온다 (D7 가해자이기도 하다) */
@@ -606,6 +560,56 @@
       crowHead(t, open);
       cuteEye(13.4, -31.5, .9, 1, time, t);
       [[2, -11], [6, -12]].forEach(([x, y]) => { L(x, y, x + 3, y + 8, t('#3b3049'), 1); sp(`M${x + 3} ${y + 8} q2 0 3 1.5`, t('#3b3049'), .6); });
+    } },
+    /* S3 세탁소 아저씨: 셔터를 올리고 가게 앞을 쓴다. 빗자루가 지나간 자리에 밥알과 빵가루 */
+    'sparrow:laundryMan': { w: 70, h: 175, d: (time, t) => {
+      const sweep = Math.sin(time * 2.4) * 1.5;
+      at(sweep, 0, 0, null, () => {
+        L(-5, -120, 33, -8, t('#c9a06a'), 2.2); L(-5.6, -120, 32.4, -8, t('#e0bd86'), .8);                    // 대나무 자루: 왼쪽 모에 볕
+        const head = planes(t, '#e6765f'), brush = [[28, -11], [38, -11], [48, -1], [47, 0], [20, 0], [20, -1]];
+        curvy(brush, head.mid);
+        inside(brush, () => { P([[18, 1], [27, 1], [31, -12], [25, -12]], head.lit); P([[38, -12], [50, -12], [50, 1], [42, 1]], head.dark); });
+        RR(27, -14, 12, 4, 1.5, t('#5f8fb0'));
+      });
+      person(time, t, { h: 168, top: '#7a95ab', bottom: '#4a4a5a', hair: '#8a8590', arm: 'down', handPose: 'grip',
+        extra: (hy, r) => RR(-r * .9, hy - r * 1.05, r * 1.7, r * .45, r * .2, t('#5a5560')) });
+      const apron = planes(t, '#eae4d6');                                                                       // 앞치마 한 장
+      curvy([[-12, -118], [15, -118], [17, -80, 14, -66], [-14, -66], [-16, -84, -12, -118]], apron.mid);
+      inside([[-12, -118], [15, -118], [17, -80, 14, -66], [-14, -66], [-16, -84, -12, -118]], () => R(6, -120, 14, 56, apron.dark));
+      label('행복', 0, -96, '700 6px sans-serif', t('#5f8fb0'), 'center');
+      for (let i = 0; i < 9; i++) E(26 + hash(i, 7) * 34, -.4, i % 3 ? .6 : 1.1, .35, t(i % 3 ? RICE : '#e8c088'));
+    } },
+    /* S5 해 질 녘 전깃줄: 하얀 깃털 엄마가 짹, 짹 부른다 */
+    'sparrow:momCall': { w: 110, h: 24, d: (time, t) => {
+      const wire = t('#3b3049');
+      [[-8, 2, .5], [-18, -8, .35]].forEach(([y0, sag, w]) => {
+        ctx.strokeStyle = wire; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(-55, y0); ctx.quadraticCurveTo(0, y0 + sag + 10, 55, y0); ctx.stroke();
+      });
+      const call = Math.sin(time * 4) > 0;
+      sparrow(time, t, { x: 0, y: -3, white: true, gape: call, seed: 6 });
+      notes(time, '짹,', 12, -14, 5); notes(time + .5, '짹', 20, -20, 5);
+    } },
+    /* S12 막내 없는 난간: 짧은 꼬리 새끼 셋이 붙어 앉았고 맨 끝자리가 비어 있다 */
+    'sparrow:fledglings': { w: 70, h: 20, d: (time, t) => {
+      const rail = pipeRun(t, '#9aa3bb', -35, -2, 70, 3);
+      [-30, 30].forEach((x) => { R(x - 1, 1, 2, 16, rail.mid); R(x - 1, 1, .7, 16, rail.lit); });                 // 난간 기둥
+      [-22, -12, -2].forEach((x, i) => sparrow(time, t, { x, y: -2, c: JUV, pose: i === 1 ? 'puff' : 'stand', gape: i === 2 && Math.sin(time * 3) > .3, seed: i + 3 }));
+    } },
+    /* B2 밤 골목 떡집: 내린 셔터, 간판 뒤 틈, 문턱에 남은 쌀가루 */
+    'sparrow:tteokShutter': { w: 120, h: 150, d: (time, t) => {
+      const shut = planes(t, '#b5b9c3'), sign = planes(t, '#f6eedc');
+      RR(-56, -112, 112, 112, 1, shut.mid);
+      for (let y = -108; y < -2; y += 4) { R(-56, y, 112, 1, shut.dark); R(-56, y + 1, 112, .6, shut.lit); }     // 셔터 주름
+      R(46, -112, 10, 112, shut.dark);
+      pipeRun(t, '#8d8a9c', -60, -122, 120, 10);                                                                  // 셔터 말린 통
+      faded(.85, () => R(-58, -134, 116, 4, '#1c1626'));                                                           // 간판 뒤 틈
+      box3(t, '#f6eedc', -60, -150, 112, 18, 4);
+      R(-60, -150, 112, 3, t('#e6765f'));
+      label('떡집', -4, -136, '800 12px sans-serif', t('#3b3049'), 'center');
+      faded(.4, () => R(-60, -150, 112, 18, sign.dark));
+      const dust = [[-30, 0], [-20, -1.4, 0, -2], [20, -1.4, 34, 0]];
+      curvy(dust, t('#f4f0e6'));
+      for (let i = 0; i < 6; i++) E(-36 + hash(i, 5) * 74, -.3, .6, .3, t(RICE));
     } },
     /* D1 까치: 날개를 펴고 둥지 끝으로 덮친다 */
     'sparrow:magpieGrab': { w: 60, h: 50, d: (time, t) => {

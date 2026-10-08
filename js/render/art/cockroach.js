@@ -117,11 +117,32 @@ function crPuff(x, y, r, t) {
   E(x - r * .14, y - r * .14, r * .8, r * .62, t('#f4f8ff'));
 }
 
+/** 꼬부리: 주인공과 같은 몸에 더듬이 둘, 그중 하나가 갈고리처럼 꺾였다. o: { x, k 크기, body, head, old 늙어서 굽은 등 } */
+function crKkobu(time, t, o) {
+  const breath = 1 + Math.sin(time * 2.2 + (o.x || 0)) * .025, tw = Math.sin(time * 3.1) * .05;
+  ctx.save(); ctx.translate(o.x || 0, 0); ctx.scale(o.k, o.k);
+  ctx.strokeStyle = t('#6b4126'); ctx.lineWidth = .07; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath();
+  for (let i = 0; i < 3; i++) { const x = -.3 + i * .3; ctx.moveTo(x, -.18); ctx.lineTo(x - .08, 0); }
+  ctx.stroke();
+  ctx.save(); ctx.translate(0, -.32); ctx.scale(1, breath);
+  E(0, 0, .62, o.old ? .32 : .3, t(o.body)); L(-.5, 0, .3, 0, t(shade(o.body)), .03);
+  ctx.globalAlpha = .35; E(-.15, -.16, .3, .07, WHITE); ctx.globalAlpha = 1;
+  ctx.restore();
+  E(.6, -.36, .24, .22, t(o.head));
+  E(.68, -.42, .09, o.old ? .06 : .1, WHITE); E(.7, -.41, .05, o.old ? .035 : .06, t(INK));
+  blush(.7, -.29, .06, .04);
+  ctx.strokeStyle = t('#6b4126'); ctx.lineWidth = .035; ctx.beginPath();
+  ctx.moveTo(.72, -.55); ctx.quadraticCurveTo(.95, -1, 1.3, -.85 + tw); ctx.stroke();                    // 곧은 더듬이
+  ctx.beginPath(); ctx.moveTo(.66, -.56); ctx.quadraticCurveTo(.74, -.92, .98, -1.06 + tw * .5);           // 꼬부라진 더듬이: 꼭대기에서 아래로 꺾인다
+  ctx.lineTo(1.08, -.82 + tw * .5); ctx.stroke();
+  ctx.restore();
+}
+
 (function register(art) {
   if (typeof module !== 'undefined' && module.exports) module.exports = Object.keys(art);
   else Object.assign(ACTORS, art);
 })({
-  /* R1 방역하는 날: 타일 이음매를 따라 짜 놓은 젤 방울 줄 */
+  /* C1 주황색 방울: 타일 이음매를 따라 짜 놓은 젤 방울 줄 */
   'cockroach:gelSeam': { w: 9.5, h: 1.9, d: (time, t) => {
     const g = crPlanes(t, '#a89e90');
     R(-4.75, -.1, 9.5, .1, g.dark); R(-4.75, -.13, 9.5, .035, g.lit);
@@ -131,25 +152,9 @@ function crPuff(x, y, r, t) {
       if (i % 2 === 0) crScent(x, -.7, 1.2, time + i, t, '#ffb98a');
     });
   } },
-  /* R1: 형들이 나간 벽 틈. 걸레받이 아래 갈라진 구멍, 나간 발자국만 있고 돌아온 발자국은 없다 */
-  'cockroach:emptyCrack': { w: 10, h: 3.5, d: (time, t) => {
-    const w = crPlanes(t, '#d9cbb5');
-    curvy([[1.8, 0], [2.4, -.35], [2.45, -3.45], [1.9, -3.2]], w.dark);
-    curvy([[-2.2, 0], [1.8, 0], [1.88, -2.6], [-2.26, -2.6]], w.mid);
-    curvy([[-2.4, -2.6], [1.95, -2.6], [2.4, -2.8, 2.15, -3.25], [-2.2, -3.3], [-2.55, -3.05, -2.4, -2.6]], w.lit);   // 걸레받이 둥근 윗턱
-    R(-2.26, -2.62, 4.14, .14, w.dark);
-    curvy([[-.62, 0], [-.78, -.7], [-.45, -1.2], [-.66, -1.9], [-.22, -2.3], [-.3, -1.6], [.12, -1.2], [-.04, -.6], [.56, 0]], t('#2e2420'));
-    curvy([[-.78, -.7], [-.45, -1.2], [-.66, -1.9], [-.86, -1.3]], w.dark);   // 깨진 가장자리 두께
-    crCrumb(-1.5, .13, 1, t, '#d9cbb5'); crCrumb(1, .09, 2, t, '#d9cbb5');
-    for (let i = 0; i < 7; i++) {
-      ctx.globalAlpha = .55 - i * .07;
-      E(-2 - i * .55, -.03, .07, .03, t('#6b4126')); E(-2.25 - i * .55, -.05, .07, .03, t('#6b4126'));
-    }
-    ctx.globalAlpha = 1;
-    E(.02, -1.1 + Math.sin(time * 1.5) * .05, .07, .07, t('#f6f3ec'));
-  } },
-
-  /* R2 배달 봉투: 바닥에 주저앉은 비닐 봉투, 묶은 귀, 스테이플로 찍은 영수증, 삐져나온 냅킨 */
+  /* C1·C2·K1 꼬부리: 같이 깬 막내 동생. 나보다 조금 작고, 더듬이 하나가 갈고리처럼 꼬부라졌다 */
+  'cockroach:kkobu': { w: 2, h: 1.3, d: (time, t) => crKkobu(time, t, { k: .86, body: '#a8683a', head: '#c98d58' }) },
+  /* C2·C11 배달 봉투: 바닥에 주저앉은 비닐 봉투, 묶은 귀, 스테이플로 찍은 영수증, 삐져나온 냅킨 */
   'cockroach:napkinBag': { w: 37, h: 28, d: (time, t) => {
     ctx.save(); ctx.rotate(Math.sin(time * 1.6) * .015);
     const p = crPlanes(t, '#f6f3ec');
@@ -176,7 +181,7 @@ function crPuff(x, y, r, t) {
     E(-13.6, -1.6, .9, .5, t('#4a3a30'));
     ctx.restore();
   } },
-  /* R2: 포장대 밑에 새로 생긴 종이집(바퀴 끈끈이 트랩). 접은 판지 집, 옆창엔 붙어 버린 애들이 보인다 */
+  /* C2: 포장대 밑에 새로 생긴 종이집(바퀴 끈끈이 트랩). 접은 판지 집, 옆창엔 붙어 버린 애들이 보인다 */
   'cockroach:roachHouse': { w: 11.5, h: 7.5, d: (time, t) => {
     const wall = crPlanes(t, '#f6efe0'), roof = crPlanes(t, '#e6765f'), brick = crPlanes(t, '#c99a6e');
     curvy([[-5.6, 0], [5.6, -.1], [5.9, -.4], [-5.4, -.32]], t('#d9c39b'));
@@ -197,7 +202,7 @@ function crPuff(x, y, r, t) {
     crScent(-2.2, -2.8, 1.6, time, t, '#f7c27a');
   } },
 
-  /* R3 현관: 바퀴에겐 빌딩만 한 운동화. 앞코가 들린 밑창, 끈 구멍과 밑창 홈이 계단 같다 */
+  /* C3 현관: 바퀴에겐 빌딩만 한 운동화. 앞코가 들린 밑창, 끈 구멍과 밑창 홈이 계단 같다 */
   'cockroach:sneaker': { w: 32, h: 11.5, d: (time, t) => {
     const up = crPlanes(t, '#5f8fb0'), wh = crPlanes(t, '#f4f1ea'), gum = crPlanes(t, '#a29fb2');
     ctx.globalAlpha = .2; E(0, -.05, 13.4, .45, t(INK)); ctx.globalAlpha = 1;
@@ -224,7 +229,7 @@ function crPuff(x, y, r, t) {
     });
     E(-14.2, -.25, .5, .25, t('#d9c39b')); E(-15.1, -.2, .35, .2, t('#cdb48a'));
   } },
-  /* R3: 신발장 밑 1cm 틈. 문짝과 옆판, 다리 사이 어둠 속 먼지 뭉치와 모래알 */
+  /* C3: 신발장 밑 1cm 틈. 문짝과 옆판, 다리 사이 어둠 속 먼지 뭉치와 모래알 */
   'cockroach:cabinetGap': { w: 14.5, h: 22.5, d: (time, t) => {
     const wood = crPlanes(t, '#c99a6e'), steel = crPlanes(t, '#e9e4ec'), dust = crPlanes(t, '#b8b2bd');
     R(-7, -1.25, 14.2, 1.25, t('#2f2a3a'));
@@ -243,7 +248,7 @@ function crPuff(x, y, r, t) {
     [-5.2, -4.8, 1.1, 4.6].forEach((x) => E(x, -.08, .1, .08, t('#d9c39b')));
   } },
 
-  /* R4 불 꺼진 부엌: 냉장고 뒤 웅웅대는 둥근 압축기와 뱀처럼 이어진 방열 코일. 따뜻하다 */
+  /* C4 냉장고 뒤: 냉장고 뒤 웅웅대는 둥근 압축기와 뱀처럼 이어진 방열 코일. 따뜻하다 */
   'cockroach:motorGrille': { w: 37, h: 27, d: (time, t) => {
     const glow = .3 + Math.sin(time * 2) * .06, rail = crPlanes(t, '#6b6478'), coil = crPlanes(t, '#3a3445'), cu = crPlanes(t, '#c98a5a'), cm = crPlanes(t, '#4a4258');
     ctx.globalAlpha = glow; E(6, -1, 12, 1.2, t('#ffb36b')); E(6, -5, 8, 6, t('#ffcf8a')); ctx.globalAlpha = 1;
@@ -275,7 +280,7 @@ function crPuff(x, y, r, t) {
     crScent(-4, -6, 3, time, t, '#ffb27a');
     [-10, -6.4, -2.2].forEach((x, i) => crCrumb(x, .22 + hash(i, 8) * .16, i + 3, t, '#e0b47a'));
   } },
-  /* R4: 싱크대 거름망에서 떨어지는 물방울과 젖은 밥알 */
+  /* C4: 싱크대 거름망에서 떨어지는 물방울과 젖은 밥알 */
   'cockroach:sinkDrip': { w: 6, h: 14, d: (time, t) => {
     const u = crCycle(time, .7, 0, 1), y = -14 + u * u * 14;
     E(0, y, .22, .32, t('#bfe3f5')); E(-.07, y - .1, .06, .08, t(WHITE));
@@ -286,7 +291,7 @@ function crPuff(x, y, r, t) {
     crScent(1.4, -.6, 2.4, time, t, '#b8c77a');
   } },
 
-  /* R5 하얀 동그란 통: 가운데가 볼록 솟은 먹이형 살충제 통, 옆 띠에 아치형 입구 */
+  /* C6 하얀 동그란 통: 가운데가 볼록 솟은 먹이형 살충제 통, 옆 띠에 아치형 입구 */
   'cockroach:baitDisc': { w: 6, h: 3.5, d: (time, t) => {
     const p = crPlanes(t, '#ece8e1');
     ctx.globalAlpha = .25; E(0, -.03, 2.8, .12, t(INK)); ctx.globalAlpha = 1;
@@ -298,7 +303,7 @@ function crPuff(x, y, r, t) {
     E(-.6, -.32, .12, .08, t('#f2b04a'));
     crScent(-.6, -1.9, 1.5, time, t, '#ffb98a');
   } },
-  /* R5: 어제 저걸 먹고 뒤집혀 버린 친구. 배 마디가 드러나고, 마디진 다리만 바르르 */
+  /* C6: 어제 저걸 먹고 뒤집혀 버린 친구. 배 마디가 드러나고, 마디진 다리만 바르르 */
   'cockroach:flippedFriend': { w: 3.5, h: 1.3, d: (time, t) => {
     ctx.globalAlpha = .25; E(0, -.02, .75, .06, t(INK)); ctx.globalAlpha = 1;
     ctx.strokeStyle = t('#6b4126'); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -320,7 +325,7 @@ function crPuff(x, y, r, t) {
     ctx.globalAlpha = .5; E(-.2, -.42, .22, .04, WHITE); ctx.globalAlpha = 1;
   } },
 
-  /* R6 첫 알집: 꽁무니에 달고 다니는 강낭콩 모양 알집. 등줄기 톱니와 칸칸이 든 알, 안에서 꼼지락 */
+  /* C7 알집: 꽁무니에 달고 다니는 강낭콩 모양 알집. 등줄기 톱니와 칸칸이 든 알, 안에서 꼼지락 */
   'cockroach:eggCase': { w: 1.5, h: 1.1, d: (time, t) => {
     const k = 1 + Math.sin(time * 5) * .025, base = '#8e5a35';
     ctx.globalAlpha = .25; E(0, -.02, .5, .05, t(INK)); ctx.globalAlpha = 1;
@@ -343,7 +348,7 @@ function crPuff(x, y, r, t) {
       P([[x, y - s * 2], [x + s * .5, y], [x, y + s * 2], [x - s * .5, y]], WHITE);
     });
   } },
-  /* R6: 화장실 바닥 배수구. 둥근 스테인리스 테두리와 거름 뚜껑, 물방울이 떨어지고 틈에서 다리가 삐죽 */
+  /* C7: 화장실 바닥 배수구. 둥근 스테인리스 테두리와 거름 뚜껑, 물방울이 떨어지고 틈에서 다리가 삐죽 */
   'cockroach:bathDrain': { w: 12.5, h: 15, d: (time, t) => {
     const m = crPlanes(t, '#c9cfd6');
     ctx.globalAlpha = .4; E(0, -.05, 6, .5, t('#bfe3f5')); ctx.globalAlpha = 1;
@@ -363,7 +368,7 @@ function crPuff(x, y, r, t) {
     L(-2.1, -.2, -2.4 + tw, -1.1, t('#c49a5a'), .06); L(-1.7, -.2, -1.6 - tw, -.95, t('#c49a5a'), .06);
   } },
 
-  /* R7 연막탄: 둥근 어깨의 깡통, 감싼 띠지, 치익 소리와 함께 바닥부터 차오르는 하얀 연기 */
+  /* C8 연막탄: 둥근 어깨의 깡통, 감싼 띠지, 치익 소리와 함께 바닥부터 차오르는 하얀 연기 */
   'cockroach:smokeBomb': { w: 27, h: 18, d: (time, t) => {
     const can = crPlanes(t, '#e6765f'), lab = crPlanes(t, '#ffd56b'), cap = crPlanes(t, '#9aa5aa');
     const bank = [[-11.5, 0], [-12, -1, -10.6, -1.6], [-10, -2.6, -8, -2.4], [-7, -3, -5.4, -2.2], [-4, -2.8, -2.6, -1.8], [2.6, -1.8], [4, -2.9, 5.6, -2.2],
@@ -385,7 +390,7 @@ function crPuff(x, y, r, t) {
     }
     [0, 1, 2].forEach((i) => L(.8 + i * .5, -10 - i * .3, 1.4 + i * .6, -10.8 - i * .5 + Math.sin(time * 30 + i) * .1, t('#c9c4cc'), .08));
   } },
-  /* R7: 위로, 밖으로 우르르. 배관을 타고 오르는 애와 내달리는 애 */
+  /* C8: 위로, 밖으로 우르르. 배관을 타고 오르는 애와 내달리는 애 */
   'cockroach:fleeingRoaches': { w: 6.5, h: 16.5, d: (time, t) => {
     const pipe = crPlanes(t, '#b9c3c7'), clamp = crPlanes(t, '#9aa5aa');
     crForm([[1.6, 0], [1.6, -16], [2.9, -16], [2.9, 0]], pipe, [[2.5, .2], [2.5, -16.2], [3, -16.2], [3, .2]], [[1.5, .2], [1.5, -16.2], [1.9, -16.2], [1.9, .2]]);
@@ -398,7 +403,7 @@ function crPuff(x, y, r, t) {
     E(-1.2, -1, .08, .12, t('#bfe3f5'));
   } },
 
-  /* R8 한겨울 이삿짐: 테이프로 봉한 상자 두 개를 비껴 쌓았고, 열린 문으로 찬바람이 들이친다 */
+  /* C9 한겨울 이삿짐: 테이프로 봉한 상자 두 개를 비껴 쌓았고, 열린 문으로 찬바람이 들이친다 */
   'cockroach:movingBoxes': { w: 31, h: 28.5, d: (time, t) => {
     const lo = crBox(-13, 0, 18, 14, 2.6, 1.6, '#d9a96a', t);
     crTape(-5.4, -14, 2.4, 2.6, 1.6, 5, t);
@@ -411,7 +416,7 @@ function crPuff(x, y, r, t) {
     }
     ctx.globalAlpha = .3 + Math.sin(time * 2) * .15; [-6, -12].forEach((y, i) => L(15 - i * 2, y, 10 - i * 2, y + .4, t('#dff0ff'), .15)); ctx.globalAlpha = 1;
   } },
-  /* R8: 다리를 하나 뜯어 간 상자 테이프. 옆 두께가 보이는 롤, 종이 심 안쪽 벽, 끈끈하게 늘어진 끝자락 */
+  /* C9: 다리를 하나 뜯어 간 상자 테이프. 옆 두께가 보이는 롤, 종이 심 안쪽 벽, 끈끈하게 늘어진 끝자락 */
   'cockroach:tapeRoll': { w: 13.5, h: 5, d: (time, t) => {
     const tp = crPlanes(t, '#e8c27a'), core = crPlanes(t, '#c99a6e');
     ctx.globalAlpha = .2; E(.3, -.05, 2.9, .2, t(INK)); ctx.globalAlpha = 1;
@@ -430,7 +435,7 @@ function crPuff(x, y, r, t) {
     ctx.moveTo(-4.3, -.12); ctx.lineTo(-3.9, -.42); ctx.lineTo(-3.5, -.33); ctx.stroke();
     ctx.lineWidth = .025; ctx.beginPath(); [-4.15, -3.95].forEach((x) => { ctx.moveTo(x, -.3); ctx.lineTo(x - .08, -.4); }); ctx.stroke();
   } },
-  /* R9 느려진 다리: 냉장고 뒤에서 북적이는 새끼들 (갓 깬 하얀 애, 갈색 애) */
+  /* C10 손전등: 냉장고 뒤에서 북적이는 새끼들 (갓 깬 하얀 애, 갈색 애) */
   'cockroach:babyCrowd': { w: 7.5, h: 1.4, d: (time, t) => {
     [[-2.6, .32, 'w', false], [-1.8, .45, 'b', true], [1.6, .3, 'w', true], [2.3, .5, 'b', true], [2.9, .3, 'w', false], [-3.2, .5, 'b', false]]
       .forEach(([x, k, kind, flip], i) => {
@@ -443,7 +448,7 @@ function crPuff(x, y, r, t) {
     });
   } },
 
-  /* K1 식당의 밤: 스테인리스 튀김기. 윗면의 기름 통, 비스듬히 꽂힌 바구니 손잡이, 아래로 기름이 똑 */
+  /* K1 분식집 마감: 스테인리스 튀김기. 윗면의 기름 통, 비스듬히 꽂힌 바구니 손잡이, 아래로 기름이 똑 */
   'cockroach:fryer': { w: 29.5, h: 43, d: (time, t) => {
     const st = crPlanes(t, '#c9cfd6'), pipe = crPlanes(t, '#b9c3c7'), ink = crPlanes(t, '#3a3445');
     crForm([[-14, 0], [-14, -40], [-12.4, -40], [-12.4, 0]], pipe, [[-13, .2], [-13, -40.2], [-12.2, -40.2], [-12.2, .2]], [[-14.2, .2], [-14.2, -40.2], [-13.7, -40.2], [-13.7, .2]]);
@@ -477,8 +482,96 @@ function crPuff(x, y, r, t) {
     crScent(.4, -.6, 1.4, time, t, '#ffd08a');
   } },
 
+  /* C5 금요일 밤: 거실 바닥에 깐 신문지, 그 위 떡볶이 그릇. 바퀴 앞엔 바위만 한 떡 한 조각이 굴러떨어져 있다 */
+  'cockroach:tteokTray': { w: 24, h: 8, d: (time, t) => {
+    const np = crPlanes(t, '#e9e3d6'), bowl = crPlanes(t, '#f4f1ea'), sauce = crPlanes(t, '#d9483a'), tk = crPlanes(t, '#f6e9da');
+    curvy([[-12, 0], [11.4, 0], [12.2, -.3], [-11.2, -.42], [-12.3, -.75, -12.6, -.3]], np.mid);                 // 신문지 (왼쪽 귀가 살짝 들렸다)
+    curvy([[-11.2, -.42], [12.2, -.3], [12, -.48], [-11, -.6]], np.lit);
+    ctx.globalAlpha = .25; E(2.6, -.5, 7.6, .35, t(INK)); ctx.globalAlpha = 1;
+    const side = [[-4.6, -.5], [9.8, -.5], [11.2, -2.6, 11.6, -5], [-6.4, -5], [-6, -2.6, -4.6, -.5]];
+    crForm(side, bowl, [[6.6, 0], [8.4, -2.6, 8.8, -5.4], [12, -5.4], [12, 0]], [[-7, 0], [-7, -5.4], [-4.4, -5.4], [-4.6, -2.6, -3.4, 0]]);
+    E(2.6, -5, 9, .9, bowl.lit);                                                                       // 그릇 테
+    E(2.6, -5.05, 8.2, .66, sauce.mid);                                                                // 빨간 국물
+    E(1.4, -5.2, 5, .3, sauce.lit);
+    [[-2.6, -.5], [.6, .35], [4, -.25], [6.8, .45]].forEach(([x, lean]) => {                             // 국물 위로 솟은 떡
+      ctx.save(); ctx.translate(x, -5.1); ctx.rotate(lean);
+      const stick = [[-.5, 0], [-.5, -1.5], [-.5, -1.95, .5, -1.95, .5, -1.5], [.5, 0]];
+      crForm(stick, sauce, [[.15, .2], [.15, -2.1], [.7, -2.1], [.7, .2]], [[-.7, .2], [-.7, -2.1], [-.3, -2.1], [-.3, .2]]);
+      ctx.restore();
+    });
+    curvy([[8.2, -5.2], [9.6, -7.4], [10.8, -5.3]], tk.lit); curvy([[9.6, -7.4], [10.8, -5.3], [10, -5.2]], tk.dark);   // 접힌 어묵
+    const rc = [[-10.6, -.45], [-10.6, -1.9, -9.9, -2.2, -8.6, -2.2], [-6.6, -2.2], [-5.4, -2.2, -5.2, -1.4, -5.3, -.45]];   // 굴러떨어진 떡 한 조각
+    crForm(rc, sauce, [[-7, 0], [-6.4, -1.4, -6.6, -2.6], [-4.8, -2.6], [-4.8, 0]], [[-11, -1.6], [-11, -2.6], [-6, -2.6], [-6, -1.7]]);
+    E(-10.55, -1.32, .55, .86, tk.mid); E(-10.5, -1.32, .34, .62, tk.lit);                                   // 잘린 단면
+    crScent(2.6, -6.4, 3.4, time, t, '#ffb08a');
+  } },
+  /* C10 손전등: 냉장고 뒤를 비추는 방역 아저씨 손. 손전등 불빛이 바닥에 둥근 웅덩이를 만든다 */
+  'cockroach:flashBeam': { w: 30, h: 20, d: (time, t) => {
+    const sway = Math.sin(time * 1.4) * .05, ang = 1.95 + sway, ca = Math.cos(ang), sa = Math.sin(ang);
+    const cx = 8, cy = -12.5, head = [cx + ca * 8.4, cy + sa * 8.4], hitX = head[0] + ca / sa * -head[1];
+    const body = crPlanes(t, '#3f4a5c'), rim = crPlanes(t, '#c9cfd6');
+    ctx.save(); ctx.globalAlpha = .3;
+    P([[head[0] - sa * 1.1, head[1] + ca * 1.1], [head[0] + sa * 1.1, head[1] - ca * 1.1], [hitX + 5, 0], [hitX - 5, 0]], t('#fff3c4'));
+    ctx.globalAlpha = .45; E(hitX, -.1, 5, .5, t('#fff3c4')); ctx.globalAlpha = .7; E(hitX, -.1, 2.6, .28, t('#fffbe6'));
+    ctx.restore();
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(ang);
+    const tube = [[-3, -.85], [6.4, -.85], [7.2, -1.3], [8.4, -1.3], [8.4, 1.3], [7.2, 1.3], [6.4, .85], [-3, .85], [-3.4, .4, -3.4, -.4, -3, -.85]];
+    crForm(tube, body, [[-4, .3], [9, .3], [9, 1.4], [-4, 1.4]], [[-4, -1.4], [9, -1.4], [9, -.5], [-4, -.5]]);
+    crForm([[7.3, -1.32], [8.4, -1.32], [8.4, 1.32], [7.3, 1.32]], rim, [[7.3, .4], [8.5, .4], [8.5, 1.4], [7.3, 1.4]], [[7.3, -1.4], [8.5, -1.4], [8.5, -.8], [7.3, -.8]]);
+    E(8.45, 0, .25, 1.15, t('#fffbe6'));
+    ctx.restore();
+    const arm = 2.75 + sway, wr = [cx - Math.cos(arm) * .66 * 13, cy - Math.sin(arm) * .66 * 13];
+    ctx.lineCap = 'round';
+    L(wr[0], wr[1], wr[0] + 14, wr[1] - 5, t('#4f6b7a'), 3.4); L(wr[0] + .2, wr[1] - 1, wr[0] + 14, wr[1] - 6, t(mix('#4f6b7a', '#fffaf0', .24)), 1.1);   // 작업복 소매
+    artHandAt(t, cx, cy, arm, 13, { pose: 'grip', sleeve: '#4f6b7a' });
+  } },
+  /* C11 마지막 금요일: 봉투에서 빠진 냅킨 한 장. 그 밑에서 늙은 꼬부리가 고개를 내밀고, 꼬부라진 더듬이가 삐죽 */
+  'cockroach:kkobuPeek': { w: 6, h: 2.6, d: (time, t) => {
+    const n = crPlanes(t, '#fbf8f1');
+    crKkobu(time, t, { x: 2.1, k: .82, body: '#8a6446', head: '#a7805e', old: true });
+    const nap = [[-3, 0], [-3.1, -.6, -2.4, -1.25, -1.4, -1.4], [-.2, -1.15, .7, -1.5, 1.6, -1.05], [2.1, -.7, 2.2, -.3, 2.3, 0]];
+    crForm(nap, n, [[.4, .1], [1.2, -.6, 1.4, -1.3], [2.6, -1.3], [2.6, .1]], [[-3.2, -.5], [-2.6, -1.4, -1.4, -1.6], [-1.2, -1.3, -2.2, -1, -2.6, -.4]]);
+    L(-2.4, -.24, 1.8, -.2, t('#ff9aa8'), .05);
+  } },
+  /* B1 다른 동네: 랩을 씌운 짜장면 배달 그릇과 단무지. 랩에 볕이 번들거린다 */
+  'cockroach:wrappedBowl': { w: 21, h: 8, d: (time, t) => {
+    const bowl = crPlanes(t, '#ece8e1'), jj = crPlanes(t, '#4a3426'), dm = crPlanes(t, '#f2d24a');
+    ctx.globalAlpha = .22; E(0, -.06, 8.4, .4, t(INK)); ctx.globalAlpha = 1;
+    const side = [[-5.6, -.1], [5.6, -.1], [8.2, -2.4, 8.8, -5.2], [-8.8, -5.2], [-8.2, -2.4, -5.6, -.1]];
+    crForm(side, bowl, [[4, .2], [6, -2.6, 6.2, -5.6], [9.4, -5.6], [9.4, .2]], [[-9.4, .2], [-9.4, -5.6], [-6.6, -5.6], [-6.2, -2.6, -4.4, .2]]);
+    E(0, -5.2, 9.1, 1, bowl.lit);
+    E(0, -5.3, 8.2, .72, jj.mid); E(-1.6, -5.45, 4.2, .3, jj.lit);
+    ctx.save(); ctx.globalAlpha = .5;
+    curvy([[-9.2, -5.2], [-6, -7.4, 6, -7.4, 9.2, -5.2], [6, -6.2, -6, -6.2, -9.2, -5.2]], t('#f4f8ff'));            // 볼록한 랩
+    ctx.globalAlpha = .7 + Math.sin(time * 1.3) * .1;
+    curvy([[-6.4, -6.2], [-3.6, -7.15, -.6, -7.1], [-3.6, -6.8, -6.4, -6.2]], t(WHITE));                              // 랩 번들거림
+    ctx.restore();
+    const moon = [[6.2, -.05], [6.4, -1.9, 8.6, -2.5, 10.2, -1.9], [9.8, -.05]];
+    crForm(moon, dm, [[8.6, .1], [9.4, -1.4, 9.4, -2.6], [10.6, -2.6], [10.6, .1]], [[6, -1], [7, -2.4, 8.6, -2.6], [7.8, -1.9, 6.8, -1.2]]);
+    crScent(0, -7.4, 2.6, time, t, '#c9a27a');
+  } },
+
   /* 엔딩 가해자 */
-  /* D1 단내: 연못만 한 젤 한 방울 */
+  /* D11 돌돌 만 신문지: 아줌마 손에 쥔 신문지 방망이가 위에서 내려온다. 말린 끝의 둥근 단면이 바퀴를 겨눈다 */
+  'cockroach:rolledPaper': { w: 24, h: 17, d: (time, t) => {
+    const drop = Math.abs(Math.sin(time * 3)) * .6, pp = crPlanes(t, '#e6e0d3');
+    ctx.globalAlpha = .16 + drop * .15; E(1, -.05, 6 - drop * 2, .45, t(INK)); ctx.globalAlpha = 1;
+    ctx.save(); ctx.translate(0, drop);
+    const ang = -.86, ca = Math.cos(ang), sa = Math.sin(ang), x0 = -.6, y0 = -3.4;
+    ctx.save(); ctx.translate(x0, y0); ctx.rotate(ang);
+    const roll = [[0, -1.9], [17, -1.9], [17, 1.9], [0, 1.9]];
+    crForm(roll, pp, [[-1, .9], [18, .9], [18, 2], [-1, 2]], [[-1, -2], [18, -2], [18, -1.1], [-1, -1.1]]);
+    E(0, 0, .9, 1.9, pp.lit); E(.1, .05, .5, 1.2, pp.dark); E(.15, .1, .22, .55, pp.deep);                   // 말린 끝 단면
+    ctx.restore();
+    const gx = x0 + ca * 12.5, gy = y0 + sa * 12.5, arm = Math.PI - .15;
+    const wr = [gx - Math.cos(arm) * .66 * 12, gy - Math.sin(arm) * .66 * 12];
+    ctx.lineCap = 'round';
+    L(wr[0], wr[1], wr[0] + 9, wr[1] - 2.4, t('#e08a6c'), 3.2);                                               // 아줌마 소매
+    artHandAt(t, gx, gy, arm, 12, { pose: 'grip', sleeve: '#e08a6c' });
+    ctx.restore();
+    ctx.globalAlpha = .55; [-4, 1, 6].forEach((x, i) => L(x, -12 + i % 2, x - 1, -9 + i % 2, t('#c9c4cc'), .22)); ctx.globalAlpha = 1;
+  } },
+  /* D1 주황색 방울: 연못만 한 젤 한 방울 */
   'cockroach:gelDrop': { w: 2.5, h: 3.5, d: (time, t) => {
     const k = 1 + Math.sin(time * 2.5) * .04;
     ctx.globalAlpha = .9; E(0, -.1, 1.25, .16, t('#e8a23a')); ctx.globalAlpha = 1;
@@ -516,8 +609,7 @@ function crPuff(x, y, r, t) {
     ctx.restore();
     ctx.globalAlpha = .6; [-8, -2, 4, 10].forEach((x, i) => L(x, -15.5 + i % 2, x, -12.2 + i % 2, t('#c9c4cc'), .22)); ctx.globalAlpha = 1;
   } },
-  /* D7 아래층도 연기: 연막탄 그림 재사용 */
-  /* D8 빈집의 겨울: 휑한 바닥에 서릿발, 부스러기 위에도 하얗게 */
+    /* D8 빈집의 겨울: 휑한 바닥에 서릿발, 부스러기 위에도 하얗게 */
   'cockroach:coldDraft': { w: 14.5, h: 10, d: (time, t) => {
     const ice = crPlanes(t, '#e6f3ff');
     [[-1.5, .5], [-.7, .35], [-1.1, .7]].forEach(([x, r], i) => {
@@ -534,7 +626,7 @@ function crPuff(x, y, r, t) {
     }
     ctx.globalAlpha = .25 + Math.sin(time * 1.7) * .15; [-3, -6].forEach((y, i) => L(6 - i * 2, y, 1 - i * 2, y + .4, t('#dff0ff'), .12)); ctx.globalAlpha = 1;
   } },
-  /* D9 형광등 아래: 밝은 빛을 뚫고 내려오는 손. 구겨 쥔 휴지가 치맛자락처럼 퍼진다 */
+  /* D12 휴지: 밝은 빛을 뚫고 내려오는 손. 구겨 쥔 휴지가 치맛자락처럼 퍼진다 */
   'cockroach:tissueHand': { w: 20, h: 37, d: (time, t) => {
     const y = Math.sin(time * 2) * .5, ts = crPlanes(t, '#fbfaf6');
     ctx.globalAlpha = .22; P([[-3, -36], [3, -36], [10, 0], [-10, 0]], t('#fff8d8')); ctx.globalAlpha = 1;

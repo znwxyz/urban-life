@@ -13,8 +13,8 @@
     brindle: { fur: '#8a6a4e', dark: '#5f4836', cream: '#e8d3b4', ear: '#c98a7c' },
   });
   const RUST = '#a65a3a', TARP = '#5f8fc4', CEMENT = '#c9c2b6', SNOWC = '#f7fbff', MEAT = '#c4565a';
-  const GRANNY = { top: '#a77bb0', bottom: '#5f6f86', hair: '#d9d4dc', shoe: '#5a4f5f' };
-  const ALBA = { top: '#3f9f7f', under: '#f4f1ea', bottom: '#4a4f66', hair: '#2f2a3a', shoe: '#f4f1ea' };
+  const GRANDPA = { top: '#9a9aa4', bottom: '#5a5560', shoe: '#3b3440', hair: '#e4e0e6', hat: '#8a6a5a', vest: '#6b6a52', glove: '#f1ece0' };
+  const CART = '#6f8f9a', CART_LEN = 150;
 
   const at = (x, y, draw) => { ctx.save(); ctx.translate(x, y); draw(); ctx.restore(); };
   const faded = (a, draw) => { ctx.save(); ctx.globalAlpha *= Math.max(0, Math.min(1, a)); draw(); ctx.restore(); };
@@ -239,18 +239,88 @@
     };
   }
 
-  const grannyHair = (t) => (hx, hy, r) => {
-    blob([[hx - r * 1.05, hy + r * .2], [hx - r * .9, hy - r * .8], [hx, hy - r * 1.12], [hx + r * .8, hy - r * .78], [hx + r * .5, hy - r * .5], [hx - r * .2, hy - r * .5], [hx - r * .5, hy + r * .1]], t(GRANNY.hair));
-    [[-.75, -.6], [-.35, -.95], [.15, -1], [.55, -.8], [-.95, -.15]].forEach(([dx, dy]) => E(hx + r * dx, hy + r * dy, r * .26, r * .24, t(GRANNY.hair)));
-    faded(.6, () => [[-.4, -1], [.1, -1.05]].forEach(([dx, dy]) => E(hx + r * dx, hy + r * dy, r * .12, r * .08, WHITE)));
-  };
   const wrinkles = (t) => (hx, hy, r) => [[.62, .02], [.68, .12]].forEach(([dx, dy]) => L(hx + r * (dx + .14), hy + r * dy, hx + r * (dx + .26), hy + r * (dy + .04), t(shade(SKIN)), r * .04));
-  const ponytail = (t, c) => (hx, hy, r) => {
-    blob([[hx - r * 1.04, hy + r * .3], [hx - r * .9, hy - r * .78], [hx, hy - r * 1.1], [hx + r * .9, hy - r * .7], [hx + r * .96, hy - r * .3], [hx + r * .2, hy - r * .55], [hx - r * .4, hy + r * .05]], t(c));
-    curve([[hx - r * .9, hy - r * .55], [hx - r * 1.6, hy - r * .1], [hx - r * 1.5, hy + r * .7]], t(c), r * .5);
-    RR(hx - r * 1.06, hy - r * .74, r * .22, r * .36, r * .1, t('#e6765f'));
-  };
   const shortHair = (t, c) => (hx, hy, r) => blob([[hx - r * 1.04, hy + r * .25], [hx - r * .95, hy - r * .78], [hx, hy - r * 1.12], [hx + r * .9, hy - r * .72], [hx + r * .9, hy - r * .4], [hx + r * .3, hy - r * .55], [hx - r * .35, hy - r * .1]], t(c));
+
+  /* ───── 리어카 할아버지 ───── */
+  /** 털모자: 머리를 덮고 단을 한 번 접어 올렸다. 귀 옆으로 흰 머리가 비친다 */
+  const grandpaHair = (t) => (hx, hy, r) => {
+    E(hx - r * .62, hy + r * .22, r * .34, r * .36, t(GRANDPA.hair));
+    blob([[hx - r * 1.08, hy - r * .1], [hx - r * .9, hy - r * .9], [hx, hy - r * 1.24], [hx + r * .86, hy - r * .86], [hx + r * .96, hy - r * .36], [hx - r * .2, hy - r * .4]], t(GRANDPA.hat));
+    blob([[hx - r * 1.12, hy - r * .02], [hx - r * 1.04, hy - r * .44], [hx + r, hy - r * .52], [hx + r * 1.02, hy - r * .24], [hx - r * .1, hy - r * .14]], t(lite(GRANDPA.hat, .2)));
+  };
+  /** 허리 굽은 할아버지(서서, 키 약 160). 몸을 앞으로 기울여(밀림 변환) 굽은 허리를 낸다. o: reach, hold, bare(맨손), stoop */
+  function grandpa(time, t, o) {
+    ctx.save(); ctx.transform(1, 0, -(o.stoop || .16), 1, 0, 0); ctx.scale(.95, .95);
+    stand(time, t, { ...GRANDPA, glove: o.bare ? null : GRANDPA.glove, backArm: [[-4, -100], [0, -82]],
+      face: face(time, t, grandpaHair(t), 'smile', wrinkles(t)),
+      vest: (br) => { const v = [[-13, -120 + br], [9, -120 + br], [11, -76], [-13, -76]]; blob(v, t(GRANDPA.vest)); inside(v, () => blob([[3, -124], [14, -120], [14, -72], [5, -72]], t(shade(GRANDPA.vest)))); },
+      reach: o.reach, hold: o.hold });
+    ctx.restore();
+  }
+  /** 할아버지 손이 닿는 자리(밀림 변환을 거친 화면 좌표) */
+  const gripAt = (o, x, y) => [(x - (o.stoop || .16) * y) * .95, y * .95];
+  /** 리어카(옆에서 본). 짐칸은 x0~x0+CART_LEN, 손잡이 끝은 (hx, hy). load(): 짐칸 위 짐. 바퀴는 돌지 않는다 */
+  function cartBack(t, x0, hx, hy, load) {
+    const K = planes(t, CART), TI = planes(t, '#3a3445'), x1 = x0 + CART_LEN;
+    curve([[x1 - 4, -60], [hx - 6, hy - 3]], K.dark, 3);                                              // 뒤 손잡이(그늘)
+    L(x0 + 8, -46, x0 + 4, 0, K.dark, 2.4);                                                           // 받침 다리
+    if (load) load();
+    // 짐칸 옆판: 볕 받는 윗테 · 판 · 그늘진 아랫단
+    const side = [[x0, -38], [x1, -38], [x1 + 2, -62], [x0 - 2, -62]];
+    sheet(side, K.mid);
+    sheetIn(side, () => { P([[x0 - 4, -62], [x1 + 4, -62], [x1 + 4, -57], [x0 - 4, -57]], K.lit); P([[x0 - 4, -44], [x1 + 4, -44], [x1 + 4, -38], [x0 - 4, -38]], K.dark); });
+    const wx = x0 + CART_LEN * .5;                                                                    // 바퀴: 고무 테, 볕 받는 왼쪽 위 초승달, 휠
+    E(wx, -30, 30, 30, TI.deep); E(wx - 1.2, -31.2, 28.4, 28.4, TI.lit); E(wx + .6, -29.4, 27.6, 27.6, TI.mid);
+    E(wx, -30, 17, 17, t('#b7bcc8')); E(wx + 1, -29, 13, 13, t('#9aa0ab')); E(wx, -30, 4, 4, K.dark);
+  }
+  /** 앞 손잡이: 짐칸 앞에서 손 쪽으로 올라간다. 끝에 검은 고무 손잡이 */
+  function cartFront(t, x0, hx, hy) {
+    const K = planes(t, CART);
+    curve([[x0 + CART_LEN - 2, -58], [(x0 + CART_LEN + hx) / 2, (hy - 58) / 2 - 2], [hx, hy]], K.mid, 3.4);
+    curve([[x0 + CART_LEN - 2, -59.4], [hx, hy - 1.4]], K.lit, 1);
+    at(hx, hy, () => { ctx.rotate(Math.atan2(hy + 58, hx - x0 - CART_LEN)); RR(-2, -2.4, 12, 4.8, 2.4, t('#2f2a3a')); });
+  }
+  /** 짐칸에 실은 납작한 상자 더미: 장마다 어긋난 끝, 볕 받는 윗면, 노끈 한 줄 */
+  function boxLoad(t, x0, n) {
+    const A = planes(t, '#d9b27c'), B = planes(t, '#c9a06a'), th = 7.6;
+    for (let k = 0; k < n; k++) {
+      const o = [2, -6, 5, -3, 7, -2][k % 6], y = -62 - k * th, p = k % 2 ? B : A, a = x0 + o, b = x0 + CART_LEN + o - 6;
+      sheet([[a, y], [b, y], [b + 2, y - th * .5, b, y - th], [(a + b) / 2, y - th + .8, a, y - th]], p.mid);
+      sheet([[b - 6, y], [b, y], [b + 2, y - th * .5, b, y - th], [b - 6, y - th]], p.dark);
+    }
+    const top = -62 - n * th;
+    sheet([[x0 + 4, top], [x0 + CART_LEN - 10, top], [x0 + CART_LEN - 4, top - 3], [x0 + 8, top - 3]], A.lit);
+    curve([[x0 + 40, -60], [x0 + 46, top - 2], [x0 + 104, top - 3], [x0 + 110, -60]], t('#f4f1ea'), 1.2);
+  }
+  /** 막걸리 병: 하얀 플라스틱 병, 초록 뚜껑 */
+  function makgeolli(x, t) {
+    const B = planes(t, '#f4f1ea'), b = [[x - 3.6, 0], [x - 3.6, -13], [x - 1.6, -17], [x - 1.4, -20], [x + 1.4, -20], [x + 1.6, -17], [x + 3.6, -13], [x + 3.6, 0]];
+    sheet(b, B.mid); sheetIn(b, () => { P([[x - 4, 0], [x - 1.8, 0], [x - 1.8, -20], [x - 4, -20]], B.lit); P([[x + 1.8, 0], [x + 4, 0], [x + 4, -20], [x + 1.8, -20]], B.dark); });
+    RR(x - 1.8, -22.6, 3.6, 3, .8, t('#3f9f5f')); RR(x - 3.6, -10, 7.2, 4.4, .4, t('#7fb08a'));
+  }
+  /** 목장갑 한 짝(누운 것): 흰 면장갑에 빨간 고무를 입힌 손바닥 쪽이 살짝 보인다. 손가락은 오른쪽 */
+  function gloveFlat(t) {
+    const G = planes(t, GRANDPA.glove), red = t('#d9534f'), palm = [[-7, -7.6], [3, -8.4], [5, -5], [5, 4], [3, 7.6], [-7, 6.8]];
+    ctx.save(); ctx.translate(0, -3); ctx.scale(1, .55);                                              // 위에서 내려다본 손 모양을 바닥에 눕혀 납작하게
+    RR(-13, -7, 7, 12, 2, G.dark);                                                                    // 손목 고무단
+    blob(palm, G.mid);
+    [11, 12.6, 12, 9.6].forEach((len, k) => at(3, -6.4 + k * 4.2, () => {                            // 손가락 넷: 끝마다 빨간 코팅
+      ctx.rotate([-.12, -.04, .04, .14][k]); RR(0, -1.8, len, 3.6, 1.8, k % 2 ? G.mid : G.lit); RR(len - 3.4, -1.8, 3.4, 3.6, 1.8, red);
+    }));
+    at(-2, 7, () => { ctx.rotate(.7); RR(0, -1.9, 8.4, 3.8, 1.9, G.dark); RR(5.2, -1.9, 3.2, 3.8, 1.9, red); });   // 엄지
+    inside(palm, () => blob([[-9, -9], [2, -10], [-2, -2], [-9, 0]], G.lit));
+    ctx.restore();
+  }
+  /** 손잡이 끝에 걸려 흔들리는 장갑 한 짝 */
+  function gloveHung(time, t, x, y) {
+    at(x, y, () => {
+      ctx.rotate(Math.sin(time * 1.8) * .12); ctx.scale(1.4, 1.4);
+      const G = planes(t, GRANDPA.glove), g = [[-2.6, 0], [2.6, 0], [3.4, 8], [4.6, 15], [2.4, 16], [1.4, 12], [0, 16.6], [-1.4, 12.4], [-3, 15.6], [-4.4, 9], [-5.4, 7]];
+      blob(g, G.mid); inside(g, () => { blob([[-6, 6], [-1, 4], [-1, 9], [-6, 10]], G.lit); blob([[-6, 12.4], [6, 12.4], [6, 18], [-6, 18]], t('#d9534f')); });
+      RR(-2.8, -1, 5.6, 3, 1, G.dark);
+    });
+  }
 
   /* ───── 물건 ───── */
   /** 벽돌 한 장: 앞면, 볕 받는 윗면, 그늘진 오른쪽 끝면 */
@@ -319,7 +389,7 @@
       ctx.restore();
     } },
     /* G2·D1 지붕을 뜯어내는 노란 포크레인. 바퀴(궤도)는 돌지 않고 팔만 천천히 들썩인다 */
-    'dog:excavator': { w: 302, h: 238, d: (time, t) => sized(.72, () => excavator(time, t)) },
+    'dog:excavator': { w: 215, h: 175, d: (time, t) => sized(.72, () => excavator(time, t)) },
     /* D11 철거 잔해: 판자에 박힌 녹슨 못 */
     'dog:rubbleNail': { w: 70, h: 26, d: (time, t) => {
       [[-32, -8, 16, 8], [-18, -9, 15, 9], [-26, -16, 14, 8], [18, -7, 14, 7]].forEach(([x, y, w, h]) => brick(x, y, w, h, '#b36b4f', t));
@@ -331,42 +401,91 @@
       faded(.5 + Math.sin(time * 3) * .3, () => E(19, -15.6, .7, .7, WHITE));
     } },
 
-    /* G3 쪼그려 앉아 양은 냄비를 내미는 할머니 */
-    'dog:grandmaBowl': { w: 90, h: 120, d: (time, t) => crouch(time, t, {
-      ...GRANNY, face: face(time, t, grannyHair(t), 'smile', wrinkles(t)),
-      pattern: true,
-      reach: [[18, -64], [26, -40], .5, 'grip'],
-      hold: (x, y) => at(x + 9, y + 6, () => {
-        const Pt = planes(t, '#d9b45a'), pot = [[-16, -4], [16, -4], [14.6, 6, 12, 9], [0, 10.6, -12, 9], [-14.6, 6, -16, -4]];
-        [[-17.5, -1], [17.5, -1]].forEach(([x2, y2]) => RR(x2 - 2, y2 - 1, 4, 2.4, 1, Pt.dark));        // 귀 손잡이
-        // 양은 냄비: 왼쪽 볕 면, 앞, 오른쪽으로 돌아가는 그늘, 볕 받는 테두리 안쪽에 밥
-        sheet(pot, Pt.mid);
-        sheetIn(pot, () => { sheet([[-17, -5], [-8, -5], [-9.6, 4, -7, 11], [-17, 11]], Pt.lit); sheet([[7, -5], [17, -5], [17, 11], [8, 11], [10, 4, 7, -5]], Pt.dark); });
-        E(0, -4, 16, 3.4, Pt.lit); E(.6, -3.8, 14, 2.4, t('#e8c890'));
-        [[-6, -4.4], [-1, -3.8], [5, -4.6]].forEach(([x2, y2]) => E(x2, y2, 1.6, .9, t('#fffaf0')));
-        E(3, -4.2, 2.6, 1, t('#7fa64e'));
-        steam(-4, -8, 16, time, t('#ffffff')); steam(5, -8, 13, time + 1.4, t('#ffffff'));
-      }),
-    }) },
-    /* G3 담벼락에 붙은 민원 쪽지 */
-    'dog:complaintNote': { w: 74, h: 130, d: (time, t) => {
-      const Wl = planes(t, '#cbb8a6'), N = planes(t, '#fbf8f0');
-      boxFaces(Wl, -36, 26, 0, 122, 10);                                                                   // 담: 갓돌 윗면 · 앞 · 두께
-      at(-6, -92, () => {
-        ctx.rotate(-.05 + Math.sin(time * 1.6) * .012);
-        // 쪽지 한 장: 아래 오른쪽 귀가 들려 뒷면 그늘이 보인다
-        sheet([[-15, -3], [13, -3], [13, 29], [8, 35], [-15, 35]], N.mid);
-        P([[-15, -3], [-11, -3], [-12, 35], [-15, 35]], N.lit);
-        P([[13, 29], [8, 35], [7.4, 29.6]], N.dark);
-        [[-17, -5, .6], [9, -5, -.6]].forEach(([x, y, a]) => at(x + 4, y + 1, () => { ctx.rotate(a); faded(.7, () => RR(-4, -1.2, 8, 2.6, .3, t('#efe6c4'))); }));
-        ctx.fillStyle = t('#d93a3a'); ctx.textAlign = 'center'; ctx.font = 'bold 5px sans-serif';
-        text('개 밥', -1, 7); text('주지 마세요!!', -1, 13);
-        ctx.fillStyle = t('#3b3049'); ctx.font = '2.4px sans-serif'; ['밥 주는 분 때문에', '들개가 모입니다.', '민원 넣겠습니다.', '- 203호 -'].forEach((s, i) => text(s, -1, 20 + i * 3.6));
+
+    /* G2 리어카 옆에 쪼그려 앉아 단팥빵 반쪽을 내미는 할아버지, 발치에 막걸리 병 */
+    'dog:breadGrandpa': { w: 230, h: 130, d: (time, t) => {
+      cartBack(t, -220, -66, -26, () => boxLoad(t, -220, 4));
+      cartFront(t, -220, -66, -26);
+      makgeolli(-30, t);
+      crouch(time, t, { ...GRANDPA, glove: null, face: face(time, t, grandpaHair(t), 'smile', wrinkles(t)),
+        vest: (br) => { const v = [[-24.6, -37], [-23.6, -62], [-12, -85 + br], [-3, -89 + br], [4, -78], [9, -61], [4, -42], [-12, -33]]; blob(v, t(GRANDPA.vest)); inside(v, () => blob([[4, -82], [12, -78], [9, -56], [3, -42], [0, -62]], t(shade(GRANDPA.vest)))); },
+        reach: [[22, -70], [36, -60], -.15, 'offer'],
+        hold: (x, y, gx, gy) => at(gx + 1, gy - 3.4, () => {
+          const Bn = planes(t, '#c98a4a'), bun = [[-6, 2], [-6.4, -2, -3, -5], [1, -5.6], [4, -4], [4, 2]];
+          blob(bun, Bn.mid); inside(bun, () => blob([[-8, -2], [-4, -6], [0, -7], [-2, -3]], Bn.lit));
+          E(4, -1.4, 1.6, 3.4, t('#f3e2c4')); E(4.2, -1.4, 1, 2.2, t('#7a3b3e'));                     // 쪼갠 단면: 빵살과 팥
+        }) });
+    } },
+    /* G4 새벽, 상자를 실은 리어카를 끄는 할아버지(장갑 낀 손) */
+    'dog:cartPull': { w: 250, h: 170, d: (time, t) => {
+      const o = { reach: [[8, -102], [9, -84], 1.45, 'grip'] }, [hx, hy] = gripAt(o, 9, -78);
+      cartBack(t, -225, hx, hy, () => boxLoad(t, -225, 6));
+      grandpa(time, t, o);
+      cartFront(t, -225, hx, hy);
+    } },
+    /* G5 이삿짐(이불 보따리·밥솥·화분)을 묶은 리어카와 할아버지. 장갑 한 짝을 두고 가서 손은 맨손이다 */
+    'dog:movingCart': { w: 250, h: 170, d: (time, t) => {
+      const o = { bare: true, reach: [[8, -102], [9, -84], 1.45, 'grip'] }, [hx, hy] = gripAt(o, 9, -78);
+      cartBack(t, -225, hx, hy, () => {
+        const Q = planes(t, '#e58fa3'), quilt = [[-218, -60], [-222, -84], [-200, -104], [-150, -108], [-128, -96], [-126, -60]];
+        blob(quilt, Q.mid);                                                                           // 꽃무늬 이불 보따리: 볕 받는 어깨, 그늘진 오른쪽 자락, 매듭 귀
+        inside(quilt, () => { blob([[-230, -80], [-204, -112], [-160, -114], [-190, -92]], Q.lit); blob([[-150, -120], [-120, -100], [-120, -54], [-146, -58]], Q.dark); [[-196, -84], [-170, -96], [-150, -74], [-206, -66]].forEach(([x, y]) => E(x, y, 3, 3, t('#fff3a8'))); });
+        blob([[-168, -106], [-160, -118], [-150, -116], [-154, -104]], Q.mid);
+        const C = planes(t, '#f4f1ea'), ck = [[-120, -60], [-121, -84], [-116, -90], [-94, -90], [-89, -84], [-90, -60]];
+        blob(ck, C.mid); inside(ck, () => { blob([[-124, -64], [-124, -88], [-112, -92], [-114, -64]], C.lit); blob([[-96, -92], [-86, -92], [-86, -58], [-96, -58]], C.dark); });   // 전기밥솥
+        RR(-110, -95, 10, 4, 2, t('#5a5560')); RR(-112, -76, 6, 3, 1, t('#d9534f'));
+        const Pt = planes(t, '#b36b4f');                                                              // 화분과 고추 모종
+        sheet([[-86, -60], [-66, -60], [-68, -76], [-84, -76]], Pt.mid); sheet([[-72, -60], [-66, -60], [-68, -76], [-73, -76]], Pt.dark);
+        at(-76, -76, () => leafMass(0, -8, 9, 8, .4, t, 6));
+        curve([[-214, -62], [-180, -110], [-110, -100], [-70, -62]], t('#f4f1ea'), 1.2);
       });
-      at(20, -54, () => { ctx.rotate(.08); const Y = planes(t, '#fff3a8'); RR(-6, -2, 12, 16, .5, Y.mid); P([[-6, -2], [6, -2], [6, .4], [-6, .4]], Y.dark); ctx.fillStyle = t('#3b3049'); ctx.font = '2.6px sans-serif'; ctx.textAlign = 'center'; text('불쌍해요', 0, 5); text('ㅠㅠ', 0, 9); });
+      grandpa(time, t, o);
+      cartFront(t, -225, hx, hy);
+    } },
+    /* G5·G8 할아버지가 두고 간 목장갑 한 짝 */
+    'dog:glove': { w: 26, h: 10, d: (time, t) => gloveFlat(t) },
+    /* G11 왕복 8차로 앞 보행 신호등: 초록 사람 불, 줄어드는 숫자, 바닥의 횡단보도 줄 */
+    'dog:crossSignal': { w: 200, h: 200, d: (time, t) => {
+      const K = planes(t, '#7d8794'), BX = planes(t, '#3a3445'), Z = planes(t, '#f4f1ea');
+      [-90, -40, 10, 60, 110].forEach((x) => sheet([[x, 0], [x + 30, 0], [x + 38, -4], [x + 8, -4]], Z.mid));   // 횡단보도 흰 줄(바닥에 눕힌)
+      RR(-4, -190, 8, 190, 3, K.mid); RR(-4, -190, 3, 190, 1.5, K.lit); RR(2.4, -190, 1.8, 190, .9, K.dark);
+      at(6, -192, () => {
+        RR(0, 0, 30, 58, 3, BX.mid); RR(0, 0, 4, 58, 2, BX.lit); RR(27, 0, 3, 58, 1.5, BX.dark);
+        E(15, 15, 10, 10, t('#4a3a40')); E(15, 43, 10, 10, t('#1f2a26'));
+        const on = .75 + Math.sin(time * 4) * .25;
+        faded(.35 * on, () => E(15, 43, 16, 16, t('#7fffc0')));
+        const gr = t('#6bf2a8');                                                                          // 걷는 사람 그림
+        E(16, 36.6, 1.9, 1.9, gr); curve([[15.4, 39], [14.6, 45]], gr, 2.4); curve([[14.6, 45], [11.6, 50]], gr, 1.8); curve([[14.6, 45], [18, 50]], gr, 1.8); curve([[15.2, 40.4], [19, 43.4]], gr, 1.4); curve([[15.2, 40.4], [12, 43]], gr, 1.4);
+      });
+      at(38, -156, () => {
+        RR(0, 0, 22, 20, 2, BX.mid); RR(0, 0, 3, 20, 1.5, BX.lit);
+        const n = 3 - Math.floor(time % 3);
+        ctx.fillStyle = t('#6bf2a8'); ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; text(String(n), 11.4, 15.6);
+      });
+    } },
+    /* G12 고물상 바닥 저울: 쇠판 위에 묶은 상자 더미, 기둥 위 둥근 눈금판(바늘이 살짝 떨린다) */
+    'dog:junkScale': { w: 150, h: 130, d: (time, t) => {
+      const K = planes(t, '#8d8a9c'), D = planes(t, '#f4f1ea');
+      boxFaces(K, -66, 46, 0, 8, 12);                                                                     // 바닥 저울판
+      at(-62, 48, () => boxLoad(t, 0, 5));
+      RR(58, -118, 6, 118, 2, K.mid); RR(58, -118, 2, 118, 1, K.lit);
+      at(61, -128, () => {
+        E(0, 0, 17, 17, K.dark); E(-.8, -.8, 15.6, 15.6, D.mid); faded(.5, () => E(-5, -5, 7, 6, D.lit));
+        for (let i = 0; i < 10; i++) { const a = -Math.PI * .9 + i * .2 * Math.PI; L(Math.cos(a) * 12, Math.sin(a) * 12, Math.cos(a) * 14, Math.sin(a) * 14, t('#3b3049'), .5); }
+        ctx.save(); ctx.rotate(-.3 + Math.sin(time * 3) * .04); L(0, 0, 11, 0, t('#d9534f'), 1); ctx.restore();
+        E(0, 0, 1.6, 1.6, t('#3b3049'));
+      });
+    } },
+    /* G12 고물상 줄 끝, 더 굽은 할아버지와 리어카. 손잡이에 장갑 한 짝만 걸려 있다 */
+    'dog:oldCart': { w: 250, h: 165, d: (time, t) => {
+      const o = { bare: true, stoop: .24, reach: [[8, -100], [9, -82], 1.45, 'grip'] }, [hx, hy] = gripAt(o, 9, -76);
+      cartBack(t, -225, hx, hy, () => boxLoad(t, -225, 3));
+      gloveHung(time, t, -44, -66);
+      grandpa(time, t, o);
+      cartFront(t, -225, hx, hy);
     } },
 
-    /* G4·S1·D3 구석에 놓인 고기: 파란 쥐약 알갱이와 굴러다니는 농약병 */
+    /* G6·S1·D3 구석에 놓인 고기: 파란 쥐약 알갱이와 굴러다니는 농약병 */
     'dog:poisonBait': { w: 46, h: 14, d: (time, t) => {
       const NP = planes(t, '#e4dfd2'), M = planes(t, MEAT), news = [[-20, 0], [-18, -3], [-6, -4.4], [10, -3.6], [17, -1.4], [16, 0]];
       blob(news, NP.mid);                                                                                   // 깔아 둔 신문지
@@ -456,79 +575,6 @@
     /* G8·D7 "개 삽니다" 확성기 1톤 트럭과 철창, 고기를 흔드는 아저씨 */
     'dog:dogTruck': { w: 400, h: 262, d: (time, t) => dogTruck(time, t) },
 
-    /* G9 새벽 편의점 앞, 쪼그려 앉아 빨간 목줄을 내미는 알바 누나 */
-    'dog:albaLeash': { w: 92, h: 122, d: (time, t) => crouch(time, t, {
-      ...ALBA, face: face(time, t, ponytail(t, ALBA.hair), null),
-      vest: (br) => { const v = [[-24.6, -37], [-23.6, -62], [-12, -85 + br], [-3, -89 + br], [4, -78], [9, -61], [4, -42], [-12, -33]]; blob(v, t(ALBA.top)); inside(v, () => { blob([[4, -82], [12, -78], [9, -56], [3, -42], [0, -62]], t(shade(ALBA.top))); curve([[-3, -89], [3, -78], [7, -60]], t('#f2d16b'), 1.2); }); RR(-1, -70, 7, 3.6, .8, t('#fffaf0')); R(0, -69, 4, .7, t('#5f8fb0')); E(-6, -54, 1.2, 1.2, t(shade(ALBA.top))); },
-      top: '#f4f1ea', under: null,
-      reach: [[20, -70], [32, -50], .35, 'grip'],
-      hold: (x, y, gx, gy) => {
-        const sway = Math.sin(time * 2) * 1.5;
-        curve([[gx, gy - 2], [x + 10, y + 12], [x + 6 + sway, y + 26], [x + 2 + sway, y + 30]], t('#a8323a'), 2.2);
-        curve([[gx, gy - 2.4], [x + 10, y + 11.6], [x + 6 + sway, y + 25.6]], t('#e04a52'), 1);
-        ctx.strokeStyle = t('#d9404a'); ctx.lineWidth = 1.8; ctx.beginPath(); ctx.ellipse(x + 3 + sway, y + 34, 5, 3.4, .3, 0, TAU); ctx.stroke();
-        RR(x + 6 + sway, y + 33, 2.6, 2.4, .5, t('#d9c27a'));
-      },
-    }) },
-    /* G9 껍질을 반쯤 깐 소시지와 편의점 비닐 */
-    'dog:sausageTray': { w: 30, h: 8, d: (time, t) => {
-      const Wr = planes(t, '#e3eaf0'), wrap = [[-14, 0], [-12, -2.4], [-6, -3.6], [6, -3], [14, -1.4], [13, 0]];
-      blob(wrap, Wr.mid);                                                                                   // 구겨진 편의점 비닐: 볕 받는 왼쪽 주름, 그늘진 오른쪽 접힘
-      inside(wrap, () => { P([[-16, -4], [-4, -4], [-7, 0], [-16, 0]], Wr.lit); P([[6, -4], [16, -4], [16, 1], [9, 1]], Wr.dark); });
-      sausage(-8, -3, -.06, 12, t, true);
-      sausage(8, -1.4, .3, 4, t, false);
-    } },
-
-    /* G10·D10 낮은 탁자 위 뜯어 둔 초콜릿 */
-    'dog:chocoTable': { w: 96, h: 46, d: (time, t) => {
-      const Wd = planes(t, '#b98a5e'), Mg = planes(t, '#e6765f');
-      [[-38, 0], [32, 0]].forEach(([x]) => { P([[x, 0], [x + 6, 0], [x + 6, -36], [x, -36]], Wd.dark); P([[x, 0], [x + 2.4, 0], [x + 2.4, -36], [x, -36]], Wd.mid); });   // 다리: 볕 쪽 · 그늘 쪽
-      boxFaces(Wd, -46, 40, -35, 5, 6);                                                                   // 상판: 볕 받는 윗면 · 앞 모서리 · 끝면
-      at(-6, -42, () => { ctx.rotate(-.04); RR(-14, -2.4, 26, 2.6, .6, t('#c9c4cc')); RR(-14, -2.4, 12, 2.6, .6, t('#7a3b2e')); [-12, -8.4, -4.8].forEach((x) => R(x, -2.2, .4, 2.2, t('#5a2a20'))); RR(-2, -2.6, 16, 3, .6, t('#d9534f')); ctx.fillStyle = t('#fffaf0'); ctx.font = 'bold 1.8px sans-serif'; text('CHOCO', 1, -.6); });
-      [[-30, -43.4], [16, -43.4]].forEach(([x, y]) => RR(x, y, 3, 1.6, .4, t('#7a3b2e')));
-      at(28, -42, () => { RR(-4.4, -9, 9, 9, 2, Mg.mid); RR(-4.4, -9, 3, 9, 1.5, Mg.lit); RR(2.4, -9, 2.2, 9, 1, Mg.dark); E(.1, -9, 4.5, 1.2, Mg.deep); ctx.strokeStyle = Mg.mid; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(5, -4.6, 2.6, -1.4, 1.4); ctx.stroke(); steam(0, -10, 8, time, t('#ffffff')); });
-      faded(.6, () => E(-20, -.5, 3, .6, t('#7a3b2e')));
-    } },
-    /* G10 누나가 깔아 준 방석과 뜯어 놓은 양말 */
-    'dog:cushionBed': { w: 66, h: 18, d: (time, t) => {
-      const C = planes(t, '#8fb8a8'), cush = [[-31, -2], [-33, -8], [-24, -12.4], [0, -13.4], [24, -12], [32, -7], [30, -1.4], [0, -.4]];
-      // 도톰한 방석 한 장: 볕 받는 윗면, 앞으로 말린 그늘 자락, 가운데 누빈 자리 하나
-      blob(cush, C.dark);
-      inside(cush, () => { blob([[-34, -6], [-24, -13], [0, -14], [24, -12.6], [34, -7], [24, -5], [0, -4.4], [-24, -4.6]], C.mid); blob([[-34, -8], [-24, -14], [-2, -14.4], [-10, -10], [-26, -8]], C.lit); });
-      E(4, -8, 1.4, .7, C.deep);
-      const Bl = planes(t, '#f4e1a8'), bl = [[-6, -9], [6, -12], [16, -10], [14, -7], [2, -6]];
-      blob(bl, Bl.mid); inside(bl, () => P([[-8, -14], [8, -14], [0, -7.6], [-8, -7.6]], Bl.lit));
-      at(18, -3, () => { ctx.rotate(.2); blob([[-6, -1.6], [3, -2.4], [6, -1], [5, 1.4], [-6, 1.2]], t('#ff8fa3')); RR(-6, -1.6, 2.4, 2.8, .6, t('#fffaf0')); [3.2, 4.4].forEach((x) => L(x, 1.4, x + .6, 3, t('#ff8fa3'), .3)); });
-    } },
-
-    /* G11 공원 산책길, 목줄을 쥔 누나 (목줄은 주인공 쪽으로 늘어진다) */
-    'dog:walkOwner': { w: 80, h: 172, d: (time, t) => stand(time, t, {
-      top: '#e9b44c', bottom: '#4a4f66', shoe: '#f4f1ea', backArm: [[-12, -98], [-10, -78]],
-      vest: () => { [-110, -100, -90].forEach((y) => L(-13, y, 12, y + 1, t(shade('#e9b44c')), .7)); RR(-14, -128, 28, 6, 3, t('#d9534f')); },
-      face: face(time, t, ponytail(t, ALBA.hair), 'smile'),
-      reach: [[16, -98], [26, -86], .4, 'grip'],
-      hold: (x, y, gx, gy) => { const k = Math.sin(time * 1.6) * .6; curve([[gx, gy - 2], [x + 15, y + 18 + k], [x + 23, y + 32], [x + 31, y + 44]], t('#d9404a'), 1.4); },
-    }) },
-    /* G11 멀리 산등성이, 바위 위에서 우는 검둥이와 달 */
-    'dog:howlRidge': { w: 224, h: 128, d: (time, t) => sized(.8, () => {
-      const Fr = planes(t, '#7f9a86'), Nr = planes(t, '#5f7f6c'), Tr = planes(t, '#46634f'), Rk = planes(t, '#5a6470');
-      // 먼 산등성이: 봉우리마다 볕 받는 왼쪽 비탈과 그늘진 오른쪽 비탈
-      const far = [[-140, 0], [-110, -60], [-60, -96], [-10, -84], [40, -120], [100, -88], [140, -40], [140, 0]];
-      blob(far, Fr.mid);
-      inside(far, () => { P([[-60, -100], [-30, -40], [-20, 0], [-4, 0], [-10, -84]], Fr.dark); P([[40, -124], [60, -40], [70, 0], [150, 0], [150, -40], [100, -92]], Fr.dark); P([[-150, -20], [-110, -64], [-60, -100], [-90, -40]], Fr.lit); P([[-10, -88], [40, -124], [20, -60]], Fr.lit); });
-      const near = [[-140, 0], [-90, -36], [-40, -48], [20, -40], [80, -56], [140, -20], [140, 0]];
-      blob(near, Nr.mid);
-      inside(near, () => { P([[-40, -52], [-10, 0], [20, 0], [20, -40]], Nr.dark); P([[80, -60], [100, 0], [150, 0], [150, -20]], Nr.dark); });
-      [-110, -64, -24, 34, 66, 112].forEach((x, i) => {   // 나무: 볕 쪽 반, 그늘 쪽 반
-        const h = 20 + hash(i, 5) * 14, y = -30 - hash(i, 6) * 10;
-        P([[x, y - h], [x - 6, y], [x, y]], Tr.mid); P([[x, y - h], [x, y], [x + 6, y]], Tr.dark);
-      });
-      const rock = [[22, -120], [30, -126], [46, -124], [52, -116], [18, -114]];
-      blob(rock, Rk.mid); inside(rock, () => { P([[16, -118], [28, -130], [38, -126], [30, -119]], Rk.lit); P([[42, -130], [56, -130], [56, -110], [40, -112]], Rk.dark); });
-      at(36, -122, () => { ctx.scale(.42, .42); silhouetteHowl(t); });
-      const p = (time * .6) % 1;
-      faded(1 - p, () => [0, 1, 2].forEach((i) => { ctx.strokeStyle = t('#ffffff'); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(45, -142, 6 + i * 6 + p * 10, -2.4, -1.2); ctx.stroke(); }));
-    }) },
 
     /* S1 산자락 바위 밑 굴, 방수포 조각과 굴 속에서 빛나는 눈 */
     'dog:hillDen': { w: 100, h: 62, d: (time, t) => {
@@ -601,14 +647,6 @@
     flat(() => faded(.3, () => E(-4, -3, 20, 3, t(shade(coat.fur)))));
     flat(() => faded(.45, () => E(-12, -18 - br, 10, 2.6, t(lite(coat.fur, .3)))));
     at(0, 2 - br * .5, () => drawDogHead(time + seed, t, coat, { sleepy: seed > 1, fold: seed < 1 }, 22, -22));
-  }
-
-  function silhouetteHowl(t) {
-    const c = t('#2a2535');
-    blob([[-26, -20], [-10, -30], [10, -30], [22, -36], [30, -58], [40, -62], [38, -48], [28, -28], [20, -18], [-20, -16]], c);
-    [[-18, -18], [-10, -18], [12, -18], [18, -18]].forEach(([x, y]) => RR(x, y, 4, 18, 2, c));
-    curve([[-24, -24], [-34, -34], [-30, -44]], c, 5);
-    P([[28, -60], [30, -72], [34, -62]], c);
   }
 
   function excavator(time, t) {
