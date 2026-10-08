@@ -3,7 +3,7 @@ const TONE_DAY = .14, TONE_NIGHT = .5;
 const GROUND_LAYERS = Object.freeze([[.34, .1, 13], [.68, .2, 17]]);
 /* 밤 가로등: 빛 기둥 두 겹과 바닥 빛 웅덩이 두 겹의 진하기 */
 const LAMP_CONE = Object.freeze([.12, .1]), LAMP_POOL = Object.freeze([.22, .2]), LAMP_AHEAD = .42;
-const PORTRAIT_RATIO = .9;
+const PORTRAIT_RATIO = .9, PORTRAIT_TALL = 1.25;
 
 /** 화면 1cm가 몇 px인지. 세로로 긴 휴대폰 화면에서도 동물이 너무 작아지지 않게, 화면 폭과 높이 중 큰 쪽을 기준으로 잡는다 */
 const scaleFor = (sp) => Math.max(W, H * PORTRAIT_RATIO) / (sp ? sp.viewCm : DEFAULT_VIEW_CM);
@@ -436,7 +436,8 @@ function drawSplit(v, s, g, bx, layer, shade = true) {
 function drawScene(v, sp, dt) {
   const s = scaleFor(sp);
   const eye = sp ? sp.eye : DEFAULT_EYE;
-  const g = clamp(H * .5 + eye * s, H * .56, H * .78);
+  // 세로로 긴 휴대폰 화면은 아래쪽을 선택 카드가 덮으므로, 땅과 인물을 화면 위쪽 절반으로 올린다
+  const g = H > W * PORTRAIT_TALL ? clamp(H * .32 + eye * s, H * .42, H * .5) : clamp(H * .5 + eye * s, H * .56, H * .78);
   lastFrame = { s, g };
   const bx = v.trans ? (v.trans.boundaryX - v.camX) * s : -1;
   if (v.trans && bx < -SEAM_SHADE) v.trans = null;
