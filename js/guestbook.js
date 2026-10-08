@@ -189,18 +189,45 @@ function linkedinLink() {
   return h('a', { class: 'support-link linkedin', href: SUPPORT.linkedin, target: '_blank', rel: 'noopener noreferrer', 'aria-label': tx('support.linkedin'), title: tx('support.linkedin') }, svg);
 }
 
+/* 영어판 후원: 해외에서는 카카오페이를 못 쓰므로 EVM 지갑 주소. PC는 QR, 휴대폰은 주소 복사와 '지갑 앱으로 열기'(보조) */
+const EVM_RE = /^0x[0-9a-fA-F]{40}$/;
+
+function copyText(text, button) {
+  const done = (ok) => { button.textContent = tx(ok ? 'support.copied' : 'support.copyFail'); setTimeout(() => { button.textContent = tx('support.copy'); }, 1800); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => done(true), () => done(false));
+  else done(false);
+}
+
+function evmSupport() {
+  const addr = SUPPORT.evm;
+  if (!EVM_RE.test(addr || '')) return null;
+  const code = h('code', { class: 'evm-addr' }, addr);
+  const copy = h('button', { type: 'button', class: 'support-link evm-copy', onclick: () => copyText(addr, copy) }, tx('support.copy'));
+  return h('div', { class: 'evm' },
+    SUPPORT.evmQr ? h('img', { class: 'evm-qr', src: SUPPORT.evmQr, width: '200', height: '200', alt: tx('support.evmQrAlt'), loading: 'lazy' }) : null,
+    h('div', { class: 'evm-side' },
+      h('span', { class: 'evm-label' }, tx('support.evmLabel')),
+      code,
+      h('div', { class: 'evm-actions' }, copy, h('a', { class: 'support-link evm-open', href: `ethereum:${addr}` }, tx('support.openWallet'))),
+      h('span', { class: 'evm-note' }, tx('support.evmNote'))));
+}
+
 function setupSupport() {
-  const links = supportLinks(), toggle = $('supportToggle'), box = $('support');
-  if (!links.length) return;
+  const english = LANG === 'en';
+  const links = english ? [] : supportLinks(), toggle = $('supportToggle'), box = $('support');
+  const evm = english ? evmSupport() : null;
+  if (!links.length && !evm) return;
   toggle.hidden = false;
   const anchors = links.map(([key, label]) =>
     h('a', { class: `support-link ${key}`, href: SUPPORT[key], target: '_blank', rel: 'noopener noreferrer' }, tx(label)));
   const qr = kakaopayQr(anchors.find((a) => a.classList.contains('kakaopay')));
-  box.replaceChildren(
+  // replaceChildren은 null을 글자 'null'로 넣으므로 없는 조각은 걸러 낸다
+  box.replaceChildren(...[
     h('p', null, tx('support.intro')),
+    evm,
     h('div', { class: 'support-links' }, anchors, linkedinLink()),
     qr,
-  );
+  ].filter(Boolean));
   toggle.addEventListener('click', () => {
     const open = box.hidden;
     box.hidden = !open;

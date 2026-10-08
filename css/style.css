@@ -384,8 +384,23 @@ button { font: inherit; color: inherit; }
 
 /* 홈 맨 위 언어 전환 (English ver. / 한국어) */
 .lang-switch {
-  position: fixed; z-index: 4; top: calc(14px + env(safe-area-inset-top, 0px)); left: 50%; translate: -50% 0; rotate: -1deg;
+  position: relative; z-index: 4; justify-self: center; margin-bottom: 6px; rotate: -1deg;
   border: 0; cursor: pointer; padding: 5px 12px 4px; font-family: var(--f-small); font-size: 12px;
   background: var(--paper); color: var(--ink); filter: drop-shadow(0 2px 0 rgba(59, 48, 73, .25));
 }
 .lang-switch:hover, .lang-switch:focus-visible { background: var(--ink); color: var(--paper); outline: none; }
+
+/* 영어판 후원: EVM 주소. PC는 QR + 주소, 휴대폰은 QR 대신 '지갑 앱으로 열기' */
+.evm { display: flex; gap: 14px; align-items: flex-start; }
+.evm-qr { flex: none; width: 132px; height: 132px; image-rendering: pixelated; }
+.evm-side { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.evm-label { font-family: var(--f-small); font-size: 11px; letter-spacing: .06em; color: var(--pink-deep); text-transform: uppercase; }
+.evm-addr { font-family: "Courier Prime", "Courier New", monospace; font-size: 13px; line-height: 1.45; word-break: break-all; user-select: all; background: var(--paper-2); padding: 6px 8px; }
+.evm-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.evm-actions .support-link { flex: 0 1 auto; background: #ffe680; border: 0; cursor: pointer; font: inherit; }
+.evm-note { font-family: var(--f-small); font-size: 11px; line-height: 1.5; color: var(--dim); }
+.evm-open { display: none; }
+@media (hover: none) and (pointer: coarse) {
+  .evm-qr { display: none; }
+  .evm-open { display: inline-block; background: var(--paper-2) !important; }
+}

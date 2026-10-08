@@ -124,6 +124,13 @@ registerUiText('en', {
   'support.toss': 'Support with Toss',
   'support.qrAlt': 'KakaoPay transfer QR code',
   'support.linkedin': 'The maker’s LinkedIn',
+  'support.evmLabel': 'EVM address',
+  'support.evmQrAlt': 'QR code of the EVM wallet address',
+  'support.copy': 'Copy address',
+  'support.copied': 'Copied!',
+  'support.copyFail': 'Select and copy it',
+  'support.openWallet': 'Open in wallet app',
+  'support.evmNote': 'Works on any EVM network: Ethereum, Base, Arbitrum, Optimism, Polygon. Please double-check the network before sending.',
   'support.intro': 'The world is a mess, and I don’t know what tomorrow brings. Still, I’m a designer who makes this and that. For the record, I really, really love iced lattes.',
 });
 

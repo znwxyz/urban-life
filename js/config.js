@@ -11,6 +11,9 @@ const SUPPORT = Object.freeze({
   kakaopayQr: 'assets/kakaopay-qr.png',
   /* 제작자 소개: 송금 버튼 오른쪽 정사각형 버튼 */
   linkedin: 'https://www.linkedin.com/in/jinyuahn',
+  /* 영어판 후원: EVM 지갑 주소(받는 주소라 공개돼도 된다). EIP-55 체크섬 확인함. QR은 같은 주소를 담은 그림 */
+  evm: '0xC66cA0C21Bf179D00EcE779d9657073e8399f130',
+  evmQr: 'assets/evm-qr.png',
 });
 
 const GUESTBOOK = Object.freeze({
