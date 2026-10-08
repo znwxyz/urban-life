@@ -129,8 +129,8 @@ button { font: inherit; color: inherit; }
 .fx-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .home-panels { display: flex; flex-direction: column; align-items: center; gap: 22px; }
 .home-panels:not(:has(> :not([hidden]))) { display: none; }
-.picker-title, .pick-grid, .home-hint, .home-actions, .home-panels, .direct-pick, .album-pick, .cover-title, .cover-en, .cover-langs { filter: url(#tvJitter); }
-@media (prefers-reduced-motion: reduce) { .picker-title, .pick-grid, .home-hint, .home-actions, .home-panels, .direct-pick, .album-pick, .cover-title, .cover-en, .cover-langs { filter: none; } }
+.picker-title, .pick-grid, .home-hint, .home-actions, .home-panels, .direct-pick, .album-pick, .lang-pick, .cover-title, .cover-en, .cover-langs { filter: url(#tvJitter); }
+@media (prefers-reduced-motion: reduce) { .picker-title, .pick-grid, .home-hint, .home-actions, .home-panels, .direct-pick, .album-pick, .lang-pick, .cover-title, .cover-en, .cover-langs { filter: none; } }
 .home-hint {
   margin: -8px 0 0; padding: 4px 10px 3px; font-family: var(--f-small); font-size: 12px;
   color: var(--paper); background: rgba(59, 48, 73, .55); rotate: .6deg;
@@ -412,3 +412,8 @@ button { font: inherit; color: inherit; }
   .evm-qr { display: none; }
   .evm-open { display: inline-block; background: var(--paper-2) !important; }
 }
+
+/* 홈 왼쪽 위 언어 전환 글자 (오른쪽 아래 '캐릭터 직접 고르기'와 같은 모양) */
+.lang-pick { position: fixed; z-index: 4; left: 16px; top: calc(14px + env(safe-area-inset-top, 0px)); }
+.lang-pick button[lang="en"] { font-family: "Courier Prime", "Courier New", monospace; }
+.lang-pick button[lang="ko"] { font-family: "New Gulim", "새굴림", "NewGulim", "Galmuri11", sans-serif; }

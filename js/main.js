@@ -83,6 +83,14 @@ function showCover() {
   // 버튼에 미리 포커스를 주지 않는다: 포커스된 쪽만 색이 바뀌어 한쪽만 눌린 것처럼 보인다
 }
 
+/** 홈 왼쪽 위: 다른 언어로 가는 글자 버튼 (표지에서 잘못 골랐을 때) */
+function setupLangToggle() {
+  const btn = $('langToggle'), other = LANG === 'en' ? 'ko' : 'en';
+  btn.textContent = other === 'en' ? 'English ver.' : '한국어';
+  btn.lang = other;
+  btn.addEventListener('click', () => { markCoverSeen(); switchLang(other); });
+}
+
 function setupCover() {
   $('cover').querySelectorAll('[data-lang]').forEach((btn) => btn.addEventListener('click', () => {
     markCoverSeen();
@@ -295,7 +303,7 @@ function frame(now) {
 window.claude?.hot?.snapshot?.(() => ({ run, phase }));
 function boot(data) {
   applyStaticText();
-  setupCover();
+  setupCover(); setupLangToggle();
   resizeStage(); resizeFx(); setupWall(); setupSupport(); setupDirectPick(); setupMemory(); setupAlbum();
   addEventListener('resize', () => { resizeStage(); resizeFx(); });
   requestAnimationFrame(frame);
