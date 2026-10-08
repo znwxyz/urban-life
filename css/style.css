@@ -122,6 +122,12 @@ button { font: inherit; color: inherit; }
 .species:hover, .species:focus-visible { translate: 0 -4px; outline: none; }
 /* 홈 화면 버튼들과 제작자 응원 쪽지 */
 .home-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+/* 홈 화면 종이 조각들: 옛날 브라운관처럼 픽셀 단위로 미세하게 떨린다 (index.html의 #tvJitter) */
+.fx-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+.home-panels { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+.home-panels:not(:has(> :not([hidden]))) { display: none; }
+.picker-title, .pick-grid, .home-actions, .home-panels, .direct-pick { filter: url(#tvJitter); }
+@media (prefers-reduced-motion: reduce) { .picker-title, .pick-grid, .home-actions, .home-panels, .direct-pick { filter: none; } }
 .support-toggle {
   border: 0; cursor: pointer; padding: 8px 16px 7px; background: var(--pink); color: var(--paper); rotate: 1.2deg;
   transition: background .12s, translate .12s;

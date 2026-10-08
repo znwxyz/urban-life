@@ -6,7 +6,7 @@
 <title>도시에서 태어나기</title>
 <meta name="description" content="도시의 동물로 랜덤하게 태어나, 주택가와 도심과 공원 사이에서 끝까지 살아남는 선택형 게임.">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri@2.40.3/dist/galmuri.css">
-<link rel="stylesheet" href="css/style.css?v=202610081024">
+<link rel="stylesheet" href="css/style.css?v=202610081212">
 </head>
 <body>
 <main class="app">
@@ -22,6 +22,13 @@
     </div>
     <div class="scale"><i id="scaleBar"></i><span id="scaleLabel"></span></div>
   </header>
+  <!-- 홈 화면 종이 조각이 옛날 브라운관처럼 픽셀 단위로 미세하게 떨리는 필터. 노이즈 씨앗을 main.js가 계속 바꾼다 -->
+  <svg class="fx-defs" width="0" height="0" aria-hidden="true" focusable="false">
+    <filter id="tvJitter" x="-2%" y="-2%" width="104%" height="104%">
+      <feTurbulence id="tvJitterNoise" type="fractalNoise" baseFrequency="0.85" numOctaves="1" seed="1" result="noise" />
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.2" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+  </svg>
   <section class="picker" id="picker" hidden aria-labelledby="pickerTitle">
     <h1 class="picker-title" id="pickerTitle"><span class="kicker">도시의 바닥,</span><span class="tag main">누구로 살아볼래?</span></h1>
     <div class="pick-grid" id="pickGrid"></div>
@@ -29,8 +36,10 @@
       <button class="wall-toggle" id="wallToggle" aria-expanded="false" aria-controls="wall">방명록 모아보기 ▼</button>
       <button class="support-toggle" id="supportToggle" aria-expanded="false" aria-controls="support" hidden>제작자 응원하기</button>
     </div>
-    <section class="support" id="support" hidden aria-label="제작자 응원하기"></section>
-    <section class="wall" id="wall" hidden aria-label="방명록 모아보기"></section>
+    <div class="home-panels">
+      <section class="support" id="support" hidden aria-label="제작자 응원하기"></section>
+      <section class="wall" id="wall" hidden aria-label="방명록 모아보기"></section>
+    </div>
     <nav class="direct-pick" aria-label="캐릭터 직접 고르기">
       <ul class="direct-list" id="directList" hidden></ul>
       <button class="direct-toggle" id="directToggle" aria-expanded="false" aria-controls="directList">캐릭터 직접 고르기 ▴</button>
@@ -51,48 +60,48 @@
   <div class="fx-layer" id="fxLayer" aria-hidden="true"></div>
 </main>
 
-<script src="js/core/color.js?v=202610081024"></script>
-<script src="js/core/engine.js?v=202610081024"></script>
-<script src="js/core/note.js?v=202610081024"></script>
-<script src="js/data/scenes.js?v=202610081024"></script>
-<script src="js/data/cast.js?v=202610081024"></script>
-<script src="js/data/registry.js?v=202610081024"></script>
-<script src="js/data/species/cat.js?v=202610081024"></script>
-<script src="js/data/species/cockroach.js?v=202610081024"></script>
-<script src="js/data/species/pigeon.js?v=202610081024"></script>
-<script src="js/data/species/fly.js?v=202610081024"></script>
-<script src="js/data/species/sparrow.js?v=202610081024"></script>
-<script src="js/data/species/cicada.js?v=202610081024"></script>
-<script src="js/data/species/mosquito.js?v=202610081024"></script>
-<script src="js/data/species/mouse.js?v=202610081024"></script>
-<script src="js/data/species/dog.js?v=202610081024"></script>
-<script src="js/render/paper.js?v=202610081024"></script>
-<script src="js/render/forms.js?v=202610081024"></script>
-<script src="js/render/items-outdoor.js?v=202610081024"></script>
-<script src="js/render/items-yard.js?v=202610081024"></script>
-<script src="js/render/items-street.js?v=202610081024"></script>
-<script src="js/render/items-indoor.js?v=202610081024"></script>
-<script src="js/render/items-kitchen.js?v=202610081024"></script>
-<script src="js/render/animals.js?v=202610081024"></script>
-<script src="js/render/actors-people.js?v=202610081024"></script>
-<script src="js/render/actors-animals.js?v=202610081024"></script>
-<script src="js/render/hands-twemoji.js?v=202610081024"></script>
-<script src="js/render/art/cat.js?v=202610081024"></script>
-<script src="js/render/art/cockroach.js?v=202610081024"></script>
-<script src="js/render/art/pigeon.js?v=202610081024"></script>
-<script src="js/render/art/fly.js?v=202610081024"></script>
-<script src="js/render/art/sparrow.js?v=202610081024"></script>
-<script src="js/render/art/cicada.js?v=202610081024"></script>
-<script src="js/render/art/mosquito.js?v=202610081024"></script>
-<script src="js/render/art/mouse.js?v=202610081024"></script>
-<script src="js/render/art/dog.js?v=202610081024"></script>
-<script src="js/render/backdrop.js?v=202610081024"></script>
-<script src="js/render/scene.js?v=202610081024"></script>
-<script src="js/render/blood.js?v=202610081024"></script>
-<script src="js/ui.js?v=202610081024"></script>
-<script src="js/fx.js?v=202610081024"></script>
-<script src="js/config.js?v=202610081024"></script>
-<script src="js/guestbook.js?v=202610081024"></script>
-<script src="js/main.js?v=202610081024"></script>
+<script src="js/core/color.js?v=202610081212"></script>
+<script src="js/core/engine.js?v=202610081212"></script>
+<script src="js/core/note.js?v=202610081212"></script>
+<script src="js/data/scenes.js?v=202610081212"></script>
+<script src="js/data/cast.js?v=202610081212"></script>
+<script src="js/data/registry.js?v=202610081212"></script>
+<script src="js/data/species/cat.js?v=202610081212"></script>
+<script src="js/data/species/cockroach.js?v=202610081212"></script>
+<script src="js/data/species/pigeon.js?v=202610081212"></script>
+<script src="js/data/species/fly.js?v=202610081212"></script>
+<script src="js/data/species/sparrow.js?v=202610081212"></script>
+<script src="js/data/species/cicada.js?v=202610081212"></script>
+<script src="js/data/species/mosquito.js?v=202610081212"></script>
+<script src="js/data/species/mouse.js?v=202610081212"></script>
+<script src="js/data/species/dog.js?v=202610081212"></script>
+<script src="js/render/paper.js?v=202610081212"></script>
+<script src="js/render/forms.js?v=202610081212"></script>
+<script src="js/render/items-outdoor.js?v=202610081212"></script>
+<script src="js/render/items-yard.js?v=202610081212"></script>
+<script src="js/render/items-street.js?v=202610081212"></script>
+<script src="js/render/items-indoor.js?v=202610081212"></script>
+<script src="js/render/items-kitchen.js?v=202610081212"></script>
+<script src="js/render/animals.js?v=202610081212"></script>
+<script src="js/render/actors-people.js?v=202610081212"></script>
+<script src="js/render/actors-animals.js?v=202610081212"></script>
+<script src="js/render/hands-twemoji.js?v=202610081212"></script>
+<script src="js/render/art/cat.js?v=202610081212"></script>
+<script src="js/render/art/cockroach.js?v=202610081212"></script>
+<script src="js/render/art/pigeon.js?v=202610081212"></script>
+<script src="js/render/art/fly.js?v=202610081212"></script>
+<script src="js/render/art/sparrow.js?v=202610081212"></script>
+<script src="js/render/art/cicada.js?v=202610081212"></script>
+<script src="js/render/art/mosquito.js?v=202610081212"></script>
+<script src="js/render/art/mouse.js?v=202610081212"></script>
+<script src="js/render/art/dog.js?v=202610081212"></script>
+<script src="js/render/backdrop.js?v=202610081212"></script>
+<script src="js/render/scene.js?v=202610081212"></script>
+<script src="js/render/blood.js?v=202610081212"></script>
+<script src="js/ui.js?v=202610081212"></script>
+<script src="js/fx.js?v=202610081212"></script>
+<script src="js/config.js?v=202610081212"></script>
+<script src="js/guestbook.js?v=202610081212"></script>
+<script src="js/main.js?v=202610081212"></script>
 </body>
 </html>
