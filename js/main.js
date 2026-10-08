@@ -83,7 +83,7 @@ function startJitter() {
 
 /** 처음 화면: 어떤 동물로 태어날지 모르는 카드 한 장. 누르면 룰렛이 돌아 동물이 정해진다 */
 function showPicker() {
-  clearTimeout(moveTimer); clearTimeout(rouletteTimer);
+  clearTimeout(moveTimer); clearTimeout(rouletteTimer); closeMemory();
   run = null; phase = 'picker';
   clearDeath(); stopIris(); closeWall();
   updateHud(null, null); hideCaption(); hideCard();
@@ -144,6 +144,7 @@ function spinRoulette(btn, name) {
 
 function revealBirth(key) {
   const sp = SPECIES[key];
+  closeMemory();
   clearTimeout(moveTimer); clearTimeout(rouletteTimer); stopJitter(); $('picker').hidden = true;
   run = newRun(sp); phase = 'birth';
   clearDeath();
@@ -238,10 +239,12 @@ function showEnding() {
       h('h2', null, end.title),
       h('p', { class: 'result' }, end.line),
       h('p', { class: 'meta' }, `생후 ${durLabel(run.day)} · ${end.cause}${run.kids ? ` · 남긴 ${sp.kidUnit} ${run.kids}` : ''}`),
+      end.kind === 'happy' ? memoryButton(sp.key) : null,
     ],
     top: guestbookSection(sp, run.ending, run.day),
     choices: [{ label: `${sp.name}로 다시`, act: () => revealBirth(sp.key) }, { label: '다른 동물 고르기', act: showPicker }],
   });
+  if (end.kind === 'happy') { preloadMemory(sp.key); scheduleMemory(sp.key); }
 }
 
 let last = performance.now();
@@ -263,7 +266,7 @@ function frame(now) {
 /* 시작. 뷰어가 페이지를 갱신해도 진행 중인 판을 이어 간다 */
 window.claude?.hot?.snapshot?.(() => ({ run, phase }));
 function boot(data) {
-  resizeStage(); resizeFx(); setupWall(); setupSupport(); setupDirectPick();
+  resizeStage(); resizeFx(); setupWall(); setupSupport(); setupDirectPick(); setupMemory();
   addEventListener('resize', () => { resizeStage(); resizeFx(); });
   requestAnimationFrame(frame);
   const saved = data && data.run;
